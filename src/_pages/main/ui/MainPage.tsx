@@ -9,8 +9,8 @@ export const metadata: Metadata = {
 };
 
 const LETTER_ROWS = [
-  { word: 'PROJECT', className: styles.rowLarge },
-  { word: 'ZERO', className: styles.rowMedium },
+  { word: 'project', className: styles.rowLarge },
+  { word: 'zero', className: styles.rowMedium },
   { word: '0', className: styles.rowSmall },
 ];
 

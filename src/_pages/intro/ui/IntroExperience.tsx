@@ -96,14 +96,14 @@ export function IntroExperience() {
       <div className={styles.scrim} aria-hidden="true" />
 
       <header className={styles.brand}>
-        <span lang="en">Project Zero</span>
+        <span lang="en">project zero</span>
       </header>
 
       <main className={styles.story}>
         <section className={styles.chapter} style={lengthStyle(HERO_LENGTH)} data-chapter>
           <div className={`${styles.sticky} ${styles.hero}`}>
             <h1 className={styles.title} lang="en">
-              <span className={styles.titleLead}>Project</span>
+              <span className={styles.titleLead}>project</span>
               <span className={styles.titleZero}>zero</span>
             </h1>
             <p className={styles.tagline}>신화에서 우주 전쟁까지, 프로젝트 제로</p>
@@ -116,7 +116,7 @@ export function IntroExperience() {
 
         {CHAPTERS.map((chapter) => (
           <section key={chapter.id} className={styles.chapter} style={lengthStyle(chapter.length)} data-chapter>
-            <div className={styles.sticky}>
+            <div className={chapter.placement === 'bottom' ? `${styles.sticky} ${styles.bottom}` : styles.sticky}>
               <div className={styles.copy}>
                 <p className={styles.accent} lang="en" aria-hidden="true">
                   {chapter.accent}

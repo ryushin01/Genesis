@@ -62,7 +62,7 @@ export function sampleTimeline(progress: number, aspect = 16 / 10): SceneState {
     fov: lerp(a.fov, b.fov, t),
     flap: lerp(0.35, 1, smoothstep(0, 0.3, p)) * (1 - smoothstep(0.84, 0.94, p)),
     burn: smoothstep(0.58, 0.74, p),
-    morph: smoothstep(0.82, 0.98, p),
+    morph: smoothstep(0.8, 0.93, p),
     sun: smoothstep(0.14, 0.3, p) * (1 - smoothstep(0.42, 0.54, p)),
     cosmos: smoothstep(0.38, 0.54, p),
     war: smoothstep(0.6, 0.74, p),

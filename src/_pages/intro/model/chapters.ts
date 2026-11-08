@@ -5,6 +5,8 @@ export interface Chapter {
   lines: readonly string[];
   /** 스크롤 길이(svh). */
   length: number;
+  /** 밝은 장면을 가리지 않도록 글을 화면 아래에 둡니다. */
+  placement?: 'bottom';
 }
 
 /** 작가의 작품 요약에서만 뽑은 초안 문구입니다. 소설 자료가 오면 이 파일만 바꿉니다. */
@@ -12,7 +14,7 @@ export const CHAPTERS: readonly Chapter[] = [
   { id: 'many', accent: 'myths', lines: ['신화는 하나가 아니다.'], length: 260 },
   { id: 'entangle', accent: 'entangled', lines: ['서로 다른 신화들이', '하나의 이야기로 얽힌다.'], length: 280 },
   { id: 'cosmos', accent: 'cosmos', lines: ['그 무대는 지구를 벗어나', '우주적 규모로 확대되고,'], length: 300 },
-  { id: 'war', accent: 'war', lines: ['마침내', 'SF 전쟁으로 이어진다.'], length: 340 },
+  { id: 'war', accent: 'war', lines: ['마침내', 'SF 전쟁으로 이어진다.'], length: 340, placement: 'bottom' },
 ];
 
 export const HERO_LENGTH = 200;

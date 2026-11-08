@@ -7,6 +7,7 @@ describe('buildPhoenix', () => {
     expect(data.count).toBeGreaterThan(500);
     expect(data.matrices).toHaveLength(data.count * 16);
     expect(data.meta).toHaveLength(data.count * 4);
+    expect(data.shade).toHaveLength(data.count);
   });
 
   it('밀도를 높이면 깃털이 늘어난다', () => {

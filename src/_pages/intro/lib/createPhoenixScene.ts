@@ -21,6 +21,7 @@ import {
   WebGLRenderer,
 } from 'three';
 import { sampleTimeline } from '../model/timeline';
+import { buildFlameStrands } from './buildFlameStrands';
 import { buildPhoenix } from './buildPhoenix';
 import {
   backgroundFragment,
@@ -31,6 +32,8 @@ import {
   featherVertex,
   fleetFragment,
   fleetVertex,
+  strandFragment,
+  strandVertex,
 } from './shaders';
 
 export interface PhoenixScene {
@@ -104,7 +107,48 @@ export function createPhoenixScene(canvas: HTMLCanvasElement): PhoenixScene {
   bird.instanceMatrix.copyArray(phoenix.matrices);
   bird.instanceMatrix.needsUpdate = true;
   featherGeometry.setAttribute('aMeta', new InstancedBufferAttribute(phoenix.meta, 4));
+  featherGeometry.setAttribute('aShade', new InstancedBufferAttribute(phoenix.shade, 1));
   bird.frustumCulled = false;
+
+  const strands = buildFlameStrands(phoenix, compact ? 1 : 2);
+  const strandUniforms = {
+    uTime: uniforms.uTime,
+    uFlap: uniforms.uFlap,
+    uMorph: uniforms.uMorph,
+    uFlame: uniforms.uBurn,
+  };
+  const strandSegments = 24;
+  const strandPositions: number[] = [];
+  const strandIndex: number[] = [];
+  for (let j = 0; j <= strandSegments; j += 1) {
+    const t = j / strandSegments;
+    strandPositions.push(-0.5, t, 0, 0.5, t, 0);
+    if (j < strandSegments) {
+      const a = j * 2;
+      strandIndex.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
+    }
+  }
+  const strandGeometry = new InstancedBufferGeometry();
+  strandGeometry.setAttribute('position', new BufferAttribute(new Float32Array(strandPositions), 3));
+  strandGeometry.setIndex(strandIndex);
+  strandGeometry.setAttribute('aBase', new InstancedBufferAttribute(strands.base, 3));
+  strandGeometry.setAttribute('aDir', new InstancedBufferAttribute(strands.dir, 3));
+  strandGeometry.setAttribute('aParams', new InstancedBufferAttribute(strands.params, 4));
+  strandGeometry.setAttribute('aWing', new InstancedBufferAttribute(strands.wing, 2));
+  strandGeometry.instanceCount = strands.count;
+  const flameStrands = new Mesh(
+    strandGeometry,
+    new ShaderMaterial({
+      uniforms: strandUniforms,
+      vertexShader: strandVertex,
+      fragmentShader: strandFragment,
+      transparent: true,
+      depthWrite: false,
+      side: DoubleSide,
+      blending: AdditiveBlending,
+    }),
+  );
+  flameStrands.frustumCulled = false;
 
   const fleetUniforms = { uTime: uniforms.uTime, uWar: { value: 0 } };
   const fleetCount = compact ? 40 : 76;
@@ -153,7 +197,7 @@ export function createPhoenixScene(canvas: HTMLCanvasElement): PhoenixScene {
   embers.frustumCulled = false;
 
   const scene = new Scene();
-  scene.add(fleet, bird, embers);
+  scene.add(fleet, bird, flameStrands, embers);
   const maskScene = new Scene();
   const camera = new PerspectiveCamera(45, 1, 0.1, 100);
 
@@ -287,6 +331,8 @@ export function createPhoenixScene(canvas: HTMLCanvasElement): PhoenixScene {
       window.removeEventListener('resize', resize);
       featherGeometry.dispose();
       featherMaterial.dispose();
+      strandGeometry.dispose();
+      flameStrands.material.dispose();
       fleetGeometry.dispose();
       fleet.material.dispose();
       emberGeometry.dispose();

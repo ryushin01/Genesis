@@ -7,6 +7,8 @@ export interface PhoenixData {
   matrices: Float32Array;
   /** 인스턴스마다 [날개 방향, 날개 끝 쪽 위치, 난수, 고리 위 각도]. */
   meta: Float32Array;
+  /** 인스턴스마다 깃털 층의 밝기(0~1). 층이 겹쳐 보이게 합니다. */
+  shade: Float32Array;
 }
 
 type Random = () => number;
@@ -29,6 +31,7 @@ interface Feather {
   length: number;
   side: number;
   span: number;
+  shade: number;
 }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -36,17 +39,17 @@ const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 function wingFeathers(density: number, random: Random, out: Feather[]) {
   const arm = new CatmullRomCurve3([
     new Vector3(0.2, 0.42, 0.02),
-    new Vector3(0.95, 1.3, -0.12),
-    new Vector3(1.85, 1.72, 0.04),
-    new Vector3(3.05, 2.02, 0),
-    new Vector3(3.8, 2.42, -0.05),
+    new Vector3(0.85, 1.42, -0.12),
+    new Vector3(1.6, 2.05, 0.04),
+    new Vector3(2.9, 2.35, 0),
+    new Vector3(3.9, 2.95, -0.05),
   ]);
 
   const rows = [
-    { count: 70, reach: 1, width: 0.31, offset: 0, z: 0 },
-    { count: 96, reach: 0.62, width: 0.25, offset: 0.02, z: 0.05 },
-    { count: 150, reach: 0.38, width: 0.19, offset: 0.03, z: 0.1 },
-    { count: 270, reach: 0.2, width: 0.13, offset: 0.02, z: 0.15 },
+    { count: 70, reach: 1, width: 0.31, offset: 0, z: 0, shade: 0 },
+    { count: 96, reach: 0.62, width: 0.25, offset: 0.02, z: 0.05, shade: 0.35 },
+    { count: 150, reach: 0.38, width: 0.19, offset: 0.03, z: 0.1, shade: 0.6 },
+    { count: 270, reach: 0.2, width: 0.13, offset: 0.02, z: 0.15, shade: 0.85 },
   ];
 
   rows.forEach((row, rowIndex) => {
@@ -61,6 +64,8 @@ function wingFeathers(density: number, random: Random, out: Feather[]) {
       if (rowIndex > 0) point.y -= (random() * 0.26 * reach) / row.reach / 3;
       point.addScaledVector(dir, row.offset * reach);
       point.z += row.z + (random() - 0.5) * 0.03;
+      // 날개 끝의 첫째 칼깃은 가늘게 해서 손가락처럼 벌어지게 합니다.
+      const fingers = rowIndex === 0 ? lerp(1, 0.55, Math.max(0, (u - 0.68) / 0.32)) : 1;
       const tilt = (random() - 0.5) * 0.55;
       const normal = new Vector3(tilt, (random() - 0.5) * 0.35, 1).normalize();
 
@@ -69,10 +74,11 @@ function wingFeathers(density: number, random: Random, out: Feather[]) {
           base: new Vector3(point.x * side, point.y, point.z),
           dir: new Vector3(dir.x * side, dir.y, dir.z),
           normal: new Vector3(normal.x * side, normal.y, normal.z),
-          width: row.width * lerp(0.85, 1.1, random()),
+          width: row.width * lerp(0.85, 1.1, random()) * fingers,
           length: reach,
           side,
           span: u,
+          shade: row.shade,
         });
       }
     }
@@ -100,7 +106,7 @@ function bodyFeathers(density: number, random: Random, out: Feather[]) {
     const r = radius(v);
     const base = center.clone().addScaledVector(normal, r);
     const dir = tangent.clone().addScaledVector(normal, 0.32).normalize();
-    out.push({ base, dir, normal, width: 0.12 + r * 0.2, length: 0.22 + r * 0.5, side: 0, span: 0.1 });
+    out.push({ base, dir, normal, width: 0.12 + r * 0.2, length: 0.22 + r * 0.5, side: 0, span: 0.1, shade: 0.5 });
   }
 
   // 머리
@@ -111,36 +117,38 @@ function bodyFeathers(density: number, random: Random, out: Feather[]) {
     const normal = new Vector3(Math.sin(phi) * Math.cos(theta), Math.sin(theta), Math.cos(phi) * Math.cos(theta));
     const base = skull.clone().addScaledVector(normal, 0.17);
     const dir = new Vector3(normal.x * 0.3, -0.75, normal.z * 0.3 - 0.35).normalize();
-    out.push({ base, dir, normal, width: 0.1, length: 0.24, side: 0, span: 0.8 });
+    out.push({ base, dir, normal, width: 0.1, length: 0.24, side: 0, span: 0.8, shade: 0.7 });
   }
 
   // 부리와 볏
   out.push({
-    base: new Vector3(0, 1.66, 0.46),
-    dir: new Vector3(0, -0.5, 1).normalize(),
-    normal: new Vector3(0, 1, 0.5).normalize(),
-    width: 0.1,
-    length: 0.42,
+    base: new Vector3(0, 1.62, 0.46),
+    dir: new Vector3(0, -0.75, 0.66).normalize(),
+    normal: new Vector3(0, 0.66, 0.75).normalize(),
+    width: 0.12,
+    length: 0.38,
     side: 0,
     span: 0.95,
+    shade: 1,
   });
-  for (let i = 0; i < 11; i += 1) {
-    const t = i / 10 - 0.5;
+  for (let i = 0; i < 7; i += 1) {
+    const t = i / 6 - 0.5;
     out.push({
-      base: new Vector3(t * 0.1, 1.72, 0.26),
-      dir: new Vector3(t * 1.5, 1, -0.65).normalize(),
+      base: new Vector3(t * 0.12, 1.74, 0.2),
+      dir: new Vector3(t * 0.8, 1, -0.75).normalize(),
       normal: new Vector3(0, 0.5, 1).normalize(),
-      width: 0.075,
-      length: 0.62 + (0.5 - Math.abs(t)) * 0.7,
+      width: 0.06,
+      length: 0.75 + (0.5 - Math.abs(t)) * 0.9,
       side: 0,
       span: 0.9,
+      shade: 0.8,
     });
   }
 }
 
 function tailFeathers(density: number, random: Random, out: Feather[]) {
   const plumes = 13;
-  const segments = Math.round(20 * density);
+  const segments = Math.round(34 * density);
   for (let i = 0; i < plumes; i += 1) {
     const f = i / (plumes - 1) - 0.5;
     const lengthFactor = 1 - Math.abs(f) * 0.5 + random() * 0.08;
@@ -156,15 +164,16 @@ function tailFeathers(density: number, random: Random, out: Feather[]) {
     for (let k = 0; k < segments; k += 1) {
       const t = k / (segments - 1);
       const dir = curve.getTangent(t);
-      const plume = t > 0.86;
+      const plume = t > 0.9;
       out.push({
         base: curve.getPoint(t),
         dir,
         normal: new Vector3((random() - 0.5) * 0.4, 0, 1).normalize(),
-        width: plume ? 0.34 : lerp(0.17, 0.09, t),
-        length: plume ? 0.72 : 0.52,
+        width: plume ? 0.3 : lerp(0.15, 0.07, t),
+        length: plume ? 0.8 : 0.62,
         side: 0,
         span: 0.5 + t * 0.5,
+        shade: 0.3,
       });
     }
   }
@@ -179,6 +188,7 @@ export function buildPhoenix(density = 1, seed = 7): PhoenixData {
 
   const matrices = new Float32Array(feathers.length * 16);
   const meta = new Float32Array(feathers.length * 4);
+  const shade = new Float32Array(feathers.length);
   const x = new Vector3();
   const z = new Vector3();
 
@@ -195,7 +205,8 @@ export function buildPhoenix(density = 1, seed = 7): PhoenixData {
       i * 16,
     );
     meta.set([f.side, f.span, random(), (i / feathers.length) * Math.PI * 2 * 17], i * 4);
+    shade[i] = f.shade;
   });
 
-  return { count: feathers.length, matrices, meta };
+  return { count: feathers.length, matrices, meta, shade };
 }

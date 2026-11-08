@@ -124,6 +124,10 @@
   50% { transform: scaleX(1); }
 }
 
+.bottom {
+  align-items: end;
+}
+
 .copy {
   max-width: 62rem;
   text-align: center;

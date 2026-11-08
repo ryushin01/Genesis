@@ -1,4 +1,4 @@
-# Project Zero
+# project zero
 
 [![CI](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml)
 ![version](https://img.shields.io/badge/version-0.1.0-8B0000)
@@ -13,15 +13,15 @@
 
 | 인트로: 첫 화면 | 인트로: 신화 |
 |---|---|
-| ![적색 깃털을 가까이 잡은 배경 위에 Project zero 제목이 놓인 인트로 첫 화면](docs/images/intro-hero.jpg) | ![빛나는 태양 앞에서 날개를 펼친 적색 불사조와 안내 문구](docs/images/intro-myth.jpg) |
+| ![적색 깃털을 가까이 잡은 배경 위에 project zero 제목이 놓인 인트로 첫 화면](docs/images/intro-hero.jpg) | ![빛나는 태양 앞에서 날개를 펼친 적색 불사조와 안내 문구](docs/images/intro-myth.jpg) |
 
 | 인트로: 전쟁 | 인트로: 제로 |
 |---|---|
-| ![행성과 함대를 배경으로 불길에 휩싸인 검은 불사조](docs/images/intro-war.jpg) | ![불타는 깃털 고리 안에 놓인 메인으로 들어가기 버튼](docs/images/intro-zero.jpg) |
+| ![행성과 함대를 배경으로 진홍색 불길에 휩싸인 불사조](docs/images/intro-war.jpg) | ![불타는 깃털 고리 안에 놓인 메인으로 들어가기 버튼](docs/images/intro-zero.jpg) |
 
 | 메인 | 세 개의 흐름 |
 |---|---|
-| ![흰 바탕에 넓게 벌어진 검은 글자로 PROJECT ZERO를 표시한 메인 첫 화면](docs/images/main-hero.jpg) | ![검은 바탕의 흰 카드에 우주를 뜻하는 궤도 선화를 넣은 구조 화면](docs/images/main-structure.jpg) |
+| ![흰 바탕에 넓게 벌어진 검은 소문자로 project zero를 표시한 메인 첫 화면](docs/images/main-hero.jpg) | ![검은 바탕의 흰 카드에 우주를 뜻하는 궤도 선화를 넣은 구조 화면](docs/images/main-structure.jpg) |
 
 ## 주요 기능
 
