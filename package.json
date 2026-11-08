@@ -1,0 +1,47 @@
+{
+  "name": "genesis",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "소설 프로젝트 제로 홍보 홈페이지",
+  "packageManager": "pnpm@12.16.1",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "lint:fsd": "steiger src",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "e2e": "playwright test",
+    "storybook": "storybook dev -p 6006",
+    "build-storybook": "storybook build"
+  },
+  "dependencies": {
+    "next": "^16.4.5",
+    "react": "^19.3.1",
+    "react-dom": "^19.3.1",
+    "three": "^0.187.0"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.14.0",
+    "@feature-sliced/steiger-plugin": "^0.8.2",
+    "@playwright/test": "^1.65.0",
+    "@storybook/nextjs-vite": "^10.6.6",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.8",
+    "@types/node": "^26.6.6",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "^0.187.0",
+    "@vitejs/plugin-react": "^6.2.1",
+    "eslint": "^10.14.0",
+    "eslint-config-next": "^16.4.5",
+    "jsdom": "^31.0.0",
+    "steiger": "^0.9.0",
+    "storybook": "^10.6.6",
+    "typescript": "^6.0.3",
+    "vitest": "^5.1.0"
+  }
+}

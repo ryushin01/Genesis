@@ -1,0 +1,393 @@
+.skip {
+  position: fixed;
+  top: 8px;
+  left: 8px;
+  z-index: 30;
+  padding: 12px 18px;
+  background: #000;
+  color: #fff;
+  transform: translateY(-200%);
+}
+
+.skip:focus {
+  transform: none;
+  outline: 3px solid #fff;
+  outline-offset: -5px;
+}
+
+.visuallyHidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.main {
+  overflow: clip;
+}
+
+.main:focus {
+  outline: none;
+}
+
+.hero {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  min-height: 100svh;
+  padding: 24px 12px 96px;
+}
+
+.heroRings {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  width: max(110vw, 110vh);
+  transform: translate(-50%, -50%);
+  fill: none;
+  stroke: #000;
+  stroke-opacity: 0.14;
+  stroke-width: 1;
+  pointer-events: none;
+}
+
+.heroTitle {
+  position: relative;
+  font-weight: 900;
+  line-height: 1;
+}
+
+.row {
+  display: flex;
+  justify-content: space-between;
+  margin-inline: auto;
+}
+
+.rowLarge {
+  font-size: clamp(3.2rem, 13vw, 13rem);
+}
+
+.rowMedium {
+  width: 62%;
+  margin-top: 0.42em;
+  font-size: clamp(2rem, 6.4vw, 6.4rem);
+}
+
+.rowSmall {
+  justify-content: center;
+  margin-top: 1.1em;
+  font-size: clamp(1.4rem, 2.6vw, 2.6rem);
+}
+
+.axis {
+  position: relative;
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: clamp(32px, 7vh, 72px);
+  padding-top: 10px;
+  border-top: 1px solid #000;
+  font-family: var(--font-mono);
+  font-size: 12px;
+  color: var(--color-ink-muted);
+}
+
+.prologue {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 32px;
+  min-height: 100svh;
+  padding: 96px clamp(20px, 7vw, 120px);
+  text-align: center;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.statement {
+  max-width: 21em;
+  font-size: clamp(2.1rem, 5.4vw, 5.25rem);
+  font-weight: 800;
+  line-height: 1.14;
+  letter-spacing: -0.05em;
+}
+
+.glyph {
+  display: inline-block;
+  margin-inline: 0.22em;
+  font-weight: 400;
+}
+
+.structure {
+  background: #000;
+  color: #fff;
+}
+
+.structureTitle {
+  padding: clamp(80px, 16vh, 160px) 12px 24px;
+  font-size: clamp(3rem, 11vw, 11rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
+  text-align: center;
+}
+
+.arc {
+  position: sticky;
+  top: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 520px) minmax(0, 1fr);
+  align-items: center;
+  gap: 12px;
+  height: 100svh;
+  padding: 24px 12px 84px;
+  background: #000;
+}
+
+.arcMark,
+.arcNumeral {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+}
+
+.arcNumeral {
+  text-align: right;
+}
+
+.card {
+  display: grid;
+  gap: 12px;
+  padding: 12px;
+  background: #fff;
+  color: #000;
+}
+
+.cardArt {
+  display: grid;
+  place-items: center;
+  padding: clamp(12px, 3svh, 32px);
+  background: #000;
+  color: #fff;
+}
+
+.cardArt svg {
+  display: block;
+  width: min(100%, 25svh);
+  fill: none;
+  stroke: currentcolor;
+  stroke-width: 1;
+}
+
+.cardBody {
+  padding: 8px 4px 12px;
+}
+
+.cardTitle {
+  font-size: clamp(3rem, 7vw, 5.25rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1.05;
+}
+
+.cardLatin {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.cardNote {
+  margin-top: 12px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--color-ink-muted);
+}
+
+.archive {
+  position: relative;
+  z-index: 1;
+  padding: clamp(96px, 18vh, 180px) 12px;
+  background: #000;
+  color: #fff;
+  border-top: 1px solid #fff;
+}
+
+.archiveEyebrow {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.archiveTitle {
+  margin-top: 8px;
+  font-size: clamp(3rem, 11vw, 11rem);
+  font-weight: 900;
+  letter-spacing: -0.05em;
+  line-height: 1;
+}
+
+.archiveGrid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: clamp(40px, 8vh, 80px);
+}
+
+.slot {
+  --corner: 18px;
+  display: flex;
+  flex-direction: column;
+  aspect-ratio: 1;
+  padding: 20px;
+  background:
+    linear-gradient(#fff, #fff) 0 0 / var(--corner) 1px,
+    linear-gradient(#fff, #fff) 0 0 / 1px var(--corner),
+    linear-gradient(#fff, #fff) 100% 0 / var(--corner) 1px,
+    linear-gradient(#fff, #fff) 100% 0 / 1px var(--corner),
+    linear-gradient(#fff, #fff) 0 100% / var(--corner) 1px,
+    linear-gradient(#fff, #fff) 0 100% / 1px var(--corner),
+    linear-gradient(#fff, #fff) 100% 100% / var(--corner) 1px,
+    linear-gradient(#fff, #fff) 100% 100% / 1px var(--corner);
+  background-repeat: no-repeat;
+}
+
+.slotTitle {
+  font-size: clamp(1.75rem, 3.4vw, 3.25rem);
+  font-weight: 900;
+  letter-spacing: -0.04em;
+}
+
+.slotLatin,
+.slotStatus {
+  font-family: var(--font-mono);
+  font-size: 13px;
+  color: var(--color-paper-muted);
+}
+
+.slotStatus {
+  margin-top: auto;
+}
+
+.closing {
+  position: relative;
+  z-index: 1;
+  display: grid;
+  justify-items: center;
+  gap: 24px;
+  padding: clamp(80px, 14vh, 140px) 20px;
+  background: #fff;
+  text-align: center;
+}
+
+.closingZero {
+  font-size: clamp(10rem, 36vw, 32rem);
+  font-weight: 900;
+  line-height: 0.85;
+}
+
+.closingLine {
+  font-size: clamp(1.5rem, 3.6vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.closingLink {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  text-underline-offset: 4px;
+}
+
+.closingLink:focus-visible {
+  outline: 3px solid #000;
+  outline-offset: 3px;
+}
+
+.footer {
+  position: relative;
+  z-index: 1;
+  padding: 16px 12px 84px;
+  background: #fff;
+  border-top: 1px solid #000;
+  font-family: var(--font-mono);
+  text-align: center;
+}
+
+@media (max-width: 720px) {
+  .axis span:nth-child(2),
+  .axis span:nth-child(3) {
+    display: none;
+  }
+
+  .arc {
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-rows: auto 1fr;
+    gap: 12px;
+  }
+
+  .arcMark {
+    grid-area: 1 / 1;
+  }
+
+  .arcNumeral {
+    grid-area: 1 / 2;
+  }
+
+  .card {
+    grid-area: 2 / 1 / 3 / 3;
+    align-self: center;
+  }
+
+  .archiveGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .slot {
+    padding: 14px;
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: scroll()) {
+    .rowLarge,
+    .rowMedium {
+      animation: converge linear both;
+      animation-timeline: scroll(root);
+      animation-range: 0 90vh;
+    }
+
+    .statement,
+    .card,
+    .slot {
+      animation: rise linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 55%;
+    }
+  }
+}
+
+@keyframes converge {
+  to {
+    gap: 0;
+    width: 44%;
+  }
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(36px);
+  }
+}

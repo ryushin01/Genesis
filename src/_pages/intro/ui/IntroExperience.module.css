@@ -1,0 +1,238 @@
+.root {
+  --reveal: 1;
+  --progress: 0;
+  position: relative;
+  color: #fff;
+  background:
+    radial-gradient(120% 90% at 70% 15%, #b3131a 0%, transparent 60%),
+    linear-gradient(160deg, #8b0000 0%, #3d0003 75%, #1a0002 100%);
+  background-attachment: fixed;
+  min-height: 100svh;
+}
+
+.canvas {
+  position: fixed;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.scrim {
+  position: fixed;
+  inset: auto 0 0;
+  height: 62svh;
+  background: linear-gradient(to top, rgb(20 0 2 / 0.62), transparent);
+  pointer-events: none;
+}
+
+.brand {
+  position: fixed;
+  top: clamp(20px, 3.4vw, 42px);
+  left: clamp(20px, 4vw, 56px);
+  z-index: 2;
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.story {
+  position: relative;
+  z-index: 1;
+}
+
+.chapter {
+  min-height: 100svh;
+}
+
+[data-motion='on'] .chapter {
+  height: var(--length);
+}
+
+.sticky {
+  display: grid;
+  place-items: center;
+  min-height: 100svh;
+  padding: 88px clamp(20px, 5vw, 72px);
+  opacity: var(--reveal);
+}
+
+[data-motion='on'] .sticky {
+  position: sticky;
+  top: 0;
+  height: 100svh;
+  will-change: opacity;
+}
+
+.hero {
+  align-items: end;
+  justify-items: start;
+  padding-bottom: clamp(28px, 5vh, 56px);
+  grid-template-rows: 1fr auto auto;
+  row-gap: 12px;
+}
+
+.title {
+  grid-row: 1;
+  align-self: end;
+  font-weight: 400;
+  width: 100%;
+}
+
+.titleLead {
+  display: block;
+  margin-left: clamp(4px, 5vw, 96px);
+  font-size: clamp(3rem, 7.4vw, 7.5rem);
+  letter-spacing: -0.045em;
+  line-height: 1;
+}
+
+.titleZero {
+  display: block;
+  margin-top: -0.14em;
+  font-family: var(--font-display);
+  font-size: clamp(9rem, 30vw, 33rem);
+  line-height: 0.82;
+  letter-spacing: -0.02em;
+  text-align: right;
+  text-shadow: 0 6px 60px rgb(40 0 0 / 0.55);
+}
+
+.tagline {
+  font-size: clamp(1rem, 1.6vw, 1.4rem);
+  margin-left: clamp(4px, 5vw, 96px);
+}
+
+.scrollCue {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin-left: clamp(4px, 5vw, 96px);
+  font-size: 14px;
+}
+
+.scrollLine {
+  width: 72px;
+  height: 1px;
+  background: currentcolor;
+  transform-origin: left;
+  animation: cue 2.4s ease-in-out infinite;
+}
+
+@keyframes cue {
+  0%, 100% { transform: scaleX(0.25); }
+  50% { transform: scaleX(1); }
+}
+
+.copy {
+  max-width: 62rem;
+  text-align: center;
+  text-shadow: 0 2px 28px rgb(30 0 0 / 0.75), 0 0 6px rgb(30 0 0 / 0.5);
+}
+
+.accent {
+  font-family: var(--font-display);
+  font-size: clamp(5rem, 15vw, 14rem);
+  line-height: 0.95;
+}
+
+.line {
+  margin-top: 0.4em;
+  font-size: clamp(1.75rem, 4.4vw, 4rem);
+  font-weight: 600;
+  line-height: 1.22;
+  letter-spacing: -0.03em;
+}
+
+.line span {
+  display: block;
+}
+
+.finale {
+  align-content: center;
+  justify-items: center;
+  row-gap: clamp(28px, 5vh, 48px);
+  text-align: center;
+}
+
+.finaleTitle {
+  font-size: clamp(1.5rem, 3.2vw, 2.75rem);
+  font-weight: 600;
+  line-height: 1.28;
+  letter-spacing: -0.03em;
+  text-shadow: 0 2px 24px rgb(0 0 0 / 0.9);
+}
+
+.enter {
+  display: inline-flex;
+  align-items: center;
+  min-height: 56px;
+  padding: 0 34px;
+  border-radius: 999px;
+  background: #fff;
+  color: var(--color-primary);
+  font-size: 18px;
+  font-weight: 700;
+  text-decoration: none;
+  transition: transform 0.25s ease, box-shadow 0.25s ease;
+}
+
+.enter:hover {
+  transform: scale(1.04);
+  box-shadow: 0 0 44px rgb(255 90 60 / 0.75);
+}
+
+.enter:focus-visible,
+.pause:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 4px;
+}
+
+.pause {
+  position: fixed;
+  left: clamp(16px, 4vw, 56px);
+  bottom: clamp(16px, 4vh, 40px);
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  width: 48px;
+  height: 48px;
+  border: 1px solid rgb(255 255 255 / 0.75);
+  border-radius: 50%;
+  background: rgb(40 0 2 / 0.55);
+  color: #fff;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.progress {
+  position: fixed;
+  z-index: 2;
+  top: 0;
+  right: 0;
+  width: 2px;
+  height: 100%;
+  background: #fff;
+  transform: scaleY(var(--progress));
+  transform-origin: top;
+}
+
+@media (max-width: 640px) {
+  .pause {
+    bottom: 14px;
+  }
+
+  .hero {
+    padding-bottom: 76px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .scrollLine {
+    animation: none;
+  }
+
+  .enter {
+    transition: none;
+  }
+}
