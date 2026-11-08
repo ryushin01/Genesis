@@ -3,10 +3,13 @@ import {
   BufferAttribute,
   BufferGeometry,
   ConeGeometry,
-  DoubleSide,
   InstancedBufferAttribute,
   InstancedBufferGeometry,
-  InstancedMesh,
+  CanvasTexture,
+  CustomBlending,
+  OneFactor,
+  OneMinusSrcAlphaFactor,
+  LinearMipmapLinearFilter,
   LinearSRGBColorSpace,
   Mesh,
   OrthographicCamera,
@@ -16,24 +19,20 @@ import {
   Scene,
   ShaderMaterial,
   Vector2,
-  Vector3,
   WebGLRenderTarget,
   WebGLRenderer,
 } from 'three';
 import { sampleTimeline } from '../model/timeline';
-import { buildFlameStrands } from './buildFlameStrands';
-import { buildPhoenix } from './buildPhoenix';
+import { drawRingArt } from './drawPhoenixArt';
 import {
   backgroundFragment,
   backgroundVertex,
   emberFragment,
   emberVertex,
-  featherFragment,
-  featherVertex,
   fleetFragment,
   fleetVertex,
-  strandFragment,
-  strandVertex,
+  phoenixFragment,
+  phoenixVertex,
 } from './shaders';
 
 export interface PhoenixScene {
@@ -43,49 +42,43 @@ export interface PhoenixScene {
   dispose(): void;
 }
 
-/** 깃대를 Y축에 둔 V자 단면의 깃털 한 장. */
-function createFeatherGeometry() {
-  const rows = 12;
-  const columns = 4;
-  const positions: number[] = [];
-  const normals: number[] = [];
-  const uvs: number[] = [];
-  const index: number[] = [];
-
-  for (let j = 0; j <= rows; j += 1) {
-    const v = j / rows;
-    const halfWidth = Math.pow(Math.sin(Math.PI * Math.pow(v, 0.72)), 0.72) * 0.5 + 0.002;
-    for (let i = 0; i <= columns; i += 1) {
-      const u = i / columns;
-      const x = (u - 0.5) * 2 * halfWidth;
-      positions.push(x, v, -Math.abs(x) * 0.5 + v * v * 0.1);
-      const n = new Vector3(Math.sign(x) * 0.42, 0, 1).normalize();
-      normals.push(n.x, n.y, n.z);
-      uvs.push(u, v);
-    }
-  }
-  for (let j = 0; j < rows; j += 1) {
-    for (let i = 0; i < columns; i += 1) {
-      const a = j * (columns + 1) + i;
-      const b = a + columns + 1;
-      index.push(a, a + 1, b, a + 1, b + 1, b);
-    }
-  }
-
-  const geometry = new InstancedBufferGeometry();
-  geometry.setAttribute('position', new BufferAttribute(new Float32Array(positions), 3));
-  geometry.setAttribute('normal', new BufferAttribute(new Float32Array(normals), 3));
-  geometry.setAttribute('uv', new BufferAttribute(new Float32Array(uvs), 2));
-  geometry.setIndex(index);
-  return geometry;
+function createArtTexture(size: number, draw: (ctx: CanvasRenderingContext2D, size: number) => void) {
+  const canvas = document.createElement('canvas');
+  canvas.width = size;
+  canvas.height = size;
+  const context = canvas.getContext('2d');
+  if (!context) throw new Error('2D 캔버스를 만들 수 없습니다.');
+  draw(context, size);
+  const texture = new CanvasTexture(canvas);
+  texture.generateMipmaps = true;
+  texture.minFilter = LinearMipmapLinearFilter;
+  texture.anisotropy = 4;
+  return texture;
 }
 
-export function createPhoenixScene(canvas: HTMLCanvasElement): PhoenixScene {
+function loadImage(src: string) {
+  return new Promise<HTMLImageElement>((resolve, reject) => {
+    const image = new Image();
+    image.onload = () => resolve(image);
+    image.onerror = () => reject(new Error(`이미지를 불러오지 못했습니다: ${src}`));
+    image.src = src;
+  });
+}
+
+export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<PhoenixScene> {
+  const [flightImageA, flightImageB] = await Promise.all([loadImage('/art/phoenix-flight-1.webp'), loadImage('/art/phoenix-flight-2.webp')]);
   const renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.outputColorSpace = LinearSRGBColorSpace;
   renderer.autoClear = false;
   const compact = window.innerWidth < 768;
   const maxDpr = compact ? 1.5 : 1.75;
+
+  const artSize = compact ? 1024 : 2048;
+  // 세 각도의 날갯짓 프레임이 담긴 이미지입니다. 작은 화면에서는 절반 크기로 씁니다.
+  const flightSize = compact ? 2048 : 4096;
+  const flightTexture = createArtTexture(flightSize, (ctx, size) => ctx.drawImage(flightImageA, 0, 0, size, size));
+  const flightTexture2 = createArtTexture(flightSize, (ctx, size) => ctx.drawImage(flightImageB, 0, 0, size, size));
+  const ringTexture = createArtTexture(artSize, drawRingArt);
 
   const uniforms = {
     uTime: { value: 0 },
@@ -93,62 +86,32 @@ export function createPhoenixScene(canvas: HTMLCanvasElement): PhoenixScene {
     uMorph: { value: 0 },
     uBurn: { value: 0 },
     uMask: { value: 0 },
+    uZoom: { value: 1 },
+    uTilt: { value: 0 },
+    uFocus: { value: new Vector2(0, 0) },
+    uRes: { value: new Vector2(1, 1) },
+    uFlight: { value: flightTexture },
+    uFlight2: { value: flightTexture2 },
+    uView: { value: 1 },
+    uRingArt: { value: ringTexture },
   };
 
-  const phoenix = buildPhoenix(compact ? 0.7 : 1.15);
-  const featherGeometry = createFeatherGeometry();
-  const featherMaterial = new ShaderMaterial({
+  const phoenixGeometry = new PlaneGeometry(2, 2);
+  const phoenixMaterial = new ShaderMaterial({
     uniforms,
-    vertexShader: featherVertex,
-    fragmentShader: featherFragment,
-    side: DoubleSide,
+    vertexShader: phoenixVertex,
+    fragmentShader: phoenixFragment,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+    // 빛 번짐이 형상 밖으로 나가도록 미리 곱한 알파로 합성합니다.
+    blending: CustomBlending,
+    blendSrc: OneFactor,
+    blendDst: OneMinusSrcAlphaFactor,
   });
-  const bird = new InstancedMesh(featherGeometry, featherMaterial, phoenix.count);
-  bird.instanceMatrix.copyArray(phoenix.matrices);
-  bird.instanceMatrix.needsUpdate = true;
-  featherGeometry.setAttribute('aMeta', new InstancedBufferAttribute(phoenix.meta, 4));
-  featherGeometry.setAttribute('aShade', new InstancedBufferAttribute(phoenix.shade, 1));
+  const bird = new Mesh(phoenixGeometry, phoenixMaterial);
   bird.frustumCulled = false;
-
-  const strands = buildFlameStrands(phoenix, compact ? 1 : 2);
-  const strandUniforms = {
-    uTime: uniforms.uTime,
-    uFlap: uniforms.uFlap,
-    uMorph: uniforms.uMorph,
-    uFlame: uniforms.uBurn,
-  };
-  const strandSegments = 24;
-  const strandPositions: number[] = [];
-  const strandIndex: number[] = [];
-  for (let j = 0; j <= strandSegments; j += 1) {
-    const t = j / strandSegments;
-    strandPositions.push(-0.5, t, 0, 0.5, t, 0);
-    if (j < strandSegments) {
-      const a = j * 2;
-      strandIndex.push(a, a + 1, a + 2, a + 1, a + 3, a + 2);
-    }
-  }
-  const strandGeometry = new InstancedBufferGeometry();
-  strandGeometry.setAttribute('position', new BufferAttribute(new Float32Array(strandPositions), 3));
-  strandGeometry.setIndex(strandIndex);
-  strandGeometry.setAttribute('aBase', new InstancedBufferAttribute(strands.base, 3));
-  strandGeometry.setAttribute('aDir', new InstancedBufferAttribute(strands.dir, 3));
-  strandGeometry.setAttribute('aParams', new InstancedBufferAttribute(strands.params, 4));
-  strandGeometry.setAttribute('aWing', new InstancedBufferAttribute(strands.wing, 2));
-  strandGeometry.instanceCount = strands.count;
-  const flameStrands = new Mesh(
-    strandGeometry,
-    new ShaderMaterial({
-      uniforms: strandUniforms,
-      vertexShader: strandVertex,
-      fragmentShader: strandFragment,
-      transparent: true,
-      depthWrite: false,
-      side: DoubleSide,
-      blending: AdditiveBlending,
-    }),
-  );
-  flameStrands.frustumCulled = false;
+  bird.renderOrder = 1;
 
   const fleetUniforms = { uTime: uniforms.uTime, uWar: { value: 0 } };
   const fleetCount = compact ? 40 : 76;
@@ -172,7 +135,7 @@ export function createPhoenixScene(canvas: HTMLCanvasElement): PhoenixScene {
   );
   fleet.frustumCulled = false;
 
-  const emberUniforms = { uTime: uniforms.uTime, uHeat: { value: 0 }, uScale: { value: 300 } };
+  const emberUniforms = { uTime: uniforms.uTime, uHeat: { value: 0 }, uScale: { value: 300 }, uFlight: { value: 0 } };
   const emberCount = compact ? 400 : 900;
   const emberPositions = new Float32Array(emberCount * 3);
   const emberSeeds = new Float32Array(emberCount);
@@ -197,9 +160,11 @@ export function createPhoenixScene(canvas: HTMLCanvasElement): PhoenixScene {
   embers.frustumCulled = false;
 
   const scene = new Scene();
-  scene.add(fleet, bird, flameStrands, embers);
+  embers.renderOrder = 2;
+  scene.add(fleet, bird, embers);
   const maskScene = new Scene();
-  const camera = new PerspectiveCamera(45, 1, 0.1, 100);
+  const camera = new PerspectiveCamera(40, 1, 0.1, 100);
+  camera.position.set(0, 0, 12);
 
   const mask = new WebGLRenderTarget(4, 4);
   const backgroundUniforms = {
@@ -207,6 +172,8 @@ export function createPhoenixScene(canvas: HTMLCanvasElement): PhoenixScene {
     uRes: { value: new Vector2(1, 1) },
     uTime: uniforms.uTime,
     uSun: { value: 0 },
+    uSunSize: { value: 0 },
+    uSunX: { value: 0 },
     uCosmos: { value: 0 },
     uWar: { value: 0 },
     uRing: { value: 0 },
@@ -238,7 +205,9 @@ export function createPhoenixScene(canvas: HTMLCanvasElement): PhoenixScene {
     mask.setSize(Math.ceil(width / 3), Math.ceil(height / 3));
     backgroundUniforms.uRes.value.set(width * dpr, height * dpr);
     emberUniforms.uScale.value = height * dpr * 0.42;
+    uniforms.uRes.value.set(width * dpr, height * dpr);
     camera.aspect = width / height;
+    camera.updateProjectionMatrix();
   };
   resize();
   window.addEventListener('resize', resize);
@@ -253,7 +222,6 @@ export function createPhoenixScene(canvas: HTMLCanvasElement): PhoenixScene {
   let pointerY = 0;
   let easedX = 0;
   let easedY = 0;
-  const look = new Vector3();
 
   let sampledFrames = 0;
   let sampledTime = 0;
@@ -285,17 +253,19 @@ export function createPhoenixScene(canvas: HTMLCanvasElement): PhoenixScene {
     uniforms.uMorph.value = s.morph;
     uniforms.uBurn.value = s.burn;
     backgroundUniforms.uSun.value = s.sun;
+    backgroundUniforms.uSunSize.value = s.sunSize;
+    backgroundUniforms.uSunX.value = (1 - s.view) * 0.2;
+    emberUniforms.uFlight.value = s.flight;
     backgroundUniforms.uCosmos.value = s.cosmos;
     backgroundUniforms.uWar.value = s.war;
     backgroundUniforms.uRing.value = s.ring;
     fleetUniforms.uWar.value = s.war * (1 - s.ring);
     emberUniforms.uHeat.value = s.burn;
 
-    camera.position.set(s.camera[0] + easedX * 0.35, s.camera[1] - easedY * 0.25, s.camera[2]);
-    look.set(s.target[0], s.target[1], s.target[2]);
-    camera.lookAt(look);
-    camera.fov = s.fov;
-    camera.updateProjectionMatrix();
+    uniforms.uZoom.value = s.zoom;
+    uniforms.uView.value = s.view;
+    uniforms.uTilt.value = s.tilt + Math.sin(time * 0.55) * 0.07 * s.flight;
+    uniforms.uFocus.value.set(s.focus[0] + easedX * 0.012, s.focus[1] - easedY * 0.012 + Math.sin(time * 1.1) * 0.006 * s.flight);
 
     maskScene.add(bird);
     uniforms.uMask.value = 1;
@@ -329,17 +299,17 @@ export function createPhoenixScene(canvas: HTMLCanvasElement): PhoenixScene {
     dispose() {
       cancelAnimationFrame(frame);
       window.removeEventListener('resize', resize);
-      featherGeometry.dispose();
-      featherMaterial.dispose();
-      strandGeometry.dispose();
-      flameStrands.material.dispose();
+      phoenixGeometry.dispose();
+      phoenixMaterial.dispose();
+      flightTexture.dispose();
+      flightTexture2.dispose();
+      ringTexture.dispose();
       fleetGeometry.dispose();
       fleet.material.dispose();
       emberGeometry.dispose();
       embers.material.dispose();
       backgroundGeometry.dispose();
       backgroundMaterial.dispose();
-      bird.dispose();
       mask.dispose();
       renderer.dispose();
     },

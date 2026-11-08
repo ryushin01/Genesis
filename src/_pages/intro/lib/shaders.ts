@@ -7,171 +7,103 @@ float vnoise(vec2 p){
 float fbm(vec2 p){ float a=.5,v=0.; for(int i=0;i<4;i++){ v+=a*vnoise(p); p=p*2.03+vec2(17.,9.); a*=.5; } return v; }
 `;
 
-export const featherVertex = /* glsl */ `
-attribute vec4 aMeta;
-attribute float aShade;
-uniform float uTime, uFlap, uMorph;
+export const phoenixVertex = /* glsl */ `
 varying vec2 vUv;
-varying vec3 vNormal, vView;
-varying float vSeed, vSpan, vShade, vRadius;
+void main(){ vUv = uv; gl_Position = vec4(position.xy,0.,1.); }`;
 
-void main(){
-  vUv = uv;
-  float side = aMeta.x, span = aMeta.y, seed = aMeta.z;
-  vec3 p = (instanceMatrix * vec4(position,1.)).xyz;
-  vec3 n = normalize(mat3(instanceMatrix) * normal);
-
-  if(abs(side) > .5){
-    float a = uFlap * (sin(uTime*1.5 - span*1.7) * (.1 + .42*span) + .04) * side;
-    float c = cos(a), s = sin(a);
-    mat2 r = mat2(c,s,-s,c);
-    vec2 pivot = vec2(side*.2,.42);
-    p.xy = pivot + r*(p.xy-pivot);
-    n.xy = r*n.xy;
-  } else if(p.y < -1.){
-    p.x += sin(uTime*1.1 + p.y*1.3 + seed*2.) * .05 * (-p.y-1.) * uFlap;
-  }
-
-  float m = smoothstep(seed*.4, seed*.4+.6, uMorph);
-  if(m > 0.){
-    float ang = aMeta.w + uTime*.22 + (1.-m)*2.6;
-    vec3 rad = vec3(cos(ang),sin(ang),0.), tang = vec3(-sin(ang),cos(ang),0.);
-    vec3 dir = normalize(tang + rad*(.28 + seed*.5));
-    vec3 ax = normalize(cross(vec3(0.,0.,1.),dir));
-    float R = 3.05 + (fract(seed*13.)-.5)*.46;
-    float z = (fract(seed*29.)-.5)*.7;
-    float l = .5 + fract(seed*41.)*.62;
-    vec3 rp = rad*R + vec3(0.,0.,z) + ax*position.x*.3 + dir*position.y*l + vec3(0.,0.,1.)*position.z*.3;
-    p = mix(p, rp, m);
-    n = normalize(mix(n, normalize(vec3(rad.xy*.35,1.)), m));
-  }
-
-  vec4 mv = modelViewMatrix * vec4(p,1.);
-  vNormal = normalize(normalMatrix * n);
-  vView = normalize(-mv.xyz);
-  vSeed = seed; vSpan = span; vShade = aShade; vRadius = length(p.xy);
-  gl_Position = projectionMatrix * mv;
-}`;
-
-export const featherFragment = /* glsl */ `
+export const phoenixFragment = /* glsl */ `
 precision highp float;
-uniform float uBurn, uMask, uTime, uMorph;
+uniform sampler2D uFlight, uFlight2, uRingArt;
+uniform vec2 uRes, uFocus;
+uniform float uZoom, uTilt, uTime, uFlap, uBurn, uMorph, uMask, uView;
 varying vec2 vUv;
-varying vec3 vNormal, vView;
-varying float vSeed, vSpan, vShade, vRadius;
 ${noise}
 
-// 넓은 평탄 구간을 #8B0000(.545, 0, 0)에 두어 깃털 대부분이 이 색으로 나오게 합니다.
-vec3 ramp(float t){
-  vec3 deep=vec3(.2,0.,.008), core=vec3(.545,0.,0.), lift=vec3(.68,.03,.03), hot=vec3(.98,.68,.6);
-  if(t<.3) return mix(deep,core,t/.3);
-  if(t<.72) return core;
-  if(t<.93) return mix(core,lift,(t-.72)/.21);
-  return mix(lift,hot,(t-.93)/.07);
+// 깃털 그림의 명도를 #8B0000 중심으로 옮깁니다.
+vec3 featherRamp(float t){
+  vec3 c = mix(vec3(.13,0.,.004),vec3(.545,0.,0.),smoothstep(.1,.5,t));
+  c = mix(c,vec3(.86,.1,.07),smoothstep(.6,.82,t));
+  return mix(c,vec3(1.,.82,.74),smoothstep(.86,1.,t));
 }
 
-vec3 flameRamp(float h){
-  vec3 c = mix(vec3(.25,0.,0.),vec3(.545,0.,0.),smoothstep(0.,.35,h));
-  c = mix(c,vec3(.86,.1,.07),smoothstep(.35,.62,h));
-  c = mix(c,vec3(1.,.56,.44),smoothstep(.62,.84,h));
-  return mix(c,vec3(1.,.93,.86),smoothstep(.84,1.,h));
+vec3 glowRamp(float t){
+  if(t<.5) return mix(vec3(.13,0.,.004),vec3(.545,0.,0.),smoothstep(.2,.5,t));
+  if(t<.75) return mix(vec3(.545,0.,0.),vec3(.8,.06,.05),(t-.5)/.25);
+  if(t<.92) return mix(vec3(.8,.06,.05),vec3(1.,.42,.3),(t-.75)/.17);
+  return mix(vec3(1.,.42,.3),vec3(1.,.9,.83),(t-.92)/.08);
+}
+
+// 프레임 번호(각도*10+날갯짓)로 두 장의 4x4 이미지에서 한 칸을 읽습니다.
+vec3 flight(vec2 q, float id, float lod){
+  float local = mod(id,16.);
+  float col = mod(local,4.), row = floor(local/4.);
+  vec2 c = vec2((col+q.x+.5)/4., 1.-(row+.5-q.y)/4.);
+  return (id < 16. ? texture2D(uFlight,c,lod) : texture2D(uFlight2,c,lod)).rgb;
 }
 
 void main(){
-  float e = abs(vUv.x*2.-1.);
-  // 깃가지 방향으로 갈라진 틈과 잔 톱니
-  float barbY = vUv.y - e*.3;
-  float slit = smoothstep(.955,.975,fract(barbY*8.+vSeed*17.)) * smoothstep(.25,.55,e) * smoothstep(.12,.35,vUv.y);
-  float cut = smoothstep(.2,.9,sin(vUv.y*130.+vSeed*50.)*.5+.5)*.07*smoothstep(.1,.4,vUv.y);
-  if(slit > .5 || e > 1.-cut) discard;
-  if(uMask > .5){ gl_FragColor = vec4(1.); return; }
+  float asp = uRes.x/uRes.y;
+  vec2 q = (vUv-.5)*vec2(asp,1.)/uZoom + uFocus;
+  float tc = cos(uTilt), ts = sin(uTilt);
+  q = mat2(tc,ts,-ts,tc)*q;
 
-  vec3 n = normalize(vNormal) * (gl_FrontFacing ? 1. : -1.);
-  float barb = sin((vUv.y + e*.42)*170. + vSeed*30.);
-  n = normalize(n + vec3(barb*.1, barb*.08, 0.));
-  float ndv = clamp(dot(n, vView), 0., 1.);
-  vec3 L = normalize(vec3(.35,.7,.75));
-  float dif = clamp(dot(n,L),0.,1.);
-  float spec = pow(clamp(dot(reflect(-L,n),vView),0.,1.), 40.);
-  float fres = pow(1.-ndv, 3.);
+  float frame = fract(uTime*.85)*10.;
+  float a = floor(frame), b = mod(a+1.,10.), f = frame-a;
+  float v0 = min(floor(uView),1.), vf = smoothstep(.38,.62,uView-v0);
+  float main = floor(uView+.5)*10.+a;
+  float inside = step(max(abs(q.x),abs(q.y)),.5);
+  vec3 art0 = mix(flight(q,v0*10.+a,0.), flight(q,v0*10.+b,0.), f);
+  vec3 art1 = mix(flight(q,(v0+1.)*10.+a,0.), flight(q,(v0+1.)*10.+b,0.), f);
+  vec3 art = mix(art0, art1, vf) * inside;
 
-  float sheen = .5+.5*sin(ndv*5. + vSpan*4. + vSeed*4. + uTime*.3);
-  float shaft = smoothstep(.06,.0,e);
-  float t = .24 + sheen*.14 + dif*.3 + vShade*.14 + fres*.36 + shaft*.26;
-  vec3 col = ramp(clamp(t,0.,1.));
-  // 위층 깃털 끝에 가려지는 뿌리 쪽과 깃가지 결에 음영을 넣습니다.
-  col *= mix(.5,1.,smoothstep(0.,.42,vUv.y));
-  col *= .9+.1*barb;
-  col += vec3(1.,.5,.44)*spec*.34;
+  vec2 w = vec2(fbm(q*7.+vec2(0.,-uTime*1.1))-.5, fbm(q*6.+vec2(5.,-uTime*.9))-.5);
+  float n = fbm(q*5.+3.);
+  float burnFront = uBurn*1.3-.15;
+  float burn = smoothstep(n-.06,n+.06,burnFront);
 
-  // 색조는 그대로 두고 명암만 바꿔 깃털 한 장 한 장을 구분합니다.
-  float tone = (.86 + fract(vSeed*91.)*.34) * mix(1.,.34,smoothstep(.48,1.,e)) * (.72 + .42*dif);
-  col *= tone;
-
-  // 전쟁 장면부터 몸 전체가 스스로 빛나는 불꽃이 됩니다. 중심이 가장 뜨겁습니다.
+  // 날개에서 바깥으로 뻗는 불길. 날갯짓을 그대로 따라갑니다.
+  float streak = 0.;
   if(uBurn > 0.){
-    float flow = fbm(vec2(vUv.x*2.+vSeed*9., vUv.y*3.-uTime*.8+vSeed*3.));
-    float core = .56*exp(-vRadius*vRadius/2.4)*(1.-uMorph);
-    float heat = clamp(.47 - vRadius*.022 + core + (flow-.5)*.62 + smoothstep(.72,1.,e)*.16, 0., 1.);
-    col = mix(col, flameRamp(heat), uBurn);
-  }
-  gl_FragColor = vec4(col,1.);
-}`;
-
-export const strandVertex = /* glsl */ `
-attribute vec3 aBase, aDir;
-attribute vec4 aParams;
-attribute vec2 aWing;
-uniform float uTime, uFlap, uMorph, uFlame;
-varying float vAlong, vAcross, vSeed;
-
-vec3 pathAt(float t, vec3 base, vec3 dir, float len, float seed){
-  vec3 perp = normalize(vec3(-dir.y, dir.x, 0.) + 1e-4);
-  float wave = sin(t*3.6 + seed*25. + uTime*(1.1+seed*.8)) * .2 + sin(t*7. + seed*9. - uTime*1.7) * .025;
-  return base + dir*len*t + perp*wave*t*len + vec3(0.,.22,0.)*t*t*len;
-}
-
-void main(){
-  float seed = aParams.z;
-  vec3 base = aBase, dir = aDir;
-  float side = aWing.x, span = aWing.y;
-  if(abs(side) > .5){
-    float a = uFlap * (sin(uTime*1.5 - span*1.7) * (.1 + .42*span) + .04) * side;
-    float c = cos(a), s = sin(a);
-    mat2 r = mat2(c,s,-s,c);
-    vec2 pivot = vec2(side*.2,.42);
-    base.xy = pivot + r*(base.xy-pivot);
-    dir.xy = r*dir.xy;
+    vec2 o = vec2(0.,-.02);
+    for(int i=1;i<=10;i++){
+      float k = float(i)/10.;
+      vec2 p = o+(q-o)*(1.-k*.42)+w*.02;
+      if(max(abs(p.x),abs(p.y))<.5) streak += flight(p,main,0.).b*(1.-k*.7);
+    }
+    streak /= 6.5;
+    float ang = atan(q.y-o.y,q.x-o.x);
+    float line = fbm(vec2(cos(ang),sin(ang))*9.+vec2(length(q-o)*3.-uTime*1.3,0.));
+    streak = smoothstep(.2,.95,streak*(.5+line*1.15))*burn;
   }
 
-  // 고리로 바뀌면 불길도 고리 바깥으로 뻗습니다.
-  float m = smoothstep(seed*.4, seed*.4+.6, uMorph);
-  float ang = aParams.w + uTime*.22 + (1.-m)*2.6;
-  vec3 rad = vec3(cos(ang),sin(ang),0.), tang = vec3(-sin(ang),cos(ang),0.);
-  base = mix(base, rad*3.3, m);
-  dir = normalize(mix(dir, normalize(rad + tang*.7), m));
-  float len = aParams.x * mix(1.,.6,m);
+  vec3 ring = texture2D(uRingArt, q+.5+w*.02).rgb;
+  float ringFront = uMorph*1.2-.1;
+  float ringNoise = mix(n,.5,.88);
+  float toRing = smoothstep(ringNoise-.05,ringNoise+.05,ringFront);
 
-  float t = position.y;
-  vec3 p = pathAt(t, base, dir, len, seed);
-  vec3 q = pathAt(t+.02, base, dir, len, seed);
-  vec3 ax = normalize(cross(normalize(q-p), vec3(0.,0.,1.)));
-  float width = aParams.y * pow(sin(3.14159*pow(t,.55)), .8) * uFlame;
-  p += ax * position.x * width;
+  float body = smoothstep(.35,.65,art.b);
+  float rays = streak*(1.-toRing);
+  float ringAlpha = smoothstep(.35,.65,ring.b)*toRing;
+  float alpha = max(max(body*(1.-toRing), rays*.92), ringAlpha) * smoothstep(.5,.47,max(abs(q.x),abs(q.y)));
+  if(uMask > .5){ gl_FragColor = vec4(alpha); return; }
 
-  vAlong = t; vAcross = position.x*2.; vSeed = seed;
-  gl_Position = projectionMatrix * modelViewMatrix * vec4(p,1.);
-}`;
+  float lit = max(burn,toRing);
+  float base = mix(min(art.r*1.2,.8), art.r*1.2+.14, burn);
+  float tone = mix(base, ring.r, toRing);
+  tone += (fbm(q*11.+vec2(0.,-uTime*1.6))-.5)*.13*lit;
+  vec3 col = mix(featherRamp(tone), glowRamp(tone), lit*.85);
+  // 형상 밖은 불길 색으로 칠합니다.
+  if(body*(1.-toRing)+ringAlpha < .5) col = glowRamp(.45+rays*.45);
+  col = mix(col, vec3(.07,0.,.002), smoothstep(.4,.75,ring.g)*toRing*.92);
 
-export const strandFragment = /* glsl */ `
-precision highp float;
-varying float vAlong, vAcross, vSeed;
-void main(){
-  float across = abs(vAcross);
-  float a = smoothstep(1.,.15,across) * smoothstep(1.,.5,vAlong);
-  float core = smoothstep(.55,.0,across) * pow(1.-vAlong, 1.6);
-  vec3 col = mix(vec3(.5,.0,.0), vec3(1.,.46,.36), core*.72);
-  gl_FragColor = vec4(col, a);
+  float edge = smoothstep(.05,.0,abs(n-burnFront))*step(.001,uBurn)*(1.-step(1.,uBurn))*body;
+  col = mix(col, vec3(.96,.36,.26), edge*.7);
+
+  float near = mix(flight(q,main,3.2).r, texture2D(uRingArt,q+.5,3.5).r, toRing);
+  float far = mix(flight(q,main,5.).r, texture2D(uRingArt,q+.5,5.5).r, toRing);
+  vec3 bloom = (vec3(.8,.05,.03)*smoothstep(.1,.5,far)*.6 + vec3(.95,.14,.09)*smoothstep(.3,.9,near)*.38) * lit * smoothstep(.5,.38,max(abs(q.x),abs(q.y)));
+
+  gl_FragColor = vec4(col*alpha + bloom, alpha);
 }`;
 
 export const backgroundVertex = /* glsl */ `
@@ -182,7 +114,7 @@ export const backgroundFragment = /* glsl */ `
 precision highp float;
 uniform sampler2D uMaskTex;
 uniform vec2 uRes;
-uniform float uTime, uSun, uCosmos, uWar, uRing, uBurn;
+uniform float uTime, uSun, uSunSize, uSunX, uCosmos, uWar, uRing, uBurn;
 varying vec2 vUv;
 ${noise}
 
@@ -228,12 +160,16 @@ void main(){
   float flow=fbm(vec2(diag*2.4+t*.04, dot(p,vec2(.72,.7))*.8-t*.03));
   vec3 myth=mix(vec3(.2,0.,.012),vec3(.545,0.,0.),smoothstep(.2,.72,flow));
   myth=mix(myth,vec3(.74,.06,.07),smoothstep(.6,.86,flow)*.6);
-  vec2 sc=p-vec2(0.,.24);
+  vec2 sc=p-vec2(uSunX,.24);
   float r=length(sc);
   float halo=sin(r*11.-flow*3.+t*.2)*.5+.5;
   myth+=vec3(.45,.07,.07)*halo*smoothstep(.9,.25,r)*smoothstep(.1,.42,r)*uSun*.65;
-  float sun=smoothstep(.15,.11,r);
-  myth=mix(myth,vec3(1.,.88,.84),sun*uSun);
+  float sunR=mix(.09,.2,uSunSize)*smoothstep(0.,.55,uSun)*mix(.62,1.,smoothstep(.5,1.,asp));
+  float sun=smoothstep(sunR+.04,sunR,r);
+  // 태양에서 뻗는 빛살
+  vec2 around=normalize(sc+vec2(1e-4));
+  float beam2=pow(fbm(around*5.5+vec2(t*.05,-t*.04)),2.2);
+  myth+=vec3(.8,.08,.05)*beam2*exp(-r*1.5)*uSun*2.4;
   myth+=vec3(1.,.4,.3)*exp(-r*5.2)*uSun*1.05;
 
   // 우주: 별과 성운, 행성의 가장자리
@@ -260,11 +196,13 @@ void main(){
   cosmos+=vec3(1.,.2,.14)*war*uWar;
 
   vec3 col=mix(myth,cosmos,uCosmos);
+  // 태양 원반은 우주로 넘어가도 색이 탁해지지 않게 마지막에 얹습니다.
+  col=mix(col,vec3(1.,.88,.84),sun*smoothstep(.03,.07,sunR));
 
   // 불사조 뒤의 빛과 불길
   vec2 uv=vUv;
   float glow=blurMask(uv,.05);
-  col+=vec3(.545,0.,0.)*glow*(1.-uBurn)*.62;
+  col+=vec3(.545,0.,0.)*glow*mix(.62,.95,uBurn);
   if(uBurn>0.01){
     float n1=fbm(vec2(p.x*6.+t*.15,p.y*3.6-t*1.05));
     float n2=fbm(vec2(p.x*14.-t*.2,p.y*8.-t*1.8));
@@ -272,7 +210,8 @@ void main(){
     float m=blurMask(uv+off,.024+uRing*.012);
     float wide=blurMask(uv+off*2.2,.075);
     float flame=clamp(m*(.5+n2*.9)+wide*n1*.42,0.,1.);
-    col=mix(col,fire(flame*.86),smoothstep(.24,.82,flame)*uBurn*(.5+n1*.7));
+    float stepped=floor(flame*5.)/5.;
+    col=mix(col,fire(stepped),smoothstep(.3,.85,flame)*uBurn*.22);
     col+=vec3(.4,0.,0.)*wide*uBurn*.5;
   }
 
@@ -309,7 +248,7 @@ void main(){
 
 export const emberVertex = /* glsl */ `
 attribute float aSeed;
-uniform float uTime, uHeat, uScale;
+uniform float uTime, uHeat, uScale, uFlight;
 varying float vLife, vSeed;
 void main(){
   vec3 p=position;
@@ -317,9 +256,14 @@ void main(){
   float life=fract(uTime*speed*.14+aSeed*7.);
   p.y+=(life-.5)*16.;
   p.x+=sin(life*9.+aSeed*30.)*.5;
+  // 비행 중에는 태양 쪽에서 카메라 쪽으로 스쳐 지나갑니다.
+  float rush=fract(uTime*(.22+aSeed*.3)+aSeed*11.);
+  vec2 dir=normalize(position.xy+vec2(.01));
+  vec3 flown=vec3(dir*(.2+rush*rush*13.)+vec2(0.,1.9),position.z*.3+rush*7.);
+  p=mix(p,flown,uFlight);
   vec4 mv=modelViewMatrix*vec4(p,1.);
-  vLife=life; vSeed=aSeed;
-  gl_PointSize=(.035+pow(aSeed,5.)*.2)*uScale/max(1.,-mv.z)*(1.+uHeat*.5);
+  vLife=mix(life,.1+rush*.5,uFlight); vSeed=aSeed;
+  gl_PointSize=(.035+pow(aSeed,5.)*.2)*uScale/max(1.,-mv.z)*(1.+uHeat*.5+uFlight*.8);
   gl_Position=projectionMatrix*mv;
 }`;
 

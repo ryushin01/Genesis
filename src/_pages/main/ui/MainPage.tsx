@@ -178,7 +178,10 @@ export function MainPage() {
       </main>
 
       <footer className={styles.footer}>
-        <small>© 2026 프로젝트 제로</small>
+        <small>
+          © 2026 프로젝트 제로 · 불사조 3D 모델 출처:{' '}
+          <a href="http://www.cadnav.com">cadnav.com</a>
+        </small>
       </footer>
     </>
   );

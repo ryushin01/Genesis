@@ -21,7 +21,7 @@ describe('sampleTimeline', () => {
     expect(sampleTimeline(2)).toEqual(sampleTimeline(1));
   });
 
-  it('세로 화면에서는 전신 장면의 카메라를 더 물린다', () => {
-    expect(sampleTimeline(0.34, 0.5).camera[2]).toBeGreaterThan(sampleTimeline(0.34, 1.6).camera[2]);
+  it('세로 화면에서는 전신 장면의 그림을 더 줄인다', () => {
+    expect(sampleTimeline(0.34, 0.5).zoom).toBeLessThan(sampleTimeline(0.34, 1.6).zoom);
   });
 });

@@ -58,9 +58,14 @@ export function IntroExperience() {
 
     let cancelled = false;
     import('../lib/createPhoenixScene')
-      .then(({ createPhoenixScene }) => {
+      .then(async ({ createPhoenixScene }) => {
         if (cancelled || !canvasRef.current) return;
-        sceneRef.current = createPhoenixScene(canvasRef.current);
+        const scene = await createPhoenixScene(canvasRef.current);
+        if (cancelled) {
+          scene.dispose();
+          return;
+        }
+        sceneRef.current = scene;
         update();
         setSceneReady(true);
       })
@@ -141,6 +146,7 @@ export function IntroExperience() {
             <Link href="/main" className={styles.enter} onFocus={showFinale}>
               메인으로 들어가기
             </Link>
+            <p className={styles.credit}>불사조 3D 모델 출처: cadnav.com</p>
           </div>
         </section>
       </main>
