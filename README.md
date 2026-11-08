@@ -1,7 +1,7 @@
 # project zero
 
 [![CI](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-0.1.0-8B0000)
+![version](https://img.shields.io/badge/version-0.2.0-8B0000)
 
 다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 **프로젝트 제로**의 홍보 홈페이지입니다.
 
@@ -75,6 +75,7 @@ src/
 │   ├── intro/      # WebGL 인트로 (model: 문구·타임라인, lib: 장면·셰이더)
 │   └── main/       # 흑백 메인 페이지
 └── shared/lib/     # 공통 훅
+public/art/         # 불사조 날갯짓 렌더링 이미지
 ```
 
 ## 문서
