@@ -34,3 +34,12 @@
 ## E2E
 
 WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립니다.
+
+## 디자인 시스템(Storybook) 배포
+
+`pnpm build`는 Storybook을 먼저 `public/storybook`에 빌드한 뒤 사이트를 빌드합니다. 그래서 사이트와 같은 주소의 `/storybook`에 함께 배포되고, 메인 화면 바닥글의 **디자인 시스템(Storybook)** 링크로 들어갑니다.
+
+- `/storybook`은 정적 파일 폴더라 `/storybook/index.html`로 보냅니다(`next.config.ts`의 `redirects`).
+- `STORYBOOK_IN_APP=1`로 빌드해 `public`을 복사하지 않습니다. 같은 주소에서 열리므로 파일은 사이트의 것을 씁니다.
+- 개발 서버(`pnpm dev`)에서는 링크가 Storybook 개발 서버(`http://localhost:6006`)로 갑니다.
+
