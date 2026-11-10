@@ -1,26 +1,33 @@
-import type { Metadata } from 'next';
-import Link from 'next/link';
-import styles from './MainPage.module.css';
-import { SiteMenu } from './SiteMenu';
+import type { Metadata } from "next";
+import Link from "next/link";
+import styles from "./MainPage.module.css";
+import { SiteMenu } from "./SiteMenu";
+
+/** 앱과 함께 배포한 Storybook. 개발 서버에는 빌드 결과물이 없어 Storybook 개발 서버로 보냅니다. */
+const STORYBOOK_URL =
+  process.env.NODE_ENV === "development"
+    ? "http://localhost:6006"
+    : "/storybook/index.html";
 
 export const metadata: Metadata = {
-  title: '메인',
-  description: '다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 프로젝트 제로.',
+  title: "메인",
+  description:
+    "다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 프로젝트 제로.",
 };
 
 const LETTER_ROWS = [
-  { word: 'project', className: styles.rowLarge },
-  { word: 'zero', className: styles.rowMedium },
-  { word: '0', className: styles.rowSmall },
+  { word: "project", className: styles.rowLarge },
+  { word: "zero", className: styles.rowMedium },
+  { word: "0", className: styles.rowSmall },
 ];
 
 const ARCS = [
   {
-    mark: '∙',
-    numeral: 'I',
-    title: '신화',
-    latin: 'Myth',
-    note: '다양한 신화관이 하나의 이야기로 얽힙니다.',
+    mark: "∙",
+    numeral: "I",
+    title: "신화",
+    latin: "Myth",
+    note: "다양한 신화관이 하나의 이야기로 얽힙니다.",
     art: (
       <>
         <circle cx="74" cy="84" r="46" />
@@ -30,26 +37,38 @@ const ARCS = [
     ),
   },
   {
-    mark: '∙∙',
-    numeral: 'II',
-    title: '우주',
-    latin: 'Cosmos',
-    note: '이야기의 무대가 우주적 규모로 확대됩니다.',
+    mark: "∙∙",
+    numeral: "II",
+    title: "우주",
+    latin: "Cosmos",
+    note: "이야기의 무대가 우주적 규모로 확대됩니다.",
     art: (
       <>
         <circle cx="100" cy="100" r="14" />
-        <ellipse cx="100" cy="100" rx="84" ry="28" transform="rotate(-24 100 100)" />
-        <ellipse cx="100" cy="100" rx="56" ry="74" transform="rotate(32 100 100)" />
+        <ellipse
+          cx="100"
+          cy="100"
+          rx="84"
+          ry="28"
+          transform="rotate(-24 100 100)"
+        />
+        <ellipse
+          cx="100"
+          cy="100"
+          rx="56"
+          ry="74"
+          transform="rotate(32 100 100)"
+        />
         <circle cx="168" cy="72" r="4" fill="currentColor" />
       </>
     ),
   },
   {
-    mark: '∙∙∙',
-    numeral: 'III',
-    title: '전쟁',
-    latin: 'War',
-    note: '거대한 서사는 SF 전쟁으로 이어집니다.',
+    mark: "∙∙∙",
+    numeral: "III",
+    title: "전쟁",
+    latin: "War",
+    note: "거대한 서사는 SF 전쟁으로 이어집니다.",
     art: (
       <>
         <path d="M16 32 100 100M184 32 100 100M16 168 100 100M184 168 100 100M100 12v176M12 100h176" />
@@ -60,10 +79,10 @@ const ARCS = [
 ];
 
 const ARCHIVE = [
-  { title: '세계관', latin: 'World' },
-  { title: '인물', latin: 'Characters' },
-  { title: '세력', latin: 'Factions' },
-  { title: '연대기', latin: 'Chronicle' },
+  { title: "세계관", latin: "World" },
+  { title: "인물", latin: "Characters" },
+  { title: "세력", latin: "Factions" },
+  { title: "연대기", latin: "Chronicle" },
 ];
 
 export function MainPage() {
@@ -76,7 +95,11 @@ export function MainPage() {
 
       <main id="content" tabIndex={-1} className={styles.main}>
         <section className={styles.hero}>
-          <svg className={styles.heroRings} viewBox="0 0 1000 1000" aria-hidden="true">
+          <svg
+            className={styles.heroRings}
+            viewBox="0 0 1000 1000"
+            aria-hidden="true"
+          >
             <circle cx="500" cy="500" r="490" />
             <circle cx="500" cy="500" r="470" />
             <circle cx="500" cy="500" r="300" />
@@ -85,8 +108,11 @@ export function MainPage() {
             <span className={styles.visuallyHidden}>프로젝트 제로</span>
             <span aria-hidden="true">
               {LETTER_ROWS.map((row) => (
-                <span key={row.word} className={`${styles.row} ${row.className}`}>
-                  {row.word.split('').map((letter, index) => (
+                <span
+                  key={row.word}
+                  className={`${styles.row} ${row.className}`}
+                >
+                  {row.word.split("").map((letter, index) => (
                     <span key={`${letter}-${index}`}>{letter}</span>
                   ))}
                 </span>
@@ -101,20 +127,32 @@ export function MainPage() {
           </div>
         </section>
 
-        <section id="prologue" className={styles.prologue} aria-labelledby="prologue-title">
+        <section
+          id="prologue"
+          className={styles.prologue}
+          aria-labelledby="prologue-title"
+        >
           <h2 id="prologue-title" className={styles.label}>
             서사
           </h2>
           <p className={styles.statement}>
             다양한 신화관이 얽히고
-            <span className={styles.glyph} aria-hidden="true">⦾</span>
+            <span className={styles.glyph} aria-hidden="true">
+              ⦾
+            </span>
             우주적 규모로 확대되어
-            <span className={styles.glyph} aria-hidden="true">✕</span>
+            <span className={styles.glyph} aria-hidden="true">
+              ✕
+            </span>
             SF 전쟁까지 이어지는 대서사시.
           </p>
         </section>
 
-        <section id="structure" className={styles.structure} aria-labelledby="structure-title">
+        <section
+          id="structure"
+          className={styles.structure}
+          aria-labelledby="structure-title"
+        >
           <h2 id="structure-title" className={styles.structureTitle}>
             세 개의 흐름
           </h2>
@@ -146,7 +184,11 @@ export function MainPage() {
           </ol>
         </section>
 
-        <section id="archive" className={styles.archive} aria-labelledby="archive-title">
+        <section
+          id="archive"
+          className={styles.archive}
+          aria-labelledby="archive-title"
+        >
           <p className={styles.archiveEyebrow} lang="en">
             The Archive
           </p>
@@ -179,8 +221,9 @@ export function MainPage() {
 
       <footer className={styles.footer}>
         <small>
-          © 2026 프로젝트 제로 · 불사조 3D 모델 출처:{' '}
-          <a href="http://www.cadnav.com">cadnav.com</a>
+          © 2026 프로젝트 제로 · 불사조 3D 모델 출처:{" "}
+          <a href="http://www.cadnav.com">cadnav.com</a> ·{" "}
+          <a href={STORYBOOK_URL}>디자인 시스템(Storybook)</a>
         </small>
       </footer>
     </>
