@@ -1,5 +1,6 @@
 'use client';
 
+import Image from 'next/image';
 import Link from 'next/link';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { useReducedMotion } from '@/shared/lib';
@@ -101,7 +102,7 @@ export function IntroExperience() {
       <div className={styles.scrim} aria-hidden="true" />
 
       <header className={styles.brand}>
-        <span lang="en">project zero</span>
+        <Image src="/brand/logo.png" alt="project zero" width={40} height={40} className={styles.logo} />
       </header>
 
       <main className={styles.story}>
