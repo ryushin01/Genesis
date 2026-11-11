@@ -125,7 +125,8 @@
 
 .glyph {
   display: inline-block;
-  margin-inline: 0.22em;
+  /* 앞뒤 공백 글자가 간격을 만듭니다 */
+  margin-inline: 0;
   font-weight: 400;
 }
 

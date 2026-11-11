@@ -23,7 +23,7 @@ describe("MainPage", () => {
       .map((node) => node.textContent)
       .join("");
     expect(visible.replace(/\s+/g, " ").trim()).toBe(
-      "다양한 신화관이 얽히고우주적 규모로 확대되어SF 전쟁까지 이어지는 대서사시.",
+      "다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시.",
     );
   });
 

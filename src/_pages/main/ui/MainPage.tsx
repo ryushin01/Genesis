@@ -159,21 +159,23 @@ export function MainPage() {
                 "--w": word.order,
                 "--n": word.total,
               } as CSSProperties;
-              return word.glyph ? (
-                <span
-                  key={word.order}
-                  className={`${styles.glyph} ${styles.word}`}
-                  style={style}
-                  aria-hidden="true"
-                >
-                  {word.text}
-                </span>
-              ) : (
+              // 기호를 건너뛰고 읽어도 구절 사이가 띄어지도록, 기호 앞뒤에도 공백 글자를 둡니다.
+              return (
                 <Fragment key={word.order}>
-                  {word.order > 0 && !STATEMENT_WORDS[word.order - 1]?.glyph && " "}
-                  <span className={styles.word} style={style}>
-                    {word.text}
-                  </span>
+                  {word.order > 0 && " "}
+                  {word.glyph ? (
+                    <span
+                      className={`${styles.glyph} ${styles.word}`}
+                      style={style}
+                      aria-hidden="true"
+                    >
+                      {word.text}
+                    </span>
+                  ) : (
+                    <span className={styles.word} style={style}>
+                      {word.text}
+                    </span>
+                  )}
                 </Fragment>
               );
             })}
