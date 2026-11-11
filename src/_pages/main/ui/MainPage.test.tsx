@@ -13,6 +13,20 @@ describe("MainPage", () => {
     ).toEqual(["서사", "세 개의 흐름", "기록 보관소"]);
   });
 
+  it("서사 문장은 단어로 나눠도 한 문장으로 읽힌다", () => {
+    render(<MainPage />);
+    const statement = document.querySelector("#prologue p");
+    if (!statement) throw new Error("서사 문장이 없습니다");
+    // 기호는 보조기기에서 숨기므로, 숨기지 않은 글자만 이으면 원래 문장이 된다
+    const visible = [...statement.childNodes]
+      .filter((node) => !(node instanceof Element && node.getAttribute("aria-hidden") === "true"))
+      .map((node) => node.textContent)
+      .join("");
+    expect(visible.replace(/\s+/g, " ").trim()).toBe(
+      "다양한 신화관이 얽히고우주적 규모로 확대되어SF 전쟁까지 이어지는 대서사시.",
+    );
+  });
+
   it("아직 없는 자료는 준비 중으로 표시한다", () => {
     render(<MainPage />);
     expect(screen.getAllByText("기록 준비 중")).toHaveLength(4);

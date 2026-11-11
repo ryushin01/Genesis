@@ -1,7 +1,7 @@
 # project zero
 
 [![CI](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-0.2.0-8B0000)
+![version](https://img.shields.io/badge/version-0.3.0-8B0000)
 
 다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 **프로젝트 제로**의 홍보 홈페이지입니다.
 
@@ -19,6 +19,10 @@
 |---|---|
 | ![행성과 함대를 배경으로 진홍색 불길에 휩싸인 불사조](docs/images/intro-war.jpg) | ![불길에 둘러싸인 깃털 고리 안에 놓인 메인으로 들어가기 버튼](docs/images/intro-zero.jpg) |
 
+| 메인: 서사 (스크롤) | 모바일 서사 |
+|---|---|
+| ![흰 화면에 고정된 서사 문장에서 앞 단어들은 또렷하고 뒤 단어들은 아직 흐릿하게 번져 있는 장면](docs/images/main-prologue.jpg) | <img src="docs/images/mobile-prologue.jpg" alt="모바일에서 서사 문장의 앞 두 줄은 또렷하고 마지막 줄은 흐릿한 장면" width="240"> |
+
 | 메인 | 세 개의 흐름 |
 |---|---|
 | ![흰 바탕에 넓게 벌어진 검은 소문자로 project zero를 표시한 메인 첫 화면](docs/images/main-hero.jpg) | ![검은 바탕의 흰 카드에 우주를 뜻하는 궤도 선화를 넣은 구조 화면](docs/images/main-structure.jpg) |
@@ -28,7 +32,7 @@
 | 화면 | 내용 |
 |---|---|
 | 인트로 `/` | 스크롤에 따라 태양을 향해 날아가는 불사조 → 우주 → 전쟁 → 제로 고리로 이어지는 적색 WebGL 장면. 맨 아래에서 메인으로 이동 |
-| 메인 `/main` | 흑백 편집 디자인의 작품 소개: 서사, 세 개의 흐름, 기록 보관소, 전체 화면 메뉴 |
+| 메인 `/main` | 흑백 편집 디자인의 작품 소개: 서사, 세 개의 흐름, 기록 보관소, 전체 화면 메뉴. 스크롤하면 제목이 벌어지며 멀어지고, 고정된 서사 문장이 단어마다 또렷해지며, 흐름 카드가 떠오르며 선화가 그려짐(CSS 스크롤 타임라인) |
 | 접근성 | 동작 줄이기 대응, 배경 애니메이션 정지, 키보드 조작, 본문 바로가기, 저사양 기기 해상도 자동 조절 |
 
 불사조는 [cadnav.com](http://www.cadnav.com)의 3D 모델을 렌더링한 날갯짓 이미지를 쓰고, 불길과 빛, 배경은 셰이더로 그립니다.
