@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.2.1 - 2026-11-11
+
+- 대체 글꼴: 제목은 Garamond·Baskerville·Georgia와 운영체제 명조, 기록 글씨는 SF Mono·Menlo·Consolas·D2Coding, 한글 고딕은 Noto Sans CJK KR까지 이음
+
 ## 0.2.0 - 2026-11-09
 
 - 작품 표기를 소문자 project zero로 변경
