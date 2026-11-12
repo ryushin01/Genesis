@@ -50,10 +50,11 @@ export function IntroExperience() {
         }
       });
     };
+    let frame = 0;
     const request = () => {
       if (ticking) return;
       ticking = true;
-      requestAnimationFrame(update);
+      frame = requestAnimationFrame(update);
     };
     const onPointer = (event: PointerEvent) => {
       if (event.pointerType !== 'mouse') return;
@@ -89,6 +90,7 @@ export function IntroExperience() {
 
     return () => {
       cancelled = true;
+      cancelAnimationFrame(frame);
       window.removeEventListener('scroll', request);
       window.removeEventListener('resize', request);
       window.removeEventListener('pointermove', onPointer);
