@@ -9,7 +9,8 @@ float fbm(vec2 p){ float a=.5,v=0.; for(int i=0;i<4;i++){ v+=a*vnoise(p); p=p*2.
 
 /** 불사조 모델의 표준 재질에 끼워 넣는 조각: 모든 색을 #8B0000 한 색조로 바꾸고, 불길·소멸·윤곽 패스를 처리합니다. */
 export const birdFragmentHead = /* glsl */ `
-uniform float uBurn, uMorph, uMask, uTime;
+uniform float uBurn, uMask, uTime, uRim, uHazeAmount;
+uniform vec3 uHaze;
 ${noise}
 vec3 crimson(float l){
   vec3 c = mix(vec3(.16,0.,0.), vec3(.545,0.,0.), smoothstep(0.,.55,l));
@@ -29,50 +30,14 @@ export const birdEmissive = /* glsl */ `
   totalEmissiveRadiance = vec3(.545,0.,0.)*(.22 + glowLum*1.3) + vec3(.4,0.,0.)*uBurn*flicker;
 `;
 
+/** 배경에 녹아들도록 역광 테두리, 공기의 옅은 막, 입자감을 더합니다. */
 export const birdOutput = /* glsl */ `
-  if(uMorph > 0.){
-    float n = fbm(gl_FragCoord.xy*.006);
-    if(n < uMorph*1.25-.1) discard;
-  }
+  float rim = pow(1.-clamp(dot(normal, geometryViewDir),0.,1.), 2.6);
+  gl_FragColor.rgb += vec3(.95,.16,.1)*rim*uRim;
+  gl_FragColor.rgb = mix(gl_FragColor.rgb, uHaze, uHazeAmount);
+  gl_FragColor.rgb += (fract(sin(dot(gl_FragCoord.xy+fract(uTime)*91.,vec2(12.9898,78.233)))*43758.5453)-.5)*.022;
   if(uMask > .5) gl_FragColor = vec4(1.);
 `;
-
-export const ringVertex = /* glsl */ `
-varying vec2 vUv;
-void main(){ vUv = uv; gl_Position = vec4(position.xy,0.,1.); }`;
-
-/** 인트로 끝의 제로 고리. 불사조가 타 없어질 때 나타납니다. */
-export const ringFragment = /* glsl */ `
-precision highp float;
-uniform sampler2D uRingArt;
-uniform vec2 uRes;
-uniform float uZoom, uTime, uMorph;
-varying vec2 vUv;
-${noise}
-
-vec3 glowRamp(float t){
-  if(t<.5) return mix(vec3(.13,0.,.004),vec3(.545,0.,0.),smoothstep(.2,.5,t));
-  if(t<.8) return mix(vec3(.545,0.,0.),vec3(.78,.04,.03),(t-.5)/.3);
-  return mix(vec3(.78,.04,.03),vec3(1.,.6,.52),(t-.8)/.2);
-}
-
-void main(){
-  if(uMorph <= 0.){ gl_FragColor = vec4(0.); return; }
-  float asp = uRes.x/uRes.y;
-  vec2 q = (vUv-.5)*vec2(asp,1.)/uZoom;
-  vec2 w = vec2(fbm(q*7.+vec2(0.,-uTime*1.1))-.5, fbm(q*6.+vec2(5.,-uTime*.9))-.5);
-  vec3 ring = texture2D(uRingArt, q+.5+w*.02).rgb;
-  float n = mix(fbm(q*5.+3.),.5,.88);
-  float show = smoothstep(n-.05,n+.05,uMorph*1.2-.1);
-  float bounds = smoothstep(.5,.47,max(abs(q.x),abs(q.y)));
-  float alpha = smoothstep(.35,.65,ring.b)*show*bounds;
-  float tone = ring.r + (fbm(q*11.+vec2(0.,-uTime*1.6))-.5)*.13;
-  vec3 col = glowRamp(tone);
-  col = mix(col, vec3(.07,0.,.002), smoothstep(.4,.75,ring.g)*.92);
-  float near = texture2D(uRingArt,q+.5,3.5).r, far = texture2D(uRingArt,q+.5,5.5).r;
-  vec3 bloom = (vec3(.8,.05,.03)*smoothstep(.1,.5,far)*.6 + vec3(.95,.14,.09)*smoothstep(.3,.9,near)*.38)*show*bounds;
-  gl_FragColor = vec4(col*alpha + bloom, alpha);
-}`;
 
 export const backgroundVertex = /* glsl */ `
 varying vec2 vUv;
@@ -82,7 +47,7 @@ export const backgroundFragment = /* glsl */ `
 precision highp float;
 uniform sampler2D uMaskTex;
 uniform vec2 uRes;
-uniform float uTime, uSun, uSunSize, uSunX, uCosmos, uWar, uRing, uBurn;
+uniform float uTime, uSun, uSunSize, uSunX, uCosmos, uWar, uBurn;
 uniform vec2 uBird;
 varying vec2 vUv;
 ${noise}
@@ -176,7 +141,7 @@ void main(){
     float n1=fbm(vec2(p.x*6.+t*.15,p.y*3.6-t*1.05));
     float n2=fbm(vec2(p.x*14.-t*.2,p.y*8.-t*1.8));
     vec2 off=vec2((n1-.5)*.09,-.03-.075*n2);
-    float m=blurMask(uv+off,.024+uRing*.012);
+    float m=blurMask(uv+off,.024);
     float wide=blurMask(uv+off*2.2,.075);
     float flame=clamp(m*(.5+n2*.9)+wide*n1*.42,0.,1.);
     float stepped=floor(flame*5.)/5.;

@@ -14,7 +14,7 @@ interface Key {
   look: Vec3;
 }
 
-/** 스크롤 전체 진행도에 대한 카메라 경로: 뒤에서 근접 → 태양을 향해 비행 → 우주 → 정면의 전쟁 → 고리. */
+/** 스크롤 전체 진행도에 대한 카메라 경로: 뒤에서 근접 → 태양을 향해 비행 → 우주 → 정면의 전쟁 → 정면에서 마무리. */
 const KEYS: readonly Key[] = [
   { at: 0, azimuth: -38, elevation: 6, distance: 4.4, look: [1.7, 0.5, 0] },
   { at: 0.16, azimuth: -16, elevation: 12, distance: 7.5, look: [0.4, 1.6, 0] },
@@ -22,7 +22,7 @@ const KEYS: readonly Key[] = [
   { at: 0.5, azimuth: 16, elevation: 20, distance: 17, look: [0, 3.2, 0] },
   { at: 0.6, azimuth: 18, elevation: 14, distance: 15, look: [0, -3.4, 0] },
   { at: 0.76, azimuth: 158, elevation: 4, distance: 13, look: [0, -1.1, 0] },
-  { at: 1, azimuth: 180, elevation: 0, distance: 12, look: [0, 0, 0] },
+  { at: 1, azimuth: 180, elevation: -4, distance: 15, look: [0, -2.6, 0] },
 ];
 
 export interface SceneState {
@@ -30,10 +30,7 @@ export interface SceneState {
   look: [number, number, number];
   /** 카메라가 도는 각도(라디안). 태양 위치에 씁니다. */
   azimuth: number;
-  /** 제로 고리의 확대 비율. */
-  ringZoom: number;
   burn: number;
-  morph: number;
   sun: number;
   /** 태양이 다가오며 커지는 정도. */
   sunSize: number;
@@ -41,7 +38,6 @@ export interface SceneState {
   flight: number;
   cosmos: number;
   war: number;
-  ring: number;
 }
 
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
@@ -70,14 +66,11 @@ export function sampleTimeline(progress: number, aspect = 16 / 10): SceneState {
     ],
     look,
     azimuth,
-    ringZoom: 1.15 * Math.min(1, aspect * 1.1),
     burn: smoothstep(0.42, 0.56, p),
-    morph: smoothstep(0.8, 0.93, p),
     sun: smoothstep(0.02, 0.16, p) * (1 - smoothstep(0.46, 0.58, p)),
     sunSize: smoothstep(0.1, 0.5, p),
     flight: smoothstep(0.03, 0.14, p) * (1 - smoothstep(0.62, 0.74, p)),
     cosmos: smoothstep(0.38, 0.54, p),
     war: smoothstep(0.6, 0.74, p),
-    ring: smoothstep(0.86, 1, p),
   };
 }

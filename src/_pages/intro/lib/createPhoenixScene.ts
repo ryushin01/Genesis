@@ -2,22 +2,18 @@ import {
   AdditiveBlending,
   AnimationMixer,
   Box3,
+  Color,
   BufferAttribute,
   BufferGeometry,
-  CanvasTexture,
   ConeGeometry,
-  CustomBlending,
   DirectionalLight,
   Group,
   HemisphereLight,
   InstancedBufferAttribute,
   InstancedBufferGeometry,
-  LinearMipmapLinearFilter,
   LinearSRGBColorSpace,
   Mesh,
   MeshStandardMaterial,
-  OneFactor,
-  OneMinusSrcAlphaFactor,
   OrthographicCamera,
   PerspectiveCamera,
   PlaneGeometry,
@@ -32,7 +28,6 @@ import {
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { sampleTimeline } from '../model/timeline';
-import { drawRingArt } from './drawPhoenixArt';
 import {
   backgroundFragment,
   backgroundVertex,
@@ -44,8 +39,6 @@ import {
   emberVertex,
   fleetFragment,
   fleetVertex,
-  ringFragment,
-  ringVertex,
 } from './shaders';
 
 export interface PhoenixScene {
@@ -58,20 +51,7 @@ export interface PhoenixScene {
 /** "Phoenix" by NORBERTO-3D (CC BY 4.0). 색을 바꾸고 목의 장식을 뺀 모델입니다. */
 const MODEL_URL = '/models/phoenix.glb';
 const WINGSPAN = 7;
-
-function createArtTexture(size: number, draw: (ctx: CanvasRenderingContext2D, size: number) => void) {
-  const canvas = document.createElement('canvas');
-  canvas.width = size;
-  canvas.height = size;
-  const context = canvas.getContext('2d');
-  if (!context) throw new Error('2D 캔버스를 만들 수 없습니다.');
-  draw(context, size);
-  const texture = new CanvasTexture(canvas);
-  texture.generateMipmaps = true;
-  texture.minFilter = LinearMipmapLinearFilter;
-  texture.anisotropy = 4;
-  return texture;
-}
+const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<PhoenixScene> {
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
@@ -86,8 +66,10 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
   const shared = {
     uTime: { value: 0 },
     uBurn: { value: 0 },
-    uMorph: { value: 0 },
     uMask: { value: 0 },
+    uRim: { value: 0 },
+    uHaze: { value: new Color(0.55, 0.02, 0.02) },
+    uHazeAmount: { value: 0 },
   };
 
   // 불사조: 크기를 맞추고 머리가 화면 안쪽(-z)을 향하게 돌립니다.
@@ -129,8 +111,9 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
   gltf.animations.forEach((clip) => mixer.clipAction(clip).setEffectiveTimeScale(0.62).play());
 
   const scene = new Scene();
-  scene.add(new HemisphereLight(0xffffff, 0x2a0000, 1.9));
-  const sunLight = new DirectionalLight(0xffffff, 2.4);
+  const skyLight = new HemisphereLight(0xff8c7a, 0x3a0000, 1.9);
+  scene.add(skyLight);
+  const sunLight = new DirectionalLight(0xffd2c4, 2.4);
   sunLight.position.set(0, 6, -10);
   // 카메라 쪽에서 비추는 보조광. 카메라를 따라 움직입니다.
   const fillLight = new DirectionalLight(0xffffff, 1.7);
@@ -189,32 +172,8 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
   );
   embers.frustumCulled = false;
 
-  const ringTexture = createArtTexture(compact ? 1024 : 2048, drawRingArt);
-  const ringUniforms = {
-    uRingArt: { value: ringTexture },
-    uRes: { value: new Vector2(1, 1) },
-    uZoom: { value: 1 },
-    uTime: shared.uTime,
-    uMorph: shared.uMorph,
-  };
-  const ringGeometry = new PlaneGeometry(2, 2);
-  const ringMaterial = new ShaderMaterial({
-    uniforms: ringUniforms,
-    vertexShader: ringVertex,
-    fragmentShader: ringFragment,
-    transparent: true,
-    depthTest: false,
-    depthWrite: false,
-    // 빛 번짐이 형상 밖으로 나가도록 미리 곱한 알파로 합성합니다.
-    blending: CustomBlending,
-    blendSrc: OneFactor,
-    blendDst: OneMinusSrcAlphaFactor,
-  });
-  const ring = new Mesh(ringGeometry, ringMaterial);
-  ring.frustumCulled = false;
-  ring.renderOrder = 3;
   embers.renderOrder = 2;
-  fxScene.add(fleet, embers, ring);
+  fxScene.add(fleet, embers);
 
   const mask = new WebGLRenderTarget(4, 4);
   const backgroundUniforms = {
@@ -227,7 +186,6 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
     uSunX: { value: 0 },
     uCosmos: { value: 0 },
     uWar: { value: 0 },
-    uRing: { value: 0 },
     uBurn: shared.uBurn,
   };
   const backgroundScene = new Scene();
@@ -255,7 +213,6 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
     renderer.setSize(width, height, false);
     mask.setSize(Math.ceil(width / 3), Math.ceil(height / 3));
     backgroundUniforms.uRes.value.set(width * dpr, height * dpr);
-    ringUniforms.uRes.value.set(width * dpr, height * dpr);
     emberUniforms.uScale.value = height * dpr * 0.42;
     for (const view of [camera, fxCamera]) {
       view.aspect = width / height;
@@ -307,15 +264,17 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
     const s = sampleTimeline(progress, width / height);
     shared.uTime.value = time;
     shared.uBurn.value = s.burn;
-    shared.uMorph.value = s.morph;
-    ringUniforms.uZoom.value = s.ringZoom;
+    // 장면의 빛을 불사조에도 입힙니다: 태양 앞에서는 붉은 역광과 대기, 우주에서는 어둠에 가깝게.
+    shared.uRim.value = 0.25 + s.sun * 0.85 + s.burn * 0.35;
+    shared.uHaze.value.setRGB(lerp(0.5, 0.05, s.cosmos), lerp(0.02, 0, s.cosmos), lerp(0.02, 0.01, s.cosmos));
+    shared.uHazeAmount.value = 0.28 * s.sun + 0.12 * s.cosmos * (1 - s.sun);
+    skyLight.color.setRGB(1, lerp(0.55, 0.35, s.cosmos), lerp(0.48, 0.32, s.cosmos));
     backgroundUniforms.uSun.value = s.sun;
     backgroundUniforms.uSunSize.value = s.sunSize;
     backgroundUniforms.uSunX.value = Math.sin(s.azimuth) * -0.35;
     backgroundUniforms.uCosmos.value = s.cosmos;
     backgroundUniforms.uWar.value = s.war;
-    backgroundUniforms.uRing.value = s.ring;
-    fleetUniforms.uWar.value = s.war * (1 - s.ring);
+    fleetUniforms.uWar.value = s.war;
     emberUniforms.uHeat.value = s.burn;
     emberUniforms.uFlight.value = s.flight;
 
@@ -374,9 +333,6 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
         material.normalMap?.dispose();
         material.dispose();
       });
-      ringGeometry.dispose();
-      ringMaterial.dispose();
-      ringTexture.dispose();
       fleetGeometry.dispose();
       fleet.material.dispose();
       emberGeometry.dispose();
