@@ -1,7 +1,7 @@
 # project zero
 
 [![CI](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-0.3.0-8B0000)
+![version](https://img.shields.io/badge/version-0.4.0-8B0000)
 
 다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 **프로젝트 제로**의 홍보 홈페이지입니다.
 
@@ -35,7 +35,7 @@
 | 메인 `/main` | 흑백 편집 디자인의 작품 소개: 서사, 세 개의 흐름, 기록 보관소, 전체 화면 메뉴. 스크롤하면 제목이 벌어지며 멀어지고, 고정된 서사 문장이 단어마다 또렷해지며, 흐름 카드가 떠오르며 선화가 그려짐(CSS 스크롤 타임라인) |
 | 접근성 | 동작 줄이기 대응, 배경 애니메이션 정지, 키보드 조작, 본문 바로가기, 저사양 기기 해상도 자동 조절 |
 
-불사조는 [cadnav.com](http://www.cadnav.com)의 3D 모델을 렌더링한 날갯짓 이미지를 쓰고, 불길과 빛, 배경은 셰이더로 그립니다.
+불사조는 [“Phoenix”](https://sketchfab.com/3d-models/phoenix-243fea4f846f44d18d37bf371272b7ec) by [NORBERTO-3D](https://sketchfab.com/norberto3d)([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/))를 실시간 3D로 그립니다. 색을 #8B0000으로 바꾸고 목의 장식을 뺐으며, 불길과 빛, 배경은 셰이더로 그립니다.
 
 ## 기술 스택
 
@@ -81,7 +81,7 @@ src/
 │   ├── intro/      # WebGL 인트로 (model: 문구·타임라인, lib: 장면·셰이더)
 │   └── main/       # 흑백 메인 페이지
 └── shared/lib/     # 공통 훅
-public/art/         # 불사조 날갯짓 렌더링 이미지
+public/models/      # 불사조 3D 모델(glTF)과 라이선스
 ```
 
 ## 문서

@@ -146,7 +146,7 @@ export function IntroExperience() {
             <Link href="/main" className={styles.enter} onFocus={showFinale}>
               메인으로 들어가기
             </Link>
-            <p className={styles.credit}>불사조 3D 모델 출처: cadnav.com</p>
+            <p className={styles.credit}>불사조 모델: “Phoenix” by NORBERTO-3D, CC BY 4.0 (색 변경·장식 제거)</p>
           </div>
         </section>
       </main>

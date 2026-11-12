@@ -21,7 +21,8 @@ describe('sampleTimeline', () => {
     expect(sampleTimeline(2)).toEqual(sampleTimeline(1));
   });
 
-  it('세로 화면에서는 전신 장면의 그림을 더 줄인다', () => {
-    expect(sampleTimeline(0.34, 0.5).zoom).toBeLessThan(sampleTimeline(0.34, 1.6).zoom);
+  it('세로 화면에서는 전신 장면의 카메라를 더 물린다', () => {
+    const far = (s: ReturnType<typeof sampleTimeline>) => Math.hypot(s.camera[0] - s.look[0], s.camera[1] - s.look[1], s.camera[2] - s.look[2]);
+    expect(far(sampleTimeline(0.34, 0.5))).toBeGreaterThan(far(sampleTimeline(0.34, 1.6)));
   });
 });

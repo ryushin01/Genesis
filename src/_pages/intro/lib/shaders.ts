@@ -7,102 +7,70 @@ float vnoise(vec2 p){
 float fbm(vec2 p){ float a=.5,v=0.; for(int i=0;i<4;i++){ v+=a*vnoise(p); p=p*2.03+vec2(17.,9.); a*=.5; } return v; }
 `;
 
-export const phoenixVertex = /* glsl */ `
+/** 불사조 모델의 표준 재질에 끼워 넣는 조각: 모든 색을 #8B0000 한 색조로 바꾸고, 불길·소멸·윤곽 패스를 처리합니다. */
+export const birdFragmentHead = /* glsl */ `
+uniform float uBurn, uMorph, uMask, uTime;
+${noise}
+vec3 crimson(float l){
+  vec3 c = mix(vec3(.16,0.,0.), vec3(.545,0.,0.), smoothstep(0.,.55,l));
+  return mix(c, vec3(.7,.03,.02), smoothstep(.7,1.,l)*.6);
+}
+`;
+
+export const birdAlbedo = /* glsl */ `
+  float birdLum = pow(clamp(dot(diffuseColor.rgb, vec3(.3,.59,.11)),0.,1.), 1./2.2);
+  diffuseColor.rgb = crimson(birdLum);
+`;
+
+export const birdEmissive = /* glsl */ `
+  float glowLum = dot(totalEmissiveRadiance, vec3(.3,.59,.11));
+  float flicker = .65 + .7*fbm(gl_FragCoord.xy*.012 + vec2(0.,-uTime*1.4));
+  // 역광에서도 #8B0000이 보이도록 바탕 발광을 조금 둡니다.
+  totalEmissiveRadiance = vec3(.545,0.,0.)*(.22 + glowLum*1.3) + vec3(.4,0.,0.)*uBurn*flicker;
+`;
+
+export const birdOutput = /* glsl */ `
+  if(uMorph > 0.){
+    float n = fbm(gl_FragCoord.xy*.006);
+    if(n < uMorph*1.25-.1) discard;
+  }
+  if(uMask > .5) gl_FragColor = vec4(1.);
+`;
+
+export const ringVertex = /* glsl */ `
 varying vec2 vUv;
 void main(){ vUv = uv; gl_Position = vec4(position.xy,0.,1.); }`;
 
-export const phoenixFragment = /* glsl */ `
+/** 인트로 끝의 제로 고리. 불사조가 타 없어질 때 나타납니다. */
+export const ringFragment = /* glsl */ `
 precision highp float;
-uniform sampler2D uFlight, uFlight2, uRingArt;
-uniform vec2 uRes, uFocus;
-uniform float uZoom, uTilt, uTime, uFlap, uBurn, uMorph, uMask, uView;
+uniform sampler2D uRingArt;
+uniform vec2 uRes;
+uniform float uZoom, uTime, uMorph;
 varying vec2 vUv;
 ${noise}
 
-// 깃털 그림의 명도를 #8B0000 중심으로 옮깁니다.
-vec3 featherRamp(float t){
-  vec3 c = mix(vec3(.13,0.,.004),vec3(.545,0.,0.),smoothstep(.1,.5,t));
-  c = mix(c,vec3(.86,.1,.07),smoothstep(.6,.82,t));
-  return mix(c,vec3(1.,.82,.74),smoothstep(.86,1.,t));
-}
-
 vec3 glowRamp(float t){
   if(t<.5) return mix(vec3(.13,0.,.004),vec3(.545,0.,0.),smoothstep(.2,.5,t));
-  if(t<.75) return mix(vec3(.545,0.,0.),vec3(.8,.06,.05),(t-.5)/.25);
-  if(t<.92) return mix(vec3(.8,.06,.05),vec3(1.,.42,.3),(t-.75)/.17);
-  return mix(vec3(1.,.42,.3),vec3(1.,.9,.83),(t-.92)/.08);
-}
-
-// 프레임 번호(각도*10+날갯짓)로 두 장의 4x4 이미지에서 한 칸을 읽습니다.
-vec3 flight(vec2 q, float id, float lod){
-  float local = mod(id,16.);
-  float col = mod(local,4.), row = floor(local/4.);
-  vec2 c = vec2((col+q.x+.5)/4., 1.-(row+.5-q.y)/4.);
-  return (id < 16. ? texture2D(uFlight,c,lod) : texture2D(uFlight2,c,lod)).rgb;
+  if(t<.8) return mix(vec3(.545,0.,0.),vec3(.78,.04,.03),(t-.5)/.3);
+  return mix(vec3(.78,.04,.03),vec3(1.,.6,.52),(t-.8)/.2);
 }
 
 void main(){
+  if(uMorph <= 0.){ gl_FragColor = vec4(0.); return; }
   float asp = uRes.x/uRes.y;
-  vec2 q = (vUv-.5)*vec2(asp,1.)/uZoom + uFocus;
-  float tc = cos(uTilt), ts = sin(uTilt);
-  q = mat2(tc,ts,-ts,tc)*q;
-
-  float frame = fract(uTime*.85)*10.;
-  float a = floor(frame), b = mod(a+1.,10.), f = frame-a;
-  float v0 = min(floor(uView),1.), vf = smoothstep(.38,.62,uView-v0);
-  float main = floor(uView+.5)*10.+a;
-  float inside = step(max(abs(q.x),abs(q.y)),.5);
-  vec3 art0 = mix(flight(q,v0*10.+a,0.), flight(q,v0*10.+b,0.), f);
-  vec3 art1 = mix(flight(q,(v0+1.)*10.+a,0.), flight(q,(v0+1.)*10.+b,0.), f);
-  vec3 art = mix(art0, art1, vf) * inside;
-
+  vec2 q = (vUv-.5)*vec2(asp,1.)/uZoom;
   vec2 w = vec2(fbm(q*7.+vec2(0.,-uTime*1.1))-.5, fbm(q*6.+vec2(5.,-uTime*.9))-.5);
-  float n = fbm(q*5.+3.);
-  float burnFront = uBurn*1.3-.15;
-  float burn = smoothstep(n-.06,n+.06,burnFront);
-
-  // 날개에서 바깥으로 뻗는 불길. 날갯짓을 그대로 따라갑니다.
-  float streak = 0.;
-  if(uBurn > 0.){
-    vec2 o = vec2(0.,-.02);
-    for(int i=1;i<=10;i++){
-      float k = float(i)/10.;
-      vec2 p = o+(q-o)*(1.-k*.42)+w*.02;
-      if(max(abs(p.x),abs(p.y))<.5) streak += flight(p,main,0.).b*(1.-k*.7);
-    }
-    streak /= 6.5;
-    float ang = atan(q.y-o.y,q.x-o.x);
-    float line = fbm(vec2(cos(ang),sin(ang))*9.+vec2(length(q-o)*3.-uTime*1.3,0.));
-    streak = smoothstep(.2,.95,streak*(.5+line*1.15))*burn;
-  }
-
   vec3 ring = texture2D(uRingArt, q+.5+w*.02).rgb;
-  float ringFront = uMorph*1.2-.1;
-  float ringNoise = mix(n,.5,.88);
-  float toRing = smoothstep(ringNoise-.05,ringNoise+.05,ringFront);
-
-  float body = smoothstep(.35,.65,art.b);
-  float rays = streak*(1.-toRing);
-  float ringAlpha = smoothstep(.35,.65,ring.b)*toRing;
-  float alpha = max(max(body*(1.-toRing), rays*.92), ringAlpha) * smoothstep(.5,.47,max(abs(q.x),abs(q.y)));
-  if(uMask > .5){ gl_FragColor = vec4(alpha); return; }
-
-  float lit = max(burn,toRing);
-  float base = mix(min(art.r*1.2,.8), art.r*1.2+.14, burn);
-  float tone = mix(base, ring.r, toRing);
-  tone += (fbm(q*11.+vec2(0.,-uTime*1.6))-.5)*.13*lit;
-  vec3 col = mix(featherRamp(tone), glowRamp(tone), lit*.85);
-  // 형상 밖은 불길 색으로 칠합니다.
-  if(body*(1.-toRing)+ringAlpha < .5) col = glowRamp(.45+rays*.45);
-  col = mix(col, vec3(.07,0.,.002), smoothstep(.4,.75,ring.g)*toRing*.92);
-
-  float edge = smoothstep(.05,.0,abs(n-burnFront))*step(.001,uBurn)*(1.-step(1.,uBurn))*body;
-  col = mix(col, vec3(.96,.36,.26), edge*.7);
-
-  float near = mix(flight(q,main,3.2).r, texture2D(uRingArt,q+.5,3.5).r, toRing);
-  float far = mix(flight(q,main,5.).r, texture2D(uRingArt,q+.5,5.5).r, toRing);
-  vec3 bloom = (vec3(.8,.05,.03)*smoothstep(.1,.5,far)*.6 + vec3(.95,.14,.09)*smoothstep(.3,.9,near)*.38) * lit * smoothstep(.5,.38,max(abs(q.x),abs(q.y)));
-
+  float n = mix(fbm(q*5.+3.),.5,.88);
+  float show = smoothstep(n-.05,n+.05,uMorph*1.2-.1);
+  float bounds = smoothstep(.5,.47,max(abs(q.x),abs(q.y)));
+  float alpha = smoothstep(.35,.65,ring.b)*show*bounds;
+  float tone = ring.r + (fbm(q*11.+vec2(0.,-uTime*1.6))-.5)*.13;
+  vec3 col = glowRamp(tone);
+  col = mix(col, vec3(.07,0.,.002), smoothstep(.4,.75,ring.g)*.92);
+  float near = texture2D(uRingArt,q+.5,3.5).r, far = texture2D(uRingArt,q+.5,5.5).r;
+  vec3 bloom = (vec3(.8,.05,.03)*smoothstep(.1,.5,far)*.6 + vec3(.95,.14,.09)*smoothstep(.3,.9,near)*.38)*show*bounds;
   gl_FragColor = vec4(col*alpha + bloom, alpha);
 }`;
 
@@ -115,6 +83,7 @@ precision highp float;
 uniform sampler2D uMaskTex;
 uniform vec2 uRes;
 uniform float uTime, uSun, uSunSize, uSunX, uCosmos, uWar, uRing, uBurn;
+uniform vec2 uBird;
 varying vec2 vUv;
 ${noise}
 
@@ -213,6 +182,16 @@ void main(){
     float stepped=floor(flame*5.)/5.;
     col=mix(col,fire(stepped),smoothstep(.3,.85,flame)*uBurn*.22);
     col+=vec3(.4,0.,0.)*wide*uBurn*.5;
+    // 불사조 형상에서 바깥으로 뻗는 불길 줄기
+    float rays=0.;
+    for(int i=0;i<12;i++){
+      float k=float(i)/12.;
+      rays+=texture2D(uMaskTex,mix(uv,uBird,k*.42)).r*(1.-k);
+    }
+    vec2 dir=normalize((uv-uBird)*vec2(asp,1.)+1e-4);
+    float lines=fbm(dir*9.+vec2(length(uv-uBird)*3.-t*1.3,0.));
+    rays=smoothstep(.15,.9,rays/6.5*(.45+lines*1.2));
+    col+=vec3(.62,0.,0.)*rays*uBurn*1.1;
   }
 
   // 글자가 묻히지 않도록 가장자리를 눌러 줍니다.
