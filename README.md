@@ -50,7 +50,8 @@
 | 그래픽 | three.js, GLSL 셰이더 |
 | 스타일 | CSS Modules, CSS 스크롤 기반 애니메이션 |
 | 아키텍처 | Feature-Sliced Design, Steiger |
-| 품질 | Vitest, Testing Library, Storybook, Playwright, axe |
+| 품질 | Vitest, Testing Library, Storybook, Playwright, axe, eslint-plugin-jsx-a11y, size-limit, Lighthouse CI |
+| 모니터링 | Sentry(DSN이 있을 때만), web-vitals |
 
 ## 시작하기
 
@@ -67,6 +68,7 @@ pnpm dev
 | `pnpm typecheck` | 타입 검사 |
 | `pnpm test` | 단위·컴포넌트 테스트 |
 | `pnpm e2e` | 프로덕션 빌드 E2E 테스트 |
+| `pnpm size` · `pnpm lhci` | 번들 크기 예산 · Lighthouse 점수 기준 검사 (먼저 빌드 필요) |
 | `pnpm storybook` | Storybook 실행 |
 
 ## 프로젝트 구조
