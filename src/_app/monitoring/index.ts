@@ -4,7 +4,7 @@ type SentryModule = typeof import('./sentry');
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
-let sentry: Promise<SentryModule> | undefined;
+let sentry: Promise<SentryModule | undefined> | undefined;
 
 /**
  * 브라우저의 오류·성능 모니터링을 켭니다. `instrumentation-client.ts`가 화면을 그리기 전에 부릅니다.
@@ -16,7 +16,19 @@ export function initMonitoring() {
   if (typeof window === 'undefined') return;
 
   if (dsn) {
-    sentry = import('./sentry').then((Sentry) => {
+    // Sentry를 받는 동안 난 오류(첫 화면 그리기 등)를 모아 두었다가, 준비되면 보냅니다.
+    const early: unknown[] = [];
+    const onError = (event: ErrorEvent) => early.push(event.error ?? event.message);
+    const onRejection = (event: PromiseRejectionEvent) => early.push(event.reason);
+    window.addEventListener('error', onError);
+    window.addEventListener('unhandledrejection', onRejection);
+    const stopBuffering = () => {
+      window.removeEventListener('error', onError);
+      window.removeEventListener('unhandledrejection', onRejection);
+    };
+
+    sentry = import('./sentry')
+      .then((Sentry) => {
       Sentry.init({
         dsn,
         environment: process.env.NODE_ENV,
@@ -34,8 +46,15 @@ export function initMonitoring() {
         integrations: (defaults) =>
           defaults.filter(({ name }) => name !== 'BrowserSession' && name !== 'Breadcrumbs'),
       });
-      return Sentry;
-    });
+        stopBuffering();
+        for (const error of early.splice(0)) Sentry.captureException(error);
+        return Sentry;
+      })
+      // Sentry를 받지 못해도 앱은 그대로 돕니다.
+      .catch(() => {
+        stopBuffering();
+        return undefined;
+      });
   }
 
   void import('web-vitals').then(({ onCLS, onINP, onLCP, onFCP, onTTFB }) => {
@@ -49,7 +68,7 @@ export function reportMetric(metric: Metric) {
   }
   if (!sentry || metric.rating !== 'poor') return;
   void sentry.then((Sentry) =>
-    Sentry.captureMessage(`Web Vitals 나쁨: ${metric.name}`, {
+    Sentry?.captureMessage(`Web Vitals 나쁨: ${metric.name}`, {
       level: 'warning',
       tags: { metric: metric.name, rating: metric.rating, path: location.pathname },
       extra: { value: metric.value, id: metric.id, navigationType: metric.navigationType },
@@ -60,5 +79,5 @@ export function reportMetric(metric: Metric) {
 /** 오류 경계(error.tsx)에서 잡은 오류를 보냅니다. */
 export function reportError(error: unknown) {
   if (!sentry) return;
-  void sentry.then((Sentry) => Sentry.captureException(error));
+  void sentry.then((Sentry) => Sentry?.captureException(error));
 }
