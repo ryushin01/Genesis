@@ -4,6 +4,9 @@ type SentryModule = typeof import('./sentry');
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
+/** Sentry를 받기 전에 모아 둘 오류 수. 오류가 반복돼도 메모리를 계속 쓰지 않게 한다. */
+const MAX_EARLY_ERRORS = 20;
+
 /** 방문 기록(세션), 이동·클릭 기록(브레드크럼), 콘솔 기록은 모으지 않습니다. */
 const OFF_INTEGRATIONS = new Set(['BrowserSession', 'Breadcrumbs', 'Console']);
 
@@ -21,10 +24,11 @@ export function initMonitoring() {
   if (dsn) {
     // Sentry를 받는 동안 난 오류(첫 화면 그리기 등)를 모아 두었다가, 준비되면 보냅니다.
     const early: { error: unknown; type: string }[] = [];
-    const onError = (event: ErrorEvent) =>
-      early.push({ error: event.error ?? event.message, type: 'onerror' });
-    const onRejection = (event: PromiseRejectionEvent) =>
-      early.push({ error: event.reason, type: 'onunhandledrejection' });
+    const keep = (error: unknown, type: string) => {
+      if (early.length < MAX_EARLY_ERRORS) early.push({ error, type });
+    };
+    const onError = (event: ErrorEvent) => keep(event.error ?? event.message, 'onerror');
+    const onRejection = (event: PromiseRejectionEvent) => keep(event.reason, 'onunhandledrejection');
     window.addEventListener('error', onError);
     window.addEventListener('unhandledrejection', onRejection);
     const stopBuffering = () => {
@@ -60,9 +64,12 @@ export function initMonitoring() {
       });
   }
 
-  void import('web-vitals').then(({ onCLS, onINP, onLCP, onFCP, onTTFB }) => {
-    for (const subscribe of [onCLS, onINP, onLCP, onFCP, onTTFB]) subscribe(reportMetric);
-  });
+  void import('web-vitals')
+    .then(({ onCLS, onINP, onLCP, onFCP, onTTFB }) => {
+      for (const subscribe of [onCLS, onINP, onLCP, onFCP, onTTFB]) subscribe(reportMetric);
+    })
+    // 지표를 받지 못해도 앱은 그대로 돕니다.
+    .catch(() => undefined);
 }
 
 export function reportMetric(metric: Metric) {
