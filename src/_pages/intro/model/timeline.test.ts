@@ -15,7 +15,6 @@ describe('sampleTimeline', () => {
     expect(state.dissolve).toBe(1);
     expect(state.fall).toBe(1);
     expect(state.nova).toBe(1);
-    expect(state.gather).toBe(1);
     expect(state.logo).toBe(1);
   });
 

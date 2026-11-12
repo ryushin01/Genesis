@@ -46,16 +46,19 @@ export const birdOutput = /* glsl */ `
   if(uMask > .5) gl_FragColor = vec4(1.);
 `;
 
-/** 불사조가 태양 속에서 터진 뒤 내려오는 깃털(3D 모델). 마지막에는 한곳으로 모여 로고가 됩니다. aHero=1은 큰 깃털입니다. */
+/**
+ * 불사조가 태양 속에서 터진 뒤의 깃털(3D 모델).
+ * 작은 깃털들은 사방으로 흩어졌다 사라지고, 큰 깃털 하나(aHero=1)가 빛을 끌며 화면 가운데로 천천히 내려옵니다.
+ */
 export const featherVertex = /* glsl */ `
 attribute float aSeed, aHero;
-uniform float uTime, uFall, uAspect, uNova, uGather;
-uniform vec2 uSun, uLogoAt;
-varying float vSeed, vFacing, vY, vLight, vGather;
+uniform float uTime, uFall, uAspect, uLogo;
+uniform vec2 uSun, uHeroAt;
+varying float vSeed, vFacing, vY, vLight, vHero;
 void main(){
   vSeed = aSeed;
   vY = position.y;
-  vGather = uGather;
+  vHero = aHero;
   float s = aSeed;
   float spin = uTime*(.35+s*.5) + s*20.;
   float roll = sin(uTime*(.6+s*.4) + s*31.)*.55;
@@ -64,28 +67,17 @@ void main(){
   float size;
   vec2 at;
   if(aHero > .5){
-    size = 3.;
-    float settle = smoothstep(0.,1.,uFall);
-    at = mix(uSun, uLogoAt + vec2(0., -.3), settle) + vec2(sin(uTime*.55)*.32*(1.-settle*.6), sin(uTime*.8)*.08);
-    roll = sin(uTime*.5)*.35 - .45;
-    spin = sin(uTime*.35)*.9;
+    size = 2.6*(1.-uLogo*.6);
+    at = uHeroAt;
+    roll = sin(uTime*.6)*.22;
+    spin = sin(uTime*.4)*.7;
   } else {
-    size = .7 + s*.8;
-    float life = fract(uTime*(.03+s*.035) + s*7.3);
+    size = .6 + s*.7;
     float a = s*6.2832*3.;
-    vec2 spread = vec2(cos(a)*(1.4+s*3.6)*uAspect, sin(a)*.6);
-    vec2 drift = vec2(sin(life*6.2832*1.5+s*9.)*.8, -life*11.);
-    // 태양에서 터져 나오며(uFall이 작을 때 빠르게) 퍼진 뒤 천천히 내려옵니다.
-    at = uSun + mix(vec2(0.), spread + drift + vec2(0.,1.5), smoothstep(0.,.6,uFall));
+    vec2 dir = vec2(cos(a), sin(a));
+    float out1 = 1.-exp(-uFall*7.);
+    at = uSun + dir*vec2(uAspect,1.)*(1.4+s*3.)*out1 + vec2(0., -uFall*uFall*(2.+s*3.));
   }
-  // 마지막에는 소용돌이치며 로고 자리로 빨려 들어갑니다.
-  float g = uGather*uGather;
-  float swirl = g*(3.+s*4.);
-  vec2 toward = at - uLogoAt;
-  toward = mat2(cos(swirl),-sin(swirl),sin(swirl),cos(swirl))*toward*(1.-g);
-  at = uLogoAt + toward;
-  size *= 1. - g*.85;
-  spin += uGather*10.*(s+.3);
   float c = cos(spin), sn = sin(spin);
   local.xz = mat2(c,-sn,sn,c)*local.xz;
   n.xz = mat2(c,-sn,sn,c)*n.xz;
@@ -99,16 +91,21 @@ void main(){
 
 export const featherFragment = /* glsl */ `
 precision highp float;
-uniform float uFall, uNova;
-varying float vSeed, vFacing, vY, vLight, vGather;
+uniform float uFall, uLogo;
+varying float vSeed, vFacing, vY, vLight, vHero;
 void main(){
   vec3 col = mix(vec3(.2,0.,0.), vec3(.545,0.,0.), vLight);
   col *= .72 + .4*vFacing;
-  // 막 터져 나온 깃털과 로고로 모일 때는 불씨처럼 빛납니다.
-  float ember = (1.-smoothstep(.15,.7,uFall)) + .2 + vGather*1.2;
+  float ember = (1.-smoothstep(.15,.7,uFall)) + .2;
   col += vec3(.9,.12,.06)*smoothstep(.6,1.,vY)*ember;
-  col += vec3(1.,.45,.35)*vGather*.4;
-  float alpha = smoothstep(0.,.08,uFall)*(1.-smoothstep(.7,1.,vGather));
+  float alpha;
+  if(vHero > .5){
+    // 내려오는 큰 깃털은 스스로 빛나고, 로고가 나타나면 사라집니다.
+    col += vec3(.75,.08,.05)*(.55+.45*smoothstep(.2,1.,vY));
+    alpha = smoothstep(0.,.06,uFall)*(1.-smoothstep(.2,.7,uLogo));
+  } else {
+    alpha = smoothstep(0.,.04,uFall)*(1.-smoothstep(.25,.6,uFall));
+  }
   gl_FragColor = vec4(col, alpha);
 }`;
 
@@ -120,8 +117,8 @@ export const backgroundFragment = /* glsl */ `
 precision highp float;
 uniform sampler2D uMaskTex;
 uniform vec2 uRes;
-uniform float uTime, uSun, uSunSize, uSunX, uCosmos, uWar, uBurn, uNova, uLogo;
-uniform vec2 uBird, uNovaAt, uLogoAt;
+uniform float uTime, uSun, uSunSize, uSunX, uCosmos, uWar, uBurn, uNova, uLogo, uHeroGlow;
+uniform vec2 uBird, uNovaAt, uLogoAt, uHeroAt;
 varying vec2 vUv;
 ${noise}
 
@@ -212,6 +209,14 @@ void main(){
   float shock=smoothstep(.05,0.,abs(nr-uNova*1.6))*(1.-uNova);
   col+=vec3(1.,.55,.45)*flash*1.6+vec3(.95,.12,.08)*shock*1.4;
   col+=vec3(.545,0.,0.)*exp(-length(p-uLogoAt)*2.6)*uLogo*.9;
+  // 내려오는 깃털의 빛 무리와 위로 길게 남는 빛줄기
+  vec2 hp=p-uHeroAt;
+  float heroHalo=exp(-length(hp)*4.5);
+  float trail=exp(-abs(hp.x)*70.)*exp(-max(hp.y,0.)*1.6)*step(0.,hp.y);
+  float sparks=step(.985,hash(floor(vec2(hp.x*90.,hp.y*30.-t*6.))))*exp(-abs(hp.x)*14.)*exp(-max(hp.y,0.)*2.2)*step(0.,hp.y);
+  col+=(vec3(.78,.06,.04)*heroHalo*.9+vec3(1.,.4,.3)*trail*.55+vec3(1.,.6,.5)*sparks)*uHeroGlow;
+  // 로고가 나타나는 순간의 섬광
+  col+=vec3(1.,.5,.4)*exp(-length(p-uLogoAt)*5.)*sin(uLogo*3.14159)*1.2;
 
   // 불사조 뒤의 빛과 불길
   vec2 uv=vUv;

@@ -154,7 +154,8 @@
 
 .finale {
   align-content: end;
-  padding-bottom: clamp(72px, 12vh, 140px);
+  row-gap: clamp(16px, 3vh, 28px);
+  padding-bottom: clamp(56px, 7vh, 88px);
   justify-items: center;
   row-gap: clamp(28px, 5vh, 48px);
   text-align: center;

@@ -41,13 +41,11 @@ export interface SceneState {
   exit: number;
   /** 태양 속에서 불사조가 흩어지는 정도. */
   dissolve: number;
-  /** 깃털이 내려오는 정도. */
+  /** 깃털이 흩어지고 큰 깃털이 가운데로 내려오는 정도. */
   fall: number;
   /** 불사조가 태양에 닿아 초신성처럼 터지는 정도. */
   nova: number;
-  /** 내려오던 깃털이 한곳으로 모이는 정도. */
-  gather: number;
-  /** 모인 자리에 로고가 나타나는 정도. */
+  /** 깃털이 내려앉은 자리에 로고가 나타나는 정도. */
   logo: number;
   cosmos: number;
   war: number;
@@ -87,9 +85,8 @@ export function sampleTimeline(progress: number, aspect = 16 / 10): SceneState {
     exit: smoothstep(0.8, 0.9, p),
     dissolve: smoothstep(0.88, 0.92, p),
     nova: smoothstep(0.885, 0.94, p),
-    fall: smoothstep(0.9, 0.96, p),
-    gather: smoothstep(0.965, 0.99, p),
-    logo: smoothstep(0.975, 1, p),
+    fall: smoothstep(0.895, 0.978, p),
+    logo: smoothstep(0.978, 1, p),
     cosmos: smoothstep(0.38, 0.54, p),
     war: smoothstep(0.6, 0.74, p),
   };

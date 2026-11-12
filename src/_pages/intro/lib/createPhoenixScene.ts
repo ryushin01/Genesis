@@ -61,7 +61,7 @@ const LOGO_URL = '/models/phoenix-logo.glb';
 const WINGSPAN = 7;
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-/** 깃털 모델에서 이름이 같은 부품을 한 덩어리로 합칩니다. 면이 화면을 보도록 돌리고 밑동을 원점, 길이를 1로 맞춥니다. */
+/** 깃털 모델에서 이름이 같은 부품을 한 덩어리로 합칩니다. 밑동을 원점, 길이를 1로 맞춥니다(모델의 넓은 면은 원래 화면을 봅니다). */
 function extractFeather(root: Object3D, prefix: string) {
   root.updateMatrixWorld(true);
   const positions: number[] = [];
@@ -79,8 +79,8 @@ function extractFeather(root: Object3D, prefix: string) {
     for (let i = 0; i < position.count; i += 1) {
       point.fromBufferAttribute(position, i).applyMatrix4(mesh.matrixWorld);
       direction.fromBufferAttribute(normal, i).transformDirection(mesh.matrixWorld);
-      positions.push(point.z, point.y, -point.x);
-      normals.push(direction.z, direction.y, -direction.x);
+      positions.push(point.x, point.y, point.z);
+      normals.push(direction.x, direction.y, direction.z);
     }
     if (index) for (let i = 0; i < index.count; i += 1) indices.push(index.getX(i) + offset);
   });
@@ -246,10 +246,10 @@ export async function createPhoenixScene(
   const featherUniforms = {
     uTime: shared.uTime,
     uFall: { value: 0 },
-    uNova: { value: 0 },
-    uGather: { value: 0 },
+    uLogo: { value: 0 },
     uSun: { value: new Vector2(0, 2) },
-    uLogoAt: { value: new Vector2(0, 1.5) },
+    uHeroAt: { value: new Vector2(0, 2) },
+    uLogoAt: { value: new Vector2(0, 0.35) },
     uAspect: { value: 1 },
   };
   const featherMaterial = new ShaderMaterial({
@@ -324,6 +324,8 @@ export async function createPhoenixScene(
     uLogo: { value: 0 },
     uNovaAt: { value: new Vector2(0, 0) },
     uLogoAt: { value: new Vector2(0, 0) },
+    uHeroAt: { value: new Vector2(0, 0) },
+    uHeroGlow: { value: 0 },
   };
   const backgroundScene = new Scene();
   const backgroundGeometry = new PlaneGeometry(2, 2);
@@ -431,8 +433,7 @@ export async function createPhoenixScene(
     bird.position.addScaledVector(sunTarget, s.exit * 40);
     shared.uDissolve.value = s.dissolve;
     featherUniforms.uFall.value = s.fall;
-    featherUniforms.uNova.value = s.nova;
-    featherUniforms.uGather.value = s.gather;
+    featherUniforms.uLogo.value = s.logo;
     backgroundUniforms.uNova.value = s.nova;
     backgroundUniforms.uLogo.value = s.logo;
     // 로고는 터진 자리에서 돌며 커지고, 다 나타난 뒤에는 천천히 흔들립니다.
@@ -449,6 +450,18 @@ export async function createPhoenixScene(
     // 폭발은 태양 자리에서, 잔광은 로고 자리에서 일어납니다(배경 셰이더 좌표).
     backgroundUniforms.uNovaAt.value.set(sunX, 0.24);
     backgroundUniforms.uLogoAt.value.set(0, featherUniforms.uLogoAt.value.y / (2 * halfHeight));
+    // 큰 깃털: 태양에서 화면 가운데(로고 자리)로 천천히 똑바로 내려옵니다.
+    const descend = s.fall * s.fall * (3 - 2 * s.fall);
+    const sway = Math.sin(time * 0.7) * 0.18 * (1 - descend);
+    featherUniforms.uHeroAt.value.set(
+      lerp(featherUniforms.uSun.value.x, 0, descend) + sway,
+      lerp(featherUniforms.uSun.value.y - 0.4, featherUniforms.uLogoAt.value.y - 0.55, descend),
+    );
+    backgroundUniforms.uHeroAt.value.set(
+      featherUniforms.uHeroAt.value.x / (2 * halfHeight),
+      featherUniforms.uHeroAt.value.y / (2 * halfHeight),
+    );
+    backgroundUniforms.uHeroGlow.value = Math.min(1, s.fall * 4) * (1 - s.logo);
     projected.copy(bird.position).project(camera);
     backgroundUniforms.uBird.value.set(projected.x * 0.5 + 0.5, projected.y * 0.5 + 0.5);
 
