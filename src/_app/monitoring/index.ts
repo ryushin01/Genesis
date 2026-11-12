@@ -4,6 +4,9 @@ type SentryModule = typeof import('./sentry');
 
 const dsn = process.env.NEXT_PUBLIC_SENTRY_DSN;
 
+/** 방문 기록(세션), 이동·클릭 기록(브레드크럼), 콘솔 기록은 모으지 않습니다. */
+const OFF_INTEGRATIONS = new Set(['BrowserSession', 'Breadcrumbs', 'Console']);
+
 let sentry: Promise<SentryModule | undefined> | undefined;
 
 /**
@@ -17,9 +20,11 @@ export function initMonitoring() {
 
   if (dsn) {
     // Sentry를 받는 동안 난 오류(첫 화면 그리기 등)를 모아 두었다가, 준비되면 보냅니다.
-    const early: unknown[] = [];
-    const onError = (event: ErrorEvent) => early.push(event.error ?? event.message);
-    const onRejection = (event: PromiseRejectionEvent) => early.push(event.reason);
+    const early: { error: unknown; type: string }[] = [];
+    const onError = (event: ErrorEvent) =>
+      early.push({ error: event.error ?? event.message, type: 'onerror' });
+    const onRejection = (event: PromiseRejectionEvent) =>
+      early.push({ error: event.reason, type: 'onunhandledrejection' });
     window.addEventListener('error', onError);
     window.addEventListener('unhandledrejection', onRejection);
     const stopBuffering = () => {
@@ -29,25 +34,23 @@ export function initMonitoring() {
 
     sentry = import('./sentry')
       .then((Sentry) => {
-      Sentry.init({
-        dsn,
-        environment: process.env.NODE_ENV,
-        release: process.env.NEXT_PUBLIC_RELEASE,
-        // 오류 내용만 남깁니다. 사용자 정보·쿠키·헤더·쿼리 문자열과
-        // 방문 기록(세션)·이동과 클릭 기록(브레드크럼)은 모으지 않습니다.
-        dataCollection: {
-          userInfo: false,
-          cookies: false,
-          httpHeaders: false,
-          httpBodies: [],
-          urlQueryParams: false,
-          stackFrameVariables: false,
-        },
-        integrations: (defaults) =>
-          defaults.filter(({ name }) => name !== 'BrowserSession' && name !== 'Breadcrumbs'),
-      });
+        Sentry.init({
+          dsn,
+          environment: process.env.NODE_ENV,
+          release: process.env.NEXT_PUBLIC_RELEASE,
+          // 오류 내용만 남깁니다. 사용자 정보·쿠키·헤더·쿼리 문자열은 모으지 않습니다.
+          dataCollection: {
+            userInfo: false,
+            cookies: false,
+            httpHeaders: false,
+            httpBodies: [],
+            urlQueryParams: false,
+            stackFrameVariables: false,
+          },
+          integrations: (defaults) => defaults.filter(({ name }) => !OFF_INTEGRATIONS.has(name)),
+        });
         stopBuffering();
-        for (const error of early.splice(0)) Sentry.captureException(error);
+        for (const { error, type } of early.splice(0)) captureUnhandled(Sentry, error, type);
         return Sentry;
       })
       // Sentry를 받지 못해도 앱은 그대로 돕니다.
@@ -80,4 +83,18 @@ export function reportMetric(metric: Metric) {
 export function reportError(error: unknown) {
   if (!sentry) return;
   void sentry.then((Sentry) => Sentry?.captureException(error));
+}
+
+/**
+ * 전역 오류 처리기가 잡은 것처럼 '처리되지 않은 오류'로 표시해 보냅니다.
+ * captureException은 기본으로 handled: true를 붙이므로 이벤트 처리기에서 바꿉니다.
+ */
+function captureUnhandled(Sentry: SentryModule, error: unknown, type: string) {
+  Sentry.withScope((scope) => {
+    scope.addEventProcessor((event) => {
+      for (const value of event.exception?.values ?? []) value.mechanism = { type, handled: false };
+      return event;
+    });
+    Sentry.captureException(error);
+  });
 }
