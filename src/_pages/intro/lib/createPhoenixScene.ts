@@ -1,17 +1,23 @@
 import {
   AdditiveBlending,
+  AnimationMixer,
+  Box3,
   BufferAttribute,
   BufferGeometry,
+  CanvasTexture,
   ConeGeometry,
+  CustomBlending,
+  DirectionalLight,
+  Group,
+  HemisphereLight,
   InstancedBufferAttribute,
   InstancedBufferGeometry,
-  CanvasTexture,
-  CustomBlending,
-  OneFactor,
-  OneMinusSrcAlphaFactor,
   LinearMipmapLinearFilter,
   LinearSRGBColorSpace,
   Mesh,
+  MeshStandardMaterial,
+  OneFactor,
+  OneMinusSrcAlphaFactor,
   OrthographicCamera,
   PerspectiveCamera,
   PlaneGeometry,
@@ -19,20 +25,27 @@ import {
   Scene,
   ShaderMaterial,
   Vector2,
+  Vector3,
   WebGLRenderTarget,
   WebGLRenderer,
 } from 'three';
+import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
+import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { sampleTimeline } from '../model/timeline';
 import { drawRingArt } from './drawPhoenixArt';
 import {
   backgroundFragment,
   backgroundVertex,
+  birdAlbedo,
+  birdEmissive,
+  birdFragmentHead,
+  birdOutput,
   emberFragment,
   emberVertex,
   fleetFragment,
   fleetVertex,
-  phoenixFragment,
-  phoenixVertex,
+  ringFragment,
+  ringVertex,
 } from './shaders';
 
 export interface PhoenixScene {
@@ -41,6 +54,10 @@ export interface PhoenixScene {
   setPaused(paused: boolean): void;
   dispose(): void;
 }
+
+/** "Phoenix" by NORBERTO-3D (CC BY 4.0). 색을 바꾸고 목의 장식을 뺀 모델입니다. */
+const MODEL_URL = '/models/phoenix.glb';
+const WINGSPAN = 7;
 
 function createArtTexture(size: number, draw: (ctx: CanvasRenderingContext2D, size: number) => void) {
   const canvas = document.createElement('canvas');
@@ -56,64 +73,77 @@ function createArtTexture(size: number, draw: (ctx: CanvasRenderingContext2D, si
   return texture;
 }
 
-function loadImage(src: string) {
-  return new Promise<HTMLImageElement>((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => resolve(image);
-    image.onerror = () => reject(new Error(`이미지를 불러오지 못했습니다: ${src}`));
-    image.src = src;
-  });
-}
-
 export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<PhoenixScene> {
-  const [flightImageA, flightImageB] = await Promise.all([loadImage('/art/phoenix-flight-1.webp'), loadImage('/art/phoenix-flight-2.webp')]);
+  const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
+  const gltf = await loader.loadAsync(MODEL_URL);
+
   const renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.outputColorSpace = LinearSRGBColorSpace;
   renderer.autoClear = false;
   const compact = window.innerWidth < 768;
   const maxDpr = compact ? 1.5 : 1.75;
 
-  const artSize = compact ? 1024 : 2048;
-  // 세 각도의 날갯짓 프레임이 담긴 이미지입니다. 작은 화면에서는 절반 크기로 씁니다.
-  const flightSize = compact ? 2048 : 4096;
-  const flightTexture = createArtTexture(flightSize, (ctx, size) => ctx.drawImage(flightImageA, 0, 0, size, size));
-  const flightTexture2 = createArtTexture(flightSize, (ctx, size) => ctx.drawImage(flightImageB, 0, 0, size, size));
-  const ringTexture = createArtTexture(artSize, drawRingArt);
-
-  const uniforms = {
+  const shared = {
     uTime: { value: 0 },
-    uFlap: { value: 0 },
-    uMorph: { value: 0 },
     uBurn: { value: 0 },
+    uMorph: { value: 0 },
     uMask: { value: 0 },
-    uZoom: { value: 1 },
-    uTilt: { value: 0 },
-    uFocus: { value: new Vector2(0, 0) },
-    uRes: { value: new Vector2(1, 1) },
-    uFlight: { value: flightTexture },
-    uFlight2: { value: flightTexture2 },
-    uView: { value: 1 },
-    uRingArt: { value: ringTexture },
   };
 
-  const phoenixGeometry = new PlaneGeometry(2, 2);
-  const phoenixMaterial = new ShaderMaterial({
-    uniforms,
-    vertexShader: phoenixVertex,
-    fragmentShader: phoenixFragment,
-    transparent: true,
-    depthTest: false,
-    depthWrite: false,
-    // 빛 번짐이 형상 밖으로 나가도록 미리 곱한 알파로 합성합니다.
-    blending: CustomBlending,
-    blendSrc: OneFactor,
-    blendDst: OneMinusSrcAlphaFactor,
-  });
-  const bird = new Mesh(phoenixGeometry, phoenixMaterial);
-  bird.frustumCulled = false;
-  bird.renderOrder = 1;
+  // 불사조: 크기를 맞추고 머리가 화면 안쪽(-z)을 향하게 돌립니다.
+  const model = gltf.scene;
+  const box = new Box3().setFromObject(model);
+  const size = box.getSize(new Vector3());
+  const center = box.getCenter(new Vector3());
+  const scale = WINGSPAN / Math.max(size.x, size.z);
+  model.scale.setScalar(scale);
+  model.position.copy(center).multiplyScalar(-scale);
+  const bird = new Group();
+  bird.add(model);
+  bird.rotation.y = Math.PI;
 
-  const fleetUniforms = { uTime: uniforms.uTime, uWar: { value: 0 } };
+  const materials: MeshStandardMaterial[] = [];
+  model.traverse((object) => {
+    const mesh = object as Mesh;
+    if (!mesh.isMesh) return;
+    mesh.frustumCulled = false;
+    const material = mesh.material as MeshStandardMaterial;
+    material.transparent = false;
+    material.alphaTest = 0.35;
+    material.depthWrite = true;
+    material.metalness = 0;
+    material.roughness = 0.7;
+    material.onBeforeCompile = (shader) => {
+      Object.assign(shader.uniforms, shared);
+      shader.fragmentShader = birdFragmentHead + shader.fragmentShader
+        .replace('#include <map_fragment>', `#include <map_fragment>\n${birdAlbedo}`)
+        .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n${birdEmissive}`)
+        .replace('#include <dithering_fragment>', `#include <dithering_fragment>\n${birdOutput}`);
+    };
+    material.customProgramCacheKey = () => 'phoenix-crimson';
+    material.needsUpdate = true;
+    materials.push(material);
+  });
+
+  const mixer = new AnimationMixer(model);
+  gltf.animations.forEach((clip) => mixer.clipAction(clip).setEffectiveTimeScale(0.62).play());
+
+  const scene = new Scene();
+  scene.add(new HemisphereLight(0xffffff, 0x2a0000, 1.9));
+  const sunLight = new DirectionalLight(0xffffff, 2.4);
+  sunLight.position.set(0, 6, -10);
+  // 카메라 쪽에서 비추는 보조광. 카메라를 따라 움직입니다.
+  const fillLight = new DirectionalLight(0xffffff, 1.7);
+  scene.add(sunLight, fillLight, bird);
+  const maskScene = new Scene();
+  const camera = new PerspectiveCamera(40, 1, 0.1, 200);
+
+  // 함대와 불티는 고정된 카메라로 그려 화면 전체를 채웁니다.
+  const fxScene = new Scene();
+  const fxCamera = new PerspectiveCamera(40, 1, 0.1, 100);
+  fxCamera.position.set(0, 0, 12);
+
+  const fleetUniforms = { uTime: shared.uTime, uWar: { value: 0 } };
   const fleetCount = compact ? 40 : 76;
   const cone = new ConeGeometry(0.09, 0.55, 3).rotateZ(-Math.PI / 2);
   const fleetGeometry = new InstancedBufferGeometry();
@@ -135,7 +165,7 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
   );
   fleet.frustumCulled = false;
 
-  const emberUniforms = { uTime: uniforms.uTime, uHeat: { value: 0 }, uScale: { value: 300 }, uFlight: { value: 0 } };
+  const emberUniforms = { uTime: shared.uTime, uHeat: { value: 0 }, uScale: { value: 300 }, uFlight: { value: 0 } };
   const emberCount = compact ? 400 : 900;
   const emberPositions = new Float32Array(emberCount * 3);
   const emberSeeds = new Float32Array(emberCount);
@@ -159,25 +189,46 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
   );
   embers.frustumCulled = false;
 
-  const scene = new Scene();
+  const ringTexture = createArtTexture(compact ? 1024 : 2048, drawRingArt);
+  const ringUniforms = {
+    uRingArt: { value: ringTexture },
+    uRes: { value: new Vector2(1, 1) },
+    uZoom: { value: 1 },
+    uTime: shared.uTime,
+    uMorph: shared.uMorph,
+  };
+  const ringGeometry = new PlaneGeometry(2, 2);
+  const ringMaterial = new ShaderMaterial({
+    uniforms: ringUniforms,
+    vertexShader: ringVertex,
+    fragmentShader: ringFragment,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+    // 빛 번짐이 형상 밖으로 나가도록 미리 곱한 알파로 합성합니다.
+    blending: CustomBlending,
+    blendSrc: OneFactor,
+    blendDst: OneMinusSrcAlphaFactor,
+  });
+  const ring = new Mesh(ringGeometry, ringMaterial);
+  ring.frustumCulled = false;
+  ring.renderOrder = 3;
   embers.renderOrder = 2;
-  scene.add(fleet, bird, embers);
-  const maskScene = new Scene();
-  const camera = new PerspectiveCamera(40, 1, 0.1, 100);
-  camera.position.set(0, 0, 12);
+  fxScene.add(fleet, embers, ring);
 
   const mask = new WebGLRenderTarget(4, 4);
   const backgroundUniforms = {
     uMaskTex: { value: mask.texture },
     uRes: { value: new Vector2(1, 1) },
-    uTime: uniforms.uTime,
+    uBird: { value: new Vector2(0.5, 0.5) },
+    uTime: shared.uTime,
     uSun: { value: 0 },
     uSunSize: { value: 0 },
     uSunX: { value: 0 },
     uCosmos: { value: 0 },
     uWar: { value: 0 },
     uRing: { value: 0 },
-    uBurn: uniforms.uBurn,
+    uBurn: shared.uBurn,
   };
   const backgroundScene = new Scene();
   const backgroundGeometry = new PlaneGeometry(2, 2);
@@ -204,10 +255,12 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
     renderer.setSize(width, height, false);
     mask.setSize(Math.ceil(width / 3), Math.ceil(height / 3));
     backgroundUniforms.uRes.value.set(width * dpr, height * dpr);
+    ringUniforms.uRes.value.set(width * dpr, height * dpr);
     emberUniforms.uScale.value = height * dpr * 0.42;
-    uniforms.uRes.value.set(width * dpr, height * dpr);
-    camera.aspect = width / height;
-    camera.updateProjectionMatrix();
+    for (const view of [camera, fxCamera]) {
+      view.aspect = width / height;
+      view.updateProjectionMatrix();
+    }
   };
   resize();
   window.addEventListener('resize', resize);
@@ -222,9 +275,10 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
   let pointerY = 0;
   let easedX = 0;
   let easedY = 0;
-
   let sampledFrames = 0;
   let sampledTime = 0;
+  const look = new Vector3();
+  const projected = new Vector3();
 
   const render = (now: number) => {
     const delta = Math.min(0.05, (now - previous) / 1000);
@@ -242,45 +296,55 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
       sampledTime = 0;
     }
 
-    if (!paused) time += delta;
+    if (!paused) {
+      time += delta;
+      mixer.update(delta);
+    }
     progress += (targetProgress - progress) * (1 - Math.exp(-delta * 4.2));
     easedX += (pointerX - easedX) * (1 - Math.exp(-delta * 3));
     easedY += (pointerY - easedY) * (1 - Math.exp(-delta * 3));
 
     const s = sampleTimeline(progress, width / height);
-    uniforms.uTime.value = time;
-    uniforms.uFlap.value = s.flap;
-    uniforms.uMorph.value = s.morph;
-    uniforms.uBurn.value = s.burn;
+    shared.uTime.value = time;
+    shared.uBurn.value = s.burn;
+    shared.uMorph.value = s.morph;
+    ringUniforms.uZoom.value = s.ringZoom;
     backgroundUniforms.uSun.value = s.sun;
     backgroundUniforms.uSunSize.value = s.sunSize;
-    backgroundUniforms.uSunX.value = (1 - s.view) * 0.2;
-    emberUniforms.uFlight.value = s.flight;
+    backgroundUniforms.uSunX.value = Math.sin(s.azimuth) * -0.35;
     backgroundUniforms.uCosmos.value = s.cosmos;
     backgroundUniforms.uWar.value = s.war;
     backgroundUniforms.uRing.value = s.ring;
     fleetUniforms.uWar.value = s.war * (1 - s.ring);
     emberUniforms.uHeat.value = s.burn;
+    emberUniforms.uFlight.value = s.flight;
 
-    uniforms.uZoom.value = s.zoom;
-    uniforms.uView.value = s.view;
-    uniforms.uTilt.value = s.tilt + Math.sin(time * 0.55) * 0.07 * s.flight;
-    uniforms.uFocus.value.set(s.focus[0] + easedX * 0.012, s.focus[1] - easedY * 0.012 + Math.sin(time * 1.1) * 0.006 * s.flight);
+    // 비행 중에는 몸이 좌우로 기울고 위아래로 흔들립니다.
+    bird.rotation.z = Math.sin(time * 0.55) * 0.12 * s.flight;
+    bird.position.y = Math.sin(time * 1.1) * 0.12 * s.flight;
+    camera.position.set(s.camera[0] + easedX * 0.6, s.camera[1] - easedY * 0.4, s.camera[2]);
+    look.set(s.look[0], s.look[1], s.look[2]);
+    camera.lookAt(look);
+    fillLight.position.copy(camera.position);
+    projected.set(0, 0, 0).project(camera);
+    backgroundUniforms.uBird.value.set(projected.x * 0.5 + 0.5, projected.y * 0.5 + 0.5);
 
     maskScene.add(bird);
-    uniforms.uMask.value = 1;
+    shared.uMask.value = 1;
     renderer.setRenderTarget(mask);
     renderer.setClearColor(0x000000, 1);
     renderer.clear();
     renderer.render(maskScene, camera);
     scene.add(bird);
-    uniforms.uMask.value = 0;
+    shared.uMask.value = 0;
 
     renderer.setRenderTarget(null);
     renderer.clear();
     renderer.render(backgroundScene, backgroundCamera);
     renderer.clearDepth();
     renderer.render(scene, camera);
+    renderer.clearDepth();
+    renderer.render(fxScene, fxCamera);
     frame = requestAnimationFrame(render);
   };
   frame = requestAnimationFrame(render);
@@ -299,10 +363,19 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
     dispose() {
       cancelAnimationFrame(frame);
       window.removeEventListener('resize', resize);
-      phoenixGeometry.dispose();
-      phoenixMaterial.dispose();
-      flightTexture.dispose();
-      flightTexture2.dispose();
+      mixer.stopAllAction();
+      model.traverse((object) => {
+        const mesh = object as Mesh;
+        if (mesh.isMesh) mesh.geometry.dispose();
+      });
+      materials.forEach((material) => {
+        material.map?.dispose();
+        material.emissiveMap?.dispose();
+        material.normalMap?.dispose();
+        material.dispose();
+      });
+      ringGeometry.dispose();
+      ringMaterial.dispose();
       ringTexture.dispose();
       fleetGeometry.dispose();
       fleet.material.dispose();

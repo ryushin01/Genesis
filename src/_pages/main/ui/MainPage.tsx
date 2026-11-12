@@ -256,8 +256,10 @@ export function MainPage() {
 
       <footer className={styles.footer}>
         <small>
-          © 2026 프로젝트 제로 · 불사조 3D 모델 출처:{" "}
-          <a href="http://www.cadnav.com">cadnav.com</a> ·{" "}
+          © 2026 프로젝트 제로 · 불사조 모델:{" "}
+          <a href="https://sketchfab.com/3d-models/phoenix-243fea4f846f44d18d37bf371272b7ec">“Phoenix”</a> by{" "}
+          <a href="https://sketchfab.com/norberto3d">NORBERTO-3D</a>,{" "}
+          <a href="http://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> (색 변경·장식 제거) ·{" "}
           <a href={STORYBOOK_URL}>디자인 시스템(Storybook)</a>
         </small>
       </footer>
