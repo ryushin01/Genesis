@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { Fragment, type CSSProperties } from "react";
 import styles from "./MainPage.module.css";
 import { SiteMenu } from "./SiteMenu";
 
@@ -30,9 +31,9 @@ const ARCS = [
     note: "다양한 신화관이 하나의 이야기로 얽힙니다.",
     art: (
       <>
-        <circle cx="74" cy="84" r="46" />
-        <circle cx="126" cy="84" r="46" />
-        <circle cx="100" cy="128" r="46" />
+        <circle pathLength={1} cx="74" cy="84" r="46" />
+        <circle pathLength={1} cx="126" cy="84" r="46" />
+        <circle pathLength={1} cx="100" cy="128" r="46" />
       </>
     ),
   },
@@ -44,15 +45,15 @@ const ARCS = [
     note: "이야기의 무대가 우주적 규모로 확대됩니다.",
     art: (
       <>
-        <circle cx="100" cy="100" r="14" />
-        <ellipse
+        <circle pathLength={1} cx="100" cy="100" r="14" />
+        <ellipse pathLength={1}
           cx="100"
           cy="100"
           rx="84"
           ry="28"
           transform="rotate(-24 100 100)"
         />
-        <ellipse
+        <ellipse pathLength={1}
           cx="100"
           cy="100"
           rx="56"
@@ -71,12 +72,28 @@ const ARCS = [
     note: "거대한 서사는 SF 전쟁으로 이어집니다.",
     art: (
       <>
-        <path d="M16 32 100 100M184 32 100 100M16 168 100 100M184 168 100 100M100 12v176M12 100h176" />
-        <circle cx="100" cy="100" r="30" />
+        <path pathLength={1} d="M16 32 100 100M184 32 100 100M16 168 100 100M184 168 100 100M100 12v176M12 100h176" />
+        <circle pathLength={1} cx="100" cy="100" r="30" />
       </>
     ),
   },
 ];
+
+/** 서사 문장. 단어마다 나눠 스크롤에 따라 하나씩 또렷하게 보여 줍니다. */
+const STATEMENT = [
+  "다양한 신화관이 얽히고",
+  "⦾",
+  "우주적 규모로 확대되어",
+  "✕",
+  "SF 전쟁까지 이어지는 대서사시.",
+];
+
+const GLYPHS = new Set(["⦾", "✕"]);
+
+/** 단어(또는 기호)마다 전체 순번을 매겨 둡니다. 순번으로 드러나는 때를 나눕니다. */
+const STATEMENT_WORDS = STATEMENT.flatMap((part) =>
+  GLYPHS.has(part) ? [{ glyph: true, text: part }] : part.split(" ").map((text) => ({ glyph: false, text })),
+).map((word, order, all) => ({ ...word, order, total: all.length }));
 
 const ARCHIVE = [
   { title: "세계관", latin: "World" },
@@ -132,20 +149,38 @@ export function MainPage() {
           className={styles.prologue}
           aria-labelledby="prologue-title"
         >
+          <div className={styles.prologueStage}>
           <h2 id="prologue-title" className={styles.label}>
             서사
           </h2>
           <p className={styles.statement}>
-            다양한 신화관이 얽히고
-            <span className={styles.glyph} aria-hidden="true">
-              ⦾
-            </span>
-            우주적 규모로 확대되어
-            <span className={styles.glyph} aria-hidden="true">
-              ✕
-            </span>
-            SF 전쟁까지 이어지는 대서사시.
+            {STATEMENT_WORDS.map((word) => {
+              const style = {
+                "--w": word.order,
+                "--n": word.total,
+              } as CSSProperties;
+              // 기호를 건너뛰고 읽어도 구절 사이가 띄어지도록, 기호 앞뒤에도 공백 글자를 둡니다.
+              return (
+                <Fragment key={word.order}>
+                  {word.order > 0 && " "}
+                  {word.glyph ? (
+                    <span
+                      className={`${styles.glyph} ${styles.word}`}
+                      style={style}
+                      aria-hidden="true"
+                    >
+                      {word.text}
+                    </span>
+                  ) : (
+                    <span className={styles.word} style={style}>
+                      {word.text}
+                    </span>
+                  )}
+                </Fragment>
+              );
+            })}
           </p>
+          </div>
         </section>
 
         <section
