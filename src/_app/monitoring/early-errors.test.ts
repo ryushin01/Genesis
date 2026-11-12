@@ -35,7 +35,7 @@ it('Sentry를 받기 전에 난 오류도 준비되면 처리되지 않은 오�
   await vi.waitFor(() => expect(sentry.captureException).toHaveBeenCalledWith(error));
   const event = { exception: { values: [{ mechanism: { type: 'generic', handled: true } }] } };
   for (const process of sentry.processors) process(event);
-  expect(event.exception.values[0].mechanism).toEqual({ type: 'onerror', handled: false });
+  expect(event.exception.values[0]?.mechanism).toEqual({ type: 'onerror', handled: false });
 });
 
 it('콘솔·세션·브레드크럼 연동은 끈다', async () => {
