@@ -22,4 +22,7 @@ jobs:
       - run: pnpm test
       - run: pnpm build-storybook
       - run: pnpm exec playwright install --with-deps chromium
+      # E2E가 만든 프로덕션 빌드로 크기와 Lighthouse 점수를 잽니다.
       - run: pnpm e2e
+      - run: pnpm size
+      - run: pnpm lhci
