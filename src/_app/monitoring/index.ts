@@ -52,6 +52,11 @@ export function initMonitoring() {
             stackFrameVariables: false,
           },
           integrations: (defaults) => defaults.filter(({ name }) => !OFF_INTEGRATIONS.has(name)),
+          // 감싼 콜백이 던진 오류에는 그 콜백의 인수(입력 이벤트 등)가 extra.arguments로 붙습니다. 오류 내용이 아니므로 지웁니다.
+          beforeSend(event) {
+            if (event.extra) delete event.extra.arguments;
+            return event;
+          },
         });
         stopBuffering();
         for (const { error, type } of early.splice(0)) captureUnhandled(Sentry, error, type);
@@ -63,6 +68,9 @@ export function initMonitoring() {
         return undefined;
       });
   }
+
+  // 보낼 곳도 찍을 곳도 없으면(DSN 없는 배포) 지표 관찰기를 달지 않습니다.
+  if (!dsn && process.env.NODE_ENV !== 'development') return;
 
   void import('web-vitals')
     .then(({ onCLS, onINP, onLCP, onFCP, onTTFB }) => {
@@ -77,10 +85,14 @@ export function reportMetric(metric: Metric) {
     console.debug(`[web-vitals] ${metric.name} ${metric.value.toFixed(1)} (${metric.rating})`);
   }
   if (!sentry || metric.rating !== 'poor') return;
+  // CLS·INP는 다른 화면으로 옮긴 뒤에 알려질 수 있어, 지표가 속한 쪽의 주소를 씁니다.
+  const path = metric.navigationURL
+    ? new URL(metric.navigationURL, location.origin).pathname
+    : location.pathname;
   void sentry.then((Sentry) =>
     Sentry?.captureMessage(`Web Vitals 나쁨: ${metric.name}`, {
       level: 'warning',
-      tags: { metric: metric.name, rating: metric.rating, path: location.pathname },
+      tags: { metric: metric.name, rating: metric.rating, path },
       extra: { value: metric.value, id: metric.id, navigationType: metric.navigationType },
     }),
   );
