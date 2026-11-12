@@ -247,8 +247,9 @@ export async function createPhoenixScene(
     uTime: shared.uTime,
     uFall: { value: 0 },
     uNova: { value: 0 },
+    uGather: { value: 0 },
     uSun: { value: new Vector2(0, 2) },
-    uNovaAt: { value: new Vector2(0, 1.5) },
+    uLogoAt: { value: new Vector2(0, 1.5) },
     uAspect: { value: 1 },
   };
   const featherMaterial = new ShaderMaterial({
@@ -322,6 +323,7 @@ export async function createPhoenixScene(
     uNova: { value: 0 },
     uLogo: { value: 0 },
     uNovaAt: { value: new Vector2(0, 0) },
+    uLogoAt: { value: new Vector2(0, 0) },
   };
   const backgroundScene = new Scene();
   const backgroundGeometry = new PlaneGeometry(2, 2);
@@ -423,28 +425,30 @@ export async function createPhoenixScene(
     camera.lookAt(look);
     camera.updateMatrixWorld();
     fillLight.position.copy(camera.position);
-    // 다시 나타난 태양을 향해 날아올라 그 속에서 흩어집니다.
+    // 태양을 향해 날아들어 그 속에서 터집니다.
     const sunX = Math.sin(s.azimuth) * -0.35;
     sunTarget.set((2 * sunX) / (width / height), 0.48, 0.5).unproject(camera).sub(camera.position).normalize();
     bird.position.addScaledVector(sunTarget, s.exit * 40);
     shared.uDissolve.value = s.dissolve;
     featherUniforms.uFall.value = s.fall;
     featherUniforms.uNova.value = s.nova;
+    featherUniforms.uGather.value = s.gather;
     backgroundUniforms.uNova.value = s.nova;
     backgroundUniforms.uLogo.value = s.logo;
     // 로고는 터진 자리에서 돌며 커지고, 다 나타난 뒤에는 천천히 흔들립니다.
     const appear = s.logo * s.logo * (3 - 2 * s.logo);
     logo.visible = appear > 0.001;
     logo.scale.setScalar(logoScale * (0.4 + appear * 0.6));
-    logo.position.set(0, featherUniforms.uNovaAt.value.y + 0.1, 0);
+    logo.position.set(0, featherUniforms.uLogoAt.value.y + 0.1, 0);
     logo.rotation.y = (1 - appear) * 2.4 + Math.sin(time * 0.4) * 0.12;
     logoMaterials.forEach((material) => {
       material.opacity = appear;
     });
     const halfHeight = Math.tan((fxCamera.fov * Math.PI) / 360) * fxCamera.position.z;
     featherUniforms.uSun.value.set(sunX * 2 * halfHeight, 0.48 * halfHeight);
-    // 터지는 점(큰 깃털이 머무는 곳)을 배경 셰이더 좌표로도 넘깁니다.
-    backgroundUniforms.uNovaAt.value.set(0, featherUniforms.uNovaAt.value.y / (2 * halfHeight));
+    // 폭발은 태양 자리에서, 잔광은 로고 자리에서 일어납니다(배경 셰이더 좌표).
+    backgroundUniforms.uNovaAt.value.set(sunX, 0.24);
+    backgroundUniforms.uLogoAt.value.set(0, featherUniforms.uLogoAt.value.y / (2 * halfHeight));
     projected.copy(bird.position).project(camera);
     backgroundUniforms.uBird.value.set(projected.x * 0.5 + 0.5, projected.y * 0.5 + 0.5);
 
