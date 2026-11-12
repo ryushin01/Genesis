@@ -14,7 +14,7 @@ interface Key {
   look: Vec3;
 }
 
-/** 스크롤 전체 진행도에 대한 카메라 경로: 뒤에서 근접 → 태양을 향해 비행 → 우주 → 정면의 전쟁 → 정면에서 마무리. */
+/** 스크롤 전체 진행도에 대한 카메라 경로: 뒤에서 근접 → 태양을 향해 비행 → 우주 → 정면의 전쟁 → 다시 뒤로 돌아 태양을 향해 날아오름. */
 const KEYS: readonly Key[] = [
   { at: 0, azimuth: -38, elevation: 6, distance: 4.4, look: [1.7, 0.5, 0] },
   { at: 0.16, azimuth: -16, elevation: 12, distance: 7.5, look: [0.4, 1.6, 0] },
@@ -22,7 +22,8 @@ const KEYS: readonly Key[] = [
   { at: 0.5, azimuth: 16, elevation: 20, distance: 17, look: [0, 3.2, 0] },
   { at: 0.6, azimuth: 18, elevation: 14, distance: 15, look: [0, -3.4, 0] },
   { at: 0.76, azimuth: 158, elevation: 4, distance: 13, look: [0, -1.1, 0] },
-  { at: 1, azimuth: 180, elevation: -4, distance: 15, look: [0, -2.6, 0] },
+  { at: 0.88, azimuth: 352, elevation: 16, distance: 14, look: [0, 3, 0] },
+  { at: 1, azimuth: 360, elevation: 20, distance: 15, look: [0, 4, 0] },
 ];
 
 export interface SceneState {
@@ -36,6 +37,12 @@ export interface SceneState {
   sunSize: number;
   /** 앞으로 날아가는 속도감. */
   flight: number;
+  /** 불사조가 다시 나타난 태양을 향해 날아가는 정도. */
+  exit: number;
+  /** 태양 속에서 불사조가 흩어지는 정도. */
+  dissolve: number;
+  /** 깃털이 내려오는 정도. */
+  fall: number;
   cosmos: number;
   war: number;
 }
@@ -67,9 +74,12 @@ export function sampleTimeline(progress: number, aspect = 16 / 10): SceneState {
     look,
     azimuth,
     burn: smoothstep(0.42, 0.56, p),
-    sun: smoothstep(0.02, 0.16, p) * (1 - smoothstep(0.46, 0.58, p)),
-    sunSize: smoothstep(0.1, 0.5, p),
-    flight: smoothstep(0.03, 0.14, p) * (1 - smoothstep(0.62, 0.74, p)),
+    sun: Math.max(smoothstep(0.02, 0.16, p) * (1 - smoothstep(0.46, 0.58, p)), smoothstep(0.8, 0.88, p)),
+    sunSize: lerp(smoothstep(0.1, 0.5, p), 0.32, smoothstep(0.7, 0.8, p)),
+    flight: smoothstep(0.03, 0.14, p) * (1 - smoothstep(0.62, 0.74, p)) + smoothstep(0.8, 0.86, p) * (1 - smoothstep(0.9, 0.95, p)),
+    exit: smoothstep(0.82, 0.93, p),
+    dissolve: smoothstep(0.9, 0.96, p),
+    fall: smoothstep(0.91, 1, p),
     cosmos: smoothstep(0.38, 0.54, p),
     war: smoothstep(0.6, 0.74, p),
   };

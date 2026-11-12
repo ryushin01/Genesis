@@ -9,7 +9,7 @@ float fbm(vec2 p){ float a=.5,v=0.; for(int i=0;i<4;i++){ v+=a*vnoise(p); p=p*2.
 
 /** 불사조 모델의 표준 재질에 끼워 넣는 조각: 모든 색을 #8B0000 한 색조로 바꾸고, 불길·소멸·윤곽 패스를 처리합니다. */
 export const birdFragmentHead = /* glsl */ `
-uniform float uBurn, uMask, uTime, uRim, uHazeAmount;
+uniform float uBurn, uMask, uTime, uRim, uHazeAmount, uDissolve;
 uniform vec3 uHaze;
 ${noise}
 vec3 crimson(float l){
@@ -35,9 +35,83 @@ export const birdOutput = /* glsl */ `
   float rim = pow(1.-clamp(dot(normal, geometryViewDir),0.,1.), 2.6);
   gl_FragColor.rgb += vec3(.95,.16,.1)*rim*uRim;
   gl_FragColor.rgb = mix(gl_FragColor.rgb, uHaze, uHazeAmount);
+  // 태양 속에서 불씨처럼 흩어집니다.
+  if(uDissolve > 0.){
+    float d = fbm(gl_FragCoord.xy*.012);
+    float front = uDissolve*1.25-.1;
+    if(d < front) discard;
+    gl_FragColor.rgb += vec3(1.,.5,.4)*smoothstep(.08,0.,d-front);
+  }
   gl_FragColor.rgb += (fract(sin(dot(gl_FragCoord.xy+fract(uTime)*91.,vec2(12.9898,78.233)))*43758.5453)-.5)*.022;
   if(uMask > .5) gl_FragColor = vec4(1.);
 `;
+
+/** 불사조가 흩어진 뒤 내려오는 깃털. 큰 깃털 하나(aHero=1)는 마지막 문구 위에 떠 있습니다. */
+export const featherVertex = /* glsl */ `
+attribute float aSeed, aHero;
+uniform float uTime, uFall, uAspect;
+uniform vec2 uSun;
+varying vec2 vUv;
+varying float vSeed, vFacing;
+void main(){
+  vUv = uv;
+  vSeed = aSeed;
+  float s = aSeed;
+  float spin = uTime*(.35+s*.5) + s*20.;
+  float roll = sin(uTime*(.6+s*.4) + s*31.)*.55;
+  vec3 local = vec3(position.x*.3, position.y, position.y*position.y*.18);
+  float size;
+  vec2 at;
+  if(aHero > .5){
+    size = 3.2;
+    float settle = smoothstep(0.,1.,uFall);
+    at = mix(uSun, vec2(0., -.6), settle) + vec2(sin(uTime*.55)*.32*(1.-settle*.6), sin(uTime*.8)*.08);
+    roll = sin(uTime*.5)*.35 - .45;
+    spin = sin(uTime*.35)*.9;
+  } else {
+    size = .55 + s*.75;
+    // 태양에서 터져 나온 뒤 화면 아래로 천천히 떨어지기를 되풀이합니다.
+    float life = fract(uTime*(.03+s*.035) + s*7.3);
+    float a = s*6.2832*3.;
+    vec2 spread = vec2(cos(a)*(1.4+s*3.6)*uAspect, sin(a)*.6);
+    vec2 drift = vec2(sin(life*6.2832*1.5+s*9.)*.8, -life*11.);
+    at = uSun + mix(vec2(0.), spread + drift + vec2(0.,1.5), smoothstep(0.,.6,uFall));
+  }
+  float c = cos(spin), sn = sin(spin);
+  local.xz = mat2(c,-sn,sn,c)*local.xz;
+  float cr = cos(roll), sr = sin(roll);
+  local.xy = mat2(cr,-sr,sr,cr)*(local.xy - vec2(0.,.5));
+  vFacing = abs(c);
+  vec4 mv = modelViewMatrix*vec4(local*size + vec3(at,0.), 1.);
+  gl_Position = projectionMatrix*mv;
+}`;
+
+export const featherFragment = /* glsl */ `
+precision highp float;
+uniform float uFall, uTime;
+varying vec2 vUv;
+varying float vSeed, vFacing;
+void main(){
+  float t = vUv.y;
+  float x = vUv.x-.5;
+  // 깃대를 기준으로 한쪽 깃판이 더 좁은 비대칭 깃털
+  float vane = pow(sin(3.14159*pow(t,.6)),.85)*.5*(x > 0. ? .72 : 1.);
+  float e = abs(x)/max(vane,1e-3);
+  float split = step(.965, fract((t-abs(x)*.7)*6.+vSeed*13.))*step(.3,e)*step(.18,t);
+  if(e > 1. || split > .5) discard;
+  float barb = .5+.5*sin((t - abs(x)*1.25)*190. + vSeed*40.);
+  float shaft = smoothstep(.035,0.,abs(x))*smoothstep(1.,.85,t);
+  vec3 col = mix(vec3(.24,0.,0.), vec3(.545,0.,0.), smoothstep(1.,.2,e));
+  col *= .62 + .38*barb;
+  col += vec3(.3,.02,.01)*smoothstep(.5,0.,e)*.6;
+  col = mix(col, vec3(.95,.24,.16), shaft);
+  col *= .7 + .45*vFacing;
+  // 막 흩어진 깃털은 불씨처럼 끝이 빛납니다.
+  float ember = (1.-smoothstep(.15,.7,uFall)) + .3;
+  col += vec3(.9,.12,.06)*smoothstep(.6,1.,e)*ember;
+  float alpha = smoothstep(1.,.8,e)*smoothstep(0.,.08,uFall);
+  gl_FragColor = vec4(col, alpha);
+}`;
 
 export const backgroundVertex = /* glsl */ `
 varying vec2 vUv;

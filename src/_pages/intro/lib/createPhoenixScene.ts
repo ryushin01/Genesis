@@ -6,6 +6,7 @@ import {
   BufferAttribute,
   BufferGeometry,
   ConeGeometry,
+  DoubleSide,
   DirectionalLight,
   Group,
   HemisphereLight,
@@ -37,6 +38,8 @@ import {
   birdOutput,
   emberFragment,
   emberVertex,
+  featherFragment,
+  featherVertex,
   fleetFragment,
   fleetVertex,
 } from './shaders';
@@ -53,9 +56,15 @@ const MODEL_URL = '/models/phoenix.glb';
 const WINGSPAN = 7;
 const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
-export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<PhoenixScene> {
+export async function createPhoenixScene(
+  canvas: HTMLCanvasElement,
+  onProgress?: (ratio: number) => void,
+): Promise<PhoenixScene> {
   const loader = new GLTFLoader().setMeshoptDecoder(MeshoptDecoder);
-  const gltf = await loader.loadAsync(MODEL_URL);
+  const gltf = await loader.loadAsync(MODEL_URL, (event) => {
+    if (event.total > 0) onProgress?.(event.loaded / event.total);
+  });
+  onProgress?.(1);
 
   const renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
   renderer.outputColorSpace = LinearSRGBColorSpace;
@@ -70,6 +79,7 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
     uRim: { value: 0 },
     uHaze: { value: new Color(0.55, 0.02, 0.02) },
     uHazeAmount: { value: 0 },
+    uDissolve: { value: 0 },
   };
 
   // 불사조: 크기를 맞추고 머리가 화면 안쪽(-z)을 향하게 돌립니다.
@@ -172,8 +182,40 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
   );
   embers.frustumCulled = false;
 
+  // 깃털: 작은 깃털 여럿과 큰 깃털 하나. 3D 모델로 바꿀 때는 이 메시만 교체합니다.
+  const featherCount = compact ? 26 : 44;
+  const featherPlane = new PlaneGeometry(1, 1, 1, 24).translate(0, 0.5, 0);
+  const featherGeometry = new InstancedBufferGeometry();
+  featherGeometry.setIndex(featherPlane.getIndex());
+  featherGeometry.setAttribute('position', featherPlane.getAttribute('position'));
+  featherGeometry.setAttribute('uv', featherPlane.getAttribute('uv'));
+  const featherSeeds = new Float32Array(featherCount);
+  const featherHero = new Float32Array(featherCount);
+  for (let i = 0; i < featherCount; i += 1) {
+    featherSeeds[i] = (i * 0.61803398875) % 1;
+    featherHero[i] = i === 0 ? 1 : 0;
+  }
+  featherGeometry.setAttribute('aSeed', new InstancedBufferAttribute(featherSeeds, 1));
+  featherGeometry.setAttribute('aHero', new InstancedBufferAttribute(featherHero, 1));
+  featherGeometry.instanceCount = featherCount;
+  const featherUniforms = { uTime: shared.uTime, uFall: { value: 0 }, uSun: { value: new Vector2(0, 2) }, uAspect: { value: 1 } };
+  const feathers = new Mesh(
+    featherGeometry,
+    new ShaderMaterial({
+      uniforms: featherUniforms,
+      vertexShader: featherVertex,
+      fragmentShader: featherFragment,
+      transparent: true,
+      depthWrite: false,
+      depthTest: false,
+      side: DoubleSide,
+    }),
+  );
+  feathers.frustumCulled = false;
+  feathers.renderOrder = 3;
+
   embers.renderOrder = 2;
-  fxScene.add(fleet, embers);
+  fxScene.add(fleet, embers, feathers);
 
   const mask = new WebGLRenderTarget(4, 4);
   const backgroundUniforms = {
@@ -214,6 +256,7 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
     mask.setSize(Math.ceil(width / 3), Math.ceil(height / 3));
     backgroundUniforms.uRes.value.set(width * dpr, height * dpr);
     emberUniforms.uScale.value = height * dpr * 0.42;
+    featherUniforms.uAspect.value = Math.min(1.6, width / height);
     for (const view of [camera, fxCamera]) {
       view.aspect = width / height;
       view.updateProjectionMatrix();
@@ -236,6 +279,7 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
   let sampledTime = 0;
   const look = new Vector3();
   const projected = new Vector3();
+  const sunTarget = new Vector3();
 
   const render = (now: number) => {
     const delta = Math.min(0.05, (now - previous) / 1000);
@@ -280,12 +324,21 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
 
     // 비행 중에는 몸이 좌우로 기울고 위아래로 흔들립니다.
     bird.rotation.z = Math.sin(time * 0.55) * 0.12 * s.flight;
-    bird.position.y = Math.sin(time * 1.1) * 0.12 * s.flight;
+    bird.position.set(0, Math.sin(time * 1.1) * 0.12 * s.flight, 0);
     camera.position.set(s.camera[0] + easedX * 0.6, s.camera[1] - easedY * 0.4, s.camera[2]);
     look.set(s.look[0], s.look[1], s.look[2]);
     camera.lookAt(look);
+    camera.updateMatrixWorld();
     fillLight.position.copy(camera.position);
-    projected.set(0, 0, 0).project(camera);
+    // 다시 나타난 태양을 향해 날아올라 그 속에서 흩어집니다.
+    const sunX = Math.sin(s.azimuth) * -0.35;
+    sunTarget.set((2 * sunX) / (width / height), 0.48, 0.5).unproject(camera).sub(camera.position).normalize();
+    bird.position.addScaledVector(sunTarget, s.exit * 40);
+    shared.uDissolve.value = s.dissolve;
+    featherUniforms.uFall.value = s.fall;
+    const halfHeight = Math.tan((fxCamera.fov * Math.PI) / 360) * fxCamera.position.z;
+    featherUniforms.uSun.value.set(sunX * 2 * halfHeight, 0.48 * halfHeight);
+    projected.copy(bird.position).project(camera);
     backgroundUniforms.uBird.value.set(projected.x * 0.5 + 0.5, projected.y * 0.5 + 0.5);
 
     maskScene.add(bird);
@@ -336,6 +389,9 @@ export async function createPhoenixScene(canvas: HTMLCanvasElement): Promise<Pho
       fleetGeometry.dispose();
       fleet.material.dispose();
       emberGeometry.dispose();
+      featherGeometry.dispose();
+      featherPlane.dispose();
+      feathers.material.dispose();
       embers.material.dispose();
       backgroundGeometry.dispose();
       backgroundMaterial.dispose();

@@ -8,10 +8,13 @@ describe('sampleTimeline', () => {
     expect(state.cosmos).toBe(0);
   });
 
-  it('끝에서는 불사조가 정면에서 불타오른다', () => {
+  it('끝에서는 불사조가 태양 속에서 흩어지고 깃털이 내려온다', () => {
     const state = sampleTimeline(1);
     expect(state.burn).toBe(1);
-    expect(state.camera[2]).toBeLessThan(state.look[2]);
+    expect(state.exit).toBe(1);
+    expect(state.dissolve).toBe(1);
+    expect(state.fall).toBe(1);
+    expect(state.sun).toBe(1);
   });
 
   it('범위를 벗어난 값은 양 끝으로 맞춘다', () => {
