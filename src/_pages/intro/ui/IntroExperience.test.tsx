@@ -51,6 +51,13 @@ describe('IntroExperience', () => {
     await waitFor(() => expect(setPaused).toHaveBeenLastCalledWith(false));
   });
 
+  it('장면을 다 불러오면 로딩 표시가 사라진다', async () => {
+    stubReducedMotion(false);
+    render(<IntroExperience />);
+    await screen.findByRole('button', { name: '배경 애니메이션 정지' });
+    expect(screen.queryByRole('status')).toBeNull();
+  });
+
   it('메인 링크에 키보드 초점이 오면 맨 아래로 이동한다', async () => {
     stubReducedMotion(true);
     render(<IntroExperience />);
