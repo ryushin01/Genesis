@@ -96,6 +96,10 @@
 }
 
 .prologue {
+  position: relative;
+}
+
+.prologueStage {
   display: grid;
   place-content: center;
   justify-items: center;
@@ -121,7 +125,8 @@
 
 .glyph {
   display: inline-block;
-  margin-inline: 0.22em;
+  /* 앞뒤 공백 글자가 간격을 만듭니다 */
+  margin-inline: 0;
   font-weight: 400;
 }
 
@@ -389,5 +394,112 @@
   from {
     opacity: 0;
     transform: translateY(36px);
+  }
+}
+
+/*
+ * 스크롤 연출 (애플 제품 페이지식). 기본은 정지 화면이고,
+ * 스크롤 타임라인을 지원하고 동작 줄이기를 끄지 않은 경우에만 움직입니다.
+ * 글자는 색·투명도를 바꾸지 않고 흐림만 걷어 내므로 명도 대비는 그대로입니다.
+ */
+@keyframes hero-drift-away {
+  to {
+    letter-spacing: 0.18em;
+    transform: translateY(-12svh) scale(0.92);
+    filter: blur(6px);
+  }
+}
+
+@keyframes rings-open {
+  to {
+    transform: translate(-50%, -50%) rotate(40deg) scale(1.6);
+  }
+}
+
+@keyframes word-focus {
+  from {
+    filter: blur(10px);
+    transform: translateY(0.35em);
+  }
+  to {
+    filter: blur(0);
+    transform: none;
+  }
+}
+
+@keyframes art-draw {
+  from {
+    stroke-dashoffset: 1;
+  }
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes card-rise {
+  from {
+    transform: translateY(12svh) scale(0.9);
+  }
+  to {
+    transform: none;
+  }
+}
+
+@supports (animation-timeline: view()) {
+  @media (prefers-reduced-motion: no-preference) {
+    .hero {
+      view-timeline: --hero block;
+    }
+
+    .heroTitle > span[aria-hidden] {
+      display: block;
+      animation: hero-drift-away linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 90%;
+    }
+
+    .heroRings {
+      animation: rings-open linear both;
+      animation-timeline: --hero;
+      animation-range: exit 0% exit 100%;
+    }
+
+    /* 서사: 화면을 고정해 두고 단어가 차례로 또렷해집니다 */
+    .prologue {
+      height: 300svh;
+      view-timeline: --prologue block;
+    }
+
+    .prologueStage {
+      position: sticky;
+      top: 0;
+      min-height: 100svh;
+    }
+
+    .word {
+      display: inline-block;
+      animation: word-focus linear both;
+      animation-timeline: --prologue;
+      animation-range: contain calc(var(--w) / var(--n) * 80%) contain
+        calc(var(--w) / var(--n) * 80% + 14%);
+    }
+
+    /* 세 개의 흐름: 카드가 떠오르며 선화가 그려집니다 */
+    .arc {
+      view-timeline: --arc block;
+    }
+
+    .card {
+      animation: card-rise linear both;
+      animation-timeline: --arc;
+      animation-range: entry 0% entry 100%;
+    }
+
+    .cardArt svg > * {
+      stroke-dasharray: 1;
+      animation: art-draw linear both;
+      animation-timeline: --arc;
+      animation-range: entry 40% entry 100%;
+    }
   }
 }
