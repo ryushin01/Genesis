@@ -51,4 +51,7 @@ it('콘솔·세션·브레드크럼 연동은 끈다', async () => {
   // 감싼 콜백의 인수는 보내지 않습니다.
   const { beforeSend } = sentry.init.mock.calls.at(-1)![0];
   expect(beforeSend({ extra: { arguments: ['secret'], other: 1 } })).toEqual({ extra: { other: 1 } });
+  expect(beforeSend({ request: { url: 'https://example.com/login#access_token=secret' } })).toEqual({
+    request: { url: 'https://example.com/login' },
+  });
 });
