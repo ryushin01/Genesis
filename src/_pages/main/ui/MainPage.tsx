@@ -256,10 +256,14 @@ export function MainPage() {
 
       <footer className={styles.footer}>
         <small>
-          © 2026 프로젝트 제로 · 불사조 모델:{" "}
+          © 2026 프로젝트 제로 · 3D 모델:{" "}
           <a href="https://sketchfab.com/3d-models/phoenix-243fea4f846f44d18d37bf371272b7ec">“Phoenix”</a> by{" "}
           <a href="https://sketchfab.com/norberto3d">NORBERTO-3D</a>,{" "}
-          <a href="http://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> (색 변경·장식 제거) ·{" "}
+          <a href="https://sketchfab.com/3d-models/feathers-c987c56694a44559b75ed66429b04ee4">“Feathers”</a> by{" "}
+          <a href="https://sketchfab.com/victorberdugo1">victorberdugo1</a>,{" "}
+          <a href="https://sketchfab.com/3d-models/phoenix-logo-8dc1ba8095f1447fac7092d0299add27">“Phoenix Logo”</a> by{" "}
+          <a href="https://sketchfab.com/Suraj-456tyu">Suraj-456tyu</a>, 모두{" "}
+          <a href="http://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> (색 변경·일부 수정) ·{" "}
           <a href={STORYBOOK_URL}>디자인 시스템(Storybook)</a>
         </small>
       </footer>

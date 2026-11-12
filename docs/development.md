@@ -14,8 +14,9 @@
 
 - `model/timeline.ts`: 스크롤 진행도별 3D 카메라(불사조를 도는 각도·높이·거리, 바라보는 점)와 연출 값. 문구 구간을 크게 바꾸면 함께 맞춥니다.
 - `public/models/phoenix.glb`: 불사조 모델. 원본에서 목의 오각별 장식(`Plane001`)을 빼고 양자화·meshopt로 압축했습니다(약 2.7MB). 날갯짓은 모델에 든 애니메이션을 그대로 재생합니다. 라이선스는 같은 폴더의 `phoenix-license.txt`입니다.
-- `lib/createPhoenixScene.ts`의 깃털: 불사조가 태양 속에서 흩어진 뒤 내려오는 깃털을 인스턴스로 그립니다. 3D 깃털 모델로 바꿀 때는 이 메시만 교체합니다.
-- `lib/shaders.ts`: 불사조 재질에 끼워 넣는 조각(모든 색을 #8B0000 한 색조로, 불길, 역광 테두리와 대기·입자감으로 배경에 녹이기, 태양 속 소멸, 윤곽 패스), 깃털, 배경(태양·우주·포화·불길 줄기), 함대, 불티의 GLSL.
+- `public/models/feathers.glb`: 마지막 장면의 깃털 2장(“Feathers” by victorberdugo1, CC BY 4.0). `extractFeather`가 부품을 합쳐 면이 화면을 보게 돌리고 길이를 1로 맞춘 뒤 인스턴스로 여러 장 그립니다.
+- `public/models/phoenix-logo.glb`: 맨 끝에 깃털이 초신성처럼 터진 자리에 나타나는 로고(“Phoenix Logo” by Suraj-456tyu, CC BY 4.0). 색은 #8B0000 계열로 옮깁니다.
+- `lib/shaders.ts`: 불사조 재질에 끼워 넣는 조각(모든 색을 #8B0000 한 색조로, 불길, 역광 테두리와 대기·입자감으로 배경에 녹이기, 태양 속 소멸, 윤곽 패스), 깃털과 초신성, 배경(태양·우주·포화·불길 줄기), 함대, 불티의 GLSL.
 - `lib/createPhoenixScene.ts`: 렌더링 순서. 불사조 윤곽을 저해상도로 먼저 그린 뒤 배경 셰이더가 빛과 불길로 씁니다.
 
 프레임이 계속 34fps 아래로 떨어지면 렌더링 해상도를 단계적으로 낮춥니다. 동작 줄이기 설정에서는 장면을 띄우지 않고, WebGL을 쓸 수 없으면 CSS 배경과 글자만 보여 줍니다.
@@ -23,7 +24,7 @@
 ## 디자인 기준
 
 - 인트로는 프라이머리 `#8B0000`을 중심으로 한 적색 계열입니다. 메인은 흑백만 씁니다.
-- 불사조는 “Phoenix” by NORBERTO-3D(CC BY 4.0)입니다. 인트로 끝과 메인 하단, README에 작품명·작가·라이선스와 변경 사항을 표기합니다. 표기를 지우지 않습니다.
+- 3D 모델은 모두 CC BY 4.0입니다: “Phoenix” by NORBERTO-3D, “Feathers” by victorberdugo1, “Phoenix Logo” by Suraj-456tyu. 인트로 끝과 메인 하단, README에 작품명·작가·라이선스와 변경 사항을 표기하고, 라이선스 원문은 `public/models/*-license.txt`에 둡니다. 표기를 지우지 않습니다.
 - 참고 사이트의 모델, 텍스처, 로고, 사진, 유료 글꼴은 저작물이므로 가져오지 않습니다. 글꼴은 OFL 라이선스의 Inter, JetBrains Mono, Cormorant를 씁니다.
 - 한글은 첫 화면 성능을 위해 운영체제 글꼴을 씁니다.
 

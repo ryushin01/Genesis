@@ -174,7 +174,10 @@ export function IntroExperience() {
             <Link href="/main" className={styles.enter} onFocus={showFinale}>
               메인으로 들어가기
             </Link>
-            <p className={styles.credit}>불사조 모델: “Phoenix” by NORBERTO-3D, CC BY 4.0 (색 변경·장식 제거)</p>
+            <p className={styles.credit}>
+              3D 모델: “Phoenix” by NORBERTO-3D · “Feathers” by victorberdugo1 · “Phoenix Logo” by Suraj-456tyu, 모두 CC BY
+              4.0 (색 변경·일부 수정)
+            </p>
           </div>
         </section>
       </main>

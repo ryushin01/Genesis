@@ -14,7 +14,8 @@ describe('sampleTimeline', () => {
     expect(state.exit).toBe(1);
     expect(state.dissolve).toBe(1);
     expect(state.fall).toBe(1);
-    expect(state.sun).toBe(1);
+    expect(state.nova).toBe(1);
+    expect(state.logo).toBe(1);
   });
 
   it('범위를 벗어난 값은 양 끝으로 맞춘다', () => {

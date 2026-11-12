@@ -43,6 +43,10 @@ export interface SceneState {
   dissolve: number;
   /** 깃털이 내려오는 정도. */
   fall: number;
+  /** 맨 끝에서 깃털이 초신성처럼 터지는 정도. */
+  nova: number;
+  /** 터진 자리에 로고가 나타나는 정도. */
+  logo: number;
   cosmos: number;
   war: number;
 }
@@ -79,7 +83,9 @@ export function sampleTimeline(progress: number, aspect = 16 / 10): SceneState {
     flight: smoothstep(0.03, 0.14, p) * (1 - smoothstep(0.62, 0.74, p)) + smoothstep(0.8, 0.86, p) * (1 - smoothstep(0.9, 0.95, p)),
     exit: smoothstep(0.82, 0.93, p),
     dissolve: smoothstep(0.9, 0.96, p),
-    fall: smoothstep(0.91, 1, p),
+    fall: smoothstep(0.91, 0.975, p),
+    nova: smoothstep(0.965, 0.99, p),
+    logo: smoothstep(0.978, 1, p),
     cosmos: smoothstep(0.38, 0.54, p),
     war: smoothstep(0.6, 0.74, p),
   };

@@ -17,7 +17,7 @@
 
 | 인트로: 전쟁 | 인트로: 마지막 |
 |---|---|
-| ![행성과 함대를 배경으로 진홍색 불길에 휩싸인 불사조](docs/images/intro-war.jpg) | ![태양 아래로 붉은 깃털이 흩날리고 그 아래에 놓인 메인으로 들어가기 버튼](docs/images/intro-zero.jpg) |
+| ![행성과 함대를 배경으로 진홍색 불길에 휩싸인 불사조](docs/images/intro-war.jpg) | ![초신성처럼 터진 자리에 나타난 붉은 불사조 로고와 그 아래의 메인으로 들어가기 버튼](docs/images/intro-zero.jpg) |
 
 | 메인: 서사 (스크롤) | 모바일 서사 |
 |---|---|
@@ -31,11 +31,11 @@
 
 | 화면 | 내용 |
 |---|---|
-| 인트로 `/` | 스크롤에 따라 태양을 향해 날아가는 불사조 → 우주 → 전쟁 → 다시 태양으로 날아올라 깃털로 흩어지는 적색 WebGL 장면. 로딩 화면, 현재 장 이름 칩, 따라오는 커서 원. 맨 아래에서 메인으로 이동 |
+| 인트로 `/` | 스크롤에 따라 태양을 향해 날아가는 불사조 → 우주 → 전쟁 → 다시 태양으로 날아올라 깃털로 흩어지고, 맨 끝에서 깃털이 초신성처럼 터지며 로고로 바뀌는 적색 WebGL 장면. 로딩 화면, 현재 장 이름 칩, 따라오는 커서 원. 맨 아래에서 메인으로 이동 |
 | 메인 `/main` | 흑백 편집 디자인의 작품 소개: 서사, 세 개의 흐름, 기록 보관소, 전체 화면 메뉴. 스크롤하면 제목이 벌어지며 멀어지고, 고정된 서사 문장이 단어마다 또렷해지며, 흐름 카드가 떠오르며 선화가 그려짐(CSS 스크롤 타임라인) |
 | 접근성 | 동작 줄이기 대응, 배경 애니메이션 정지, 키보드 조작, 본문 바로가기, 저사양 기기 해상도 자동 조절 |
 
-불사조는 [“Phoenix”](https://sketchfab.com/3d-models/phoenix-243fea4f846f44d18d37bf371272b7ec) by [NORBERTO-3D](https://sketchfab.com/norberto3d)([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/))를 실시간 3D로 그립니다. 색을 #8B0000으로 바꾸고 목의 장식을 뺐으며, 불길과 빛, 배경은 셰이더로 그립니다.
+불사조는 [“Phoenix”](https://sketchfab.com/3d-models/phoenix-243fea4f846f44d18d37bf371272b7ec) by [NORBERTO-3D](https://sketchfab.com/norberto3d)([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/))를 실시간 3D로 그립니다. 색을 #8B0000으로 바꾸고 목의 장식을 뺐습니다. 마지막 장면의 깃털은 [“Feathers”](https://sketchfab.com/3d-models/feathers-c987c56694a44559b75ed66429b04ee4) by [victorberdugo1](https://sketchfab.com/victorberdugo1), 로고는 [“Phoenix Logo”](https://sketchfab.com/3d-models/phoenix-logo-8dc1ba8095f1447fac7092d0299add27) by [Suraj-456tyu](https://sketchfab.com/Suraj-456tyu)(모두 CC BY 4.0, 색 변경)입니다. 불길과 빛, 배경은 셰이더로 그립니다.
 
 ## 기술 스택
 
@@ -81,7 +81,7 @@ src/
 │   ├── intro/      # WebGL 인트로 (model: 문구·타임라인, lib: 장면·셰이더)
 │   └── main/       # 흑백 메인 페이지
 └── shared/lib/     # 공통 훅
-public/models/      # 불사조 3D 모델(glTF)과 라이선스
+public/models/      # 불사조·깃털·로고 3D 모델(glTF)과 라이선스
 ```
 
 ## 문서

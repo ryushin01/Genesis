@@ -46,70 +46,63 @@ export const birdOutput = /* glsl */ `
   if(uMask > .5) gl_FragColor = vec4(1.);
 `;
 
-/** 불사조가 흩어진 뒤 내려오는 깃털. 큰 깃털 하나(aHero=1)는 마지막 문구 위에 떠 있습니다. */
+/** 불사조가 흩어진 뒤 내려오는 깃털(3D 모델). 큰 깃털 하나(aHero=1)는 마지막 문구 위에 떠 있다가 맨 끝에서 터집니다. */
 export const featherVertex = /* glsl */ `
 attribute float aSeed, aHero;
-uniform float uTime, uFall, uAspect;
-uniform vec2 uSun;
-varying vec2 vUv;
-varying float vSeed, vFacing;
+uniform float uTime, uFall, uAspect, uNova;
+uniform vec2 uSun, uNovaAt;
+varying float vSeed, vFacing, vY, vLight;
 void main(){
-  vUv = uv;
   vSeed = aSeed;
+  vY = position.y;
   float s = aSeed;
   float spin = uTime*(.35+s*.5) + s*20.;
   float roll = sin(uTime*(.6+s*.4) + s*31.)*.55;
-  vec3 local = vec3(position.x*.3, position.y, position.y*position.y*.18);
+  vec3 local = position;
+  vec3 n = normal;
   float size;
   vec2 at;
   if(aHero > .5){
-    size = 3.2;
+    size = 3.;
     float settle = smoothstep(0.,1.,uFall);
-    at = mix(uSun, vec2(0., -.6), settle) + vec2(sin(uTime*.55)*.32*(1.-settle*.6), sin(uTime*.8)*.08);
+    at = mix(uSun, uNovaAt + vec2(0., -1.4), settle) + vec2(sin(uTime*.55)*.32*(1.-settle*.6), sin(uTime*.8)*.08);
     roll = sin(uTime*.5)*.35 - .45;
     spin = sin(uTime*.35)*.9;
   } else {
-    size = .55 + s*.75;
-    // 태양에서 터져 나온 뒤 화면 아래로 천천히 떨어지기를 되풀이합니다.
+    size = .7 + s*.8;
     float life = fract(uTime*(.03+s*.035) + s*7.3);
     float a = s*6.2832*3.;
     vec2 spread = vec2(cos(a)*(1.4+s*3.6)*uAspect, sin(a)*.6);
     vec2 drift = vec2(sin(life*6.2832*1.5+s*9.)*.8, -life*11.);
     at = uSun + mix(vec2(0.), spread + drift + vec2(0.,1.5), smoothstep(0.,.6,uFall));
   }
+  // 초신성: 터지는 점에서 사방으로 날아갑니다.
+  vec2 away = at - uNovaAt + vec2(.001);
+  at += normalize(away)*uNova*uNova*(10.+s*8.);
+  spin += uNova*12.*(s+.3);
   float c = cos(spin), sn = sin(spin);
   local.xz = mat2(c,-sn,sn,c)*local.xz;
+  n.xz = mat2(c,-sn,sn,c)*n.xz;
   float cr = cos(roll), sr = sin(roll);
   local.xy = mat2(cr,-sr,sr,cr)*(local.xy - vec2(0.,.5));
-  vFacing = abs(c);
-  vec4 mv = modelViewMatrix*vec4(local*size + vec3(at,0.), 1.);
-  gl_Position = projectionMatrix*mv;
+  n.xy = mat2(cr,-sr,sr,cr)*n.xy;
+  vFacing = abs(n.z);
+  vLight = clamp(dot(normalize(n), normalize(vec3(.3,.6,.75)))*.5+.5, 0., 1.);
+  gl_Position = projectionMatrix*modelViewMatrix*vec4(local*size + vec3(at,0.), 1.);
 }`;
 
 export const featherFragment = /* glsl */ `
 precision highp float;
-uniform float uFall, uTime;
-varying vec2 vUv;
-varying float vSeed, vFacing;
+uniform float uFall, uNova;
+varying float vSeed, vFacing, vY, vLight;
 void main(){
-  float t = vUv.y;
-  float x = vUv.x-.5;
-  // 깃대를 기준으로 한쪽 깃판이 더 좁은 비대칭 깃털
-  float vane = pow(sin(3.14159*pow(t,.6)),.85)*.5*(x > 0. ? .72 : 1.);
-  float e = abs(x)/max(vane,1e-3);
-  float split = step(.965, fract((t-abs(x)*.7)*6.+vSeed*13.))*step(.3,e)*step(.18,t);
-  if(e > 1. || split > .5) discard;
-  float barb = .5+.5*sin((t - abs(x)*1.25)*190. + vSeed*40.);
-  float shaft = smoothstep(.035,0.,abs(x))*smoothstep(1.,.85,t);
-  vec3 col = mix(vec3(.24,0.,0.), vec3(.545,0.,0.), smoothstep(1.,.2,e));
-  col *= .62 + .38*barb;
-  col += vec3(.3,.02,.01)*smoothstep(.5,0.,e)*.6;
-  col = mix(col, vec3(.95,.24,.16), shaft);
-  col *= .7 + .45*vFacing;
-  // 막 흩어진 깃털은 불씨처럼 끝이 빛납니다.
-  float ember = (1.-smoothstep(.15,.7,uFall)) + .3;
-  col += vec3(.9,.12,.06)*smoothstep(.6,1.,e)*ember;
-  float alpha = smoothstep(1.,.8,e)*smoothstep(0.,.08,uFall);
+  vec3 col = mix(vec3(.2,0.,0.), vec3(.545,0.,0.), vLight);
+  col *= .72 + .4*vFacing;
+  // 막 흩어진 깃털과 터지는 순간에는 불씨처럼 빛납니다.
+  float ember = (1.-smoothstep(.15,.7,uFall)) + .2 + uNova*1.4;
+  col += vec3(.9,.12,.06)*smoothstep(.6,1.,vY)*ember;
+  col += vec3(1.,.45,.35)*uNova*.5;
+  float alpha = smoothstep(0.,.08,uFall)*(1.-smoothstep(.55,1.,uNova));
   gl_FragColor = vec4(col, alpha);
 }`;
 
@@ -121,8 +114,8 @@ export const backgroundFragment = /* glsl */ `
 precision highp float;
 uniform sampler2D uMaskTex;
 uniform vec2 uRes;
-uniform float uTime, uSun, uSunSize, uSunX, uCosmos, uWar, uBurn;
-uniform vec2 uBird;
+uniform float uTime, uSun, uSunSize, uSunX, uCosmos, uWar, uBurn, uNova, uLogo;
+uniform vec2 uBird, uNovaAt;
 varying vec2 vUv;
 ${noise}
 
@@ -205,7 +198,14 @@ void main(){
 
   vec3 col=mix(myth,cosmos,uCosmos);
   // 태양 원반은 우주로 넘어가도 색이 탁해지지 않게 마지막에 얹습니다.
-  col=mix(col,vec3(1.,.88,.84),sun*smoothstep(.03,.07,sunR));
+  col=mix(col,vec3(1.,.88,.84),sun*smoothstep(.03,.07,sunR)*(1.-uNova));
+  // 초신성: 섬광, 퍼져 나가는 충격파, 로고 뒤에 남는 잔광
+  vec2 np=p-uNovaAt;
+  float nr=length(np);
+  float flash=exp(-nr*mix(1.2,6.,uNova))*sin(uNova*3.14159);
+  float shock=smoothstep(.05,0.,abs(nr-uNova*1.6))*(1.-uNova);
+  col+=vec3(1.,.55,.45)*flash*1.6+vec3(.95,.12,.08)*shock*1.4;
+  col+=vec3(.545,0.,0.)*exp(-nr*2.6)*uLogo*.9;
 
   // 불사조 뒤의 빛과 불길
   vec2 uv=vUv;
