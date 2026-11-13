@@ -3,6 +3,7 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { SOURCES_URL } from '@/shared/config';
 import { useReducedMotion } from '@/shared/lib';
 import type { PhoenixScene } from '../lib/createPhoenixScene';
 import { CHAPTERS, FINALE_LENGTH, HERO_LENGTH } from '../model/chapters';
@@ -18,6 +19,10 @@ export function IntroExperience() {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<PhoenixScene | null>(null);
   const [sceneReady, setSceneReady] = useState(false);
+  const [loaded, setLoaded] = useState(0);
+  const [loadFailed, setLoadFailed] = useState(false);
+  const cursorRef = useRef<HTMLDivElement>(null);
+  const chipRef = useRef<HTMLParagraphElement>(null);
   const [paused, setPaused] = useState(false);
 
   useEffect(() => {
@@ -40,16 +45,24 @@ export function IntroExperience() {
           last: index === sections.length - 1,
         });
         section.style.setProperty('--reveal', reveal.toFixed(3));
+        // 화면 가운데를 지나는 장의 이름을 오른쪽 아래 칩에 보여 줍니다.
+        if (chipRef.current && rect.top <= viewport / 2 && rect.bottom > viewport / 2) {
+          const name = section.dataset.name ?? '';
+          if (chipRef.current.textContent !== name) chipRef.current.textContent = name;
+        }
       });
     };
+    let frame = 0;
     const request = () => {
       if (ticking) return;
       ticking = true;
-      requestAnimationFrame(update);
+      frame = requestAnimationFrame(update);
     };
     const onPointer = (event: PointerEvent) => {
       if (event.pointerType !== 'mouse') return;
       sceneRef.current?.setPointer(event.clientX / window.innerWidth - 0.5, event.clientY / window.innerHeight - 0.5);
+      cursorRef.current?.style.setProperty('translate', `${event.clientX}px ${event.clientY}px`);
+      cursorRef.current?.setAttribute('data-visible', 'true');
     };
 
     update();
@@ -61,7 +74,9 @@ export function IntroExperience() {
     import('../lib/createPhoenixScene')
       .then(async ({ createPhoenixScene }) => {
         if (cancelled || !canvasRef.current) return;
-        const scene = await createPhoenixScene(canvasRef.current);
+        const scene = await createPhoenixScene(canvasRef.current, (ratio) => {
+          if (!cancelled) setLoaded(ratio);
+        });
         if (cancelled) {
           scene.dispose();
           return;
@@ -72,11 +87,12 @@ export function IntroExperience() {
       })
       .catch(() => {
         // WebGL을 쓸 수 없으면 CSS 배경과 글자만으로 보여 줍니다.
-        if (!cancelled) setSceneReady(false);
+        if (!cancelled) setLoadFailed(true);
       });
 
     return () => {
       cancelled = true;
+      cancelAnimationFrame(frame);
       window.removeEventListener('scroll', request);
       window.removeEventListener('resize', request);
       window.removeEventListener('pointermove', onPointer);
@@ -91,7 +107,7 @@ export function IntroExperience() {
     sceneRef.current?.setPaused(next);
   };
 
-  // 키보드로 버튼에 왔을 때도 고리가 완성된 맨 아래 장면에서 보이게 합니다.
+  // 키보드로 버튼에 왔을 때도 깃털이 내려앉은 맨 아래 장면에서 보이게 합니다.
   const showFinale = () => {
     window.scrollTo({ top: document.documentElement.scrollHeight });
   };
@@ -100,13 +116,22 @@ export function IntroExperience() {
     <div ref={rootRef} className={styles.root} data-motion={motionOn ? 'on' : 'off'}>
       {motionOn ? <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" /> : null}
       <div className={styles.scrim} aria-hidden="true" />
+      {motionOn && !sceneReady && !loadFailed ? (
+        <div className={styles.loader} role="status">
+          <span className={styles.loaderMark} aria-hidden="true" />
+          <span>불사조를 깨우는 중</span>
+          <span className={styles.loaderValue} aria-hidden="true">
+            {Math.round(loaded * 100)}%
+          </span>
+        </div>
+      ) : null}
 
       <header className={styles.brand}>
         <Image src="/brand/logo.png" alt="project zero" width={40} height={40} className={styles.logo} />
       </header>
 
       <main className={styles.story}>
-        <section className={styles.chapter} style={lengthStyle(HERO_LENGTH)} data-chapter>
+        <section className={styles.chapter} style={lengthStyle(HERO_LENGTH)} data-chapter data-name="Prologue">
           <div className={`${styles.sticky} ${styles.hero}`}>
             <h1 className={styles.title} lang="en">
               <span className={styles.titleLead}>project</span>
@@ -121,7 +146,13 @@ export function IntroExperience() {
         </section>
 
         {CHAPTERS.map((chapter) => (
-          <section key={chapter.id} className={styles.chapter} style={lengthStyle(chapter.length)} data-chapter>
+          <section
+            key={chapter.id}
+            className={styles.chapter}
+            style={lengthStyle(chapter.length)}
+            data-chapter
+            data-name={chapter.accent}
+          >
             <div className={chapter.placement === 'bottom' ? `${styles.sticky} ${styles.bottom}` : styles.sticky}>
               <div className={styles.copy}>
                 <p className={styles.accent} lang="en" aria-hidden="true">
@@ -137,7 +168,7 @@ export function IntroExperience() {
           </section>
         ))}
 
-        <section className={styles.chapter} style={lengthStyle(FINALE_LENGTH)} data-chapter>
+        <section className={styles.chapter} style={lengthStyle(FINALE_LENGTH)} data-chapter data-name="zero">
           <div className={`${styles.sticky} ${styles.finale}`}>
             <h2 className={styles.finaleTitle}>
               모든 것은
@@ -147,7 +178,9 @@ export function IntroExperience() {
             <Link href="/main" className={styles.enter} onFocus={showFinale}>
               메인으로 들어가기
             </Link>
-            <p className={styles.credit}>불사조 3D 모델 출처: cadnav.com</p>
+            <p className={styles.credit}>
+              <a href={SOURCES_URL}>3D 모델 출처 (README)</a>
+            </p>
           </div>
         </section>
       </main>
@@ -161,6 +194,14 @@ export function IntroExperience() {
         >
           <span aria-hidden="true">{paused ? '▶' : 'Ⅱ'}</span>
         </button>
+      ) : null}
+      {motionOn ? (
+        <>
+          <p ref={chipRef} className={styles.chip} lang="en" aria-hidden="true">
+            Prologue
+          </p>
+          <div ref={cursorRef} className={styles.cursor} aria-hidden="true" />
+        </>
       ) : null}
       <div className={styles.progress} aria-hidden="true" />
     </div>
