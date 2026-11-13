@@ -13,7 +13,7 @@
 ## 인트로 장면
 
 - `model/timeline.ts`: 스크롤 진행도별 3D 카메라(불사조를 도는 각도·높이·거리, 바라보는 점)와 연출 값. 문구 구간을 크게 바꾸면 함께 맞춥니다.
-- `public/models/phoenix.glb`: 불사조 모델. 원본에서 목의 오각별 장식(`Plane001`)을 빼고 양자화·meshopt로 압축했습니다(약 2.7MB). 날갯짓은 모델에 든 애니메이션을 그대로 재생합니다. 라이선스는 같은 폴더의 `phoenix-license.txt`입니다.
+- `public/models/phoenix.glb`: 불사조 모델. 원본에서 목의 오각별 장식(`Plane001`)을 빼고 양자화·meshopt로 압축했습니다. 텍스처는 WebP로 바꿨습니다(색·발광 품질 88, 노멀 맵은 무손실, 약 1.3MB). 모델을 다시 만들 때는 `gltf-transform webp`로 텍스처를 바꾼 뒤 `gltf-transform meshopt`를 마지막에 다시 겁니다(WebP 단계가 meshopt 압축을 풉니다). 날갯짓은 모델에 든 애니메이션을 그대로 재생합니다. 라이선스는 같은 폴더의 `phoenix-license.txt`입니다.
 - `public/models/feathers.glb`: 불사조가 태양에 닿아 터진 뒤의 깃털 2장(“Feathers” by victorberdugo1, CC BY 4.0). `extractFeather`가 부품을 합쳐 길이를 1로 맞춘 뒤 인스턴스로 그립니다. 작은 깃털은 흩어져 사라지고, 큰 깃털 하나가 화면 가운데로 내려오며 배경 셰이더가 빛 무리와 빛줄기를 그립니다.
 - `public/models/phoenix-logo.glb`: 큰 깃털이 내려앉은 자리에 나타나는 로고(“Phoenix Logo” by Suraj-456tyu, CC BY 4.0). 색은 #8B0000 계열로 옮깁니다.
 - `lib/shaders.ts`: 불사조 재질에 끼워 넣는 조각(모든 색을 #8B0000 한 색조로, 불길, 역광 테두리와 대기·입자감으로 배경에 녹이기, 태양 속 소멸, 윤곽 패스), 깃털과 초신성, 배경(태양·우주·포화·불길 줄기), 함대, 불티의 GLSL.
