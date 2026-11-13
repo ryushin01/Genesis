@@ -251,6 +251,7 @@ export async function createPhoenixScene(
 
     const render = (now: number) => {
       frame = 0;
+      if (disposer.disposed || contextLost) return;
       const delta = Math.min(0.05, Math.max(0, (now - previous) / 1000));
       previous = now;
       if (!paused) {
@@ -373,7 +374,9 @@ export async function createPhoenixScene(
         Math.abs(targetProgress - progress) < 1e-4 &&
         Math.abs(pointerX - easedX) < 1e-3 &&
         Math.abs(pointerY - easedY) < 1e-3;
-      if (!settled) frame = requestAnimationFrame(render);
+      // 이 프레임 안에서 이미 다음 프레임을 예약했으면(해상도를 낮추며 깨운 경우) 또 예약하지 않습니다.
+      // 두 번 예약하면 그리기 루프가 둘로 갈라지고, 장면을 닫아도 하나가 남아 계속 돕니다.
+      if (!settled && frame === 0) frame = requestAnimationFrame(render);
     };
 
     const onContextLost = () => {
