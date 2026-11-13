@@ -1,6 +1,6 @@
 {
   "name": "genesis",
-  "version": "0.4.2",
+  "version": "0.4.3",
   "private": true,
   "type": "module",
   "description": "소설 프로젝트 제로 홍보 홈페이지",
