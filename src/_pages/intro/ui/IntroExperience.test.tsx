@@ -28,7 +28,13 @@ describe('IntroExperience', () => {
     render(<IntroExperience />);
     const link = screen.getByRole('link', { name: '메인으로 들어가기' });
     expect(link).toHaveAttribute('href', '/main');
-    expect(screen.getAllByRole('link')).toHaveLength(1);
+    const toMain = screen.getAllByRole('link').filter((a) => a.getAttribute('href') === '/main');
+    expect(toMain).toHaveLength(1);
+    // 3D 모델 출처는 화면이 아니라 README에 있고, 여기서는 그곳으로 잇습니다.
+    expect(screen.getByRole('link', { name: '3D 모델 출처 (README)' })).toHaveAttribute(
+      'href',
+      'https://github.com/ryushin01/Genesis#출처',
+    );
     const headings = screen.getAllByRole('heading');
     expect(headings.at(-1)?.compareDocumentPosition(link)).toBe(Node.DOCUMENT_POSITION_FOLLOWING);
   });

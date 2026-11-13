@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
+import { SOURCES_URL } from '@/shared/config';
 import { useReducedMotion } from '@/shared/lib';
 import type { PhoenixScene } from '../lib/createPhoenixScene';
 import { CHAPTERS, FINALE_LENGTH, HERO_LENGTH } from '../model/chapters';
@@ -177,8 +178,7 @@ export function IntroExperience() {
               메인으로 들어가기
             </Link>
             <p className={styles.credit}>
-              3D 모델: “Phoenix” by NORBERTO-3D · “Feathers” by victorberdugo1 · “Phoenix Logo” by Suraj-456tyu, 모두 CC BY
-              4.0 (색 변경·일부 수정)
+              <a href={SOURCES_URL}>3D 모델 출처 (README)</a>
             </p>
           </div>
         </section>
