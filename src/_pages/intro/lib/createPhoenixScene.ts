@@ -525,6 +525,9 @@ export async function createPhoenixScene(
       backgroundMaterial.dispose();
       mask.dispose();
       renderer.dispose();
+      // dispose만으로는 WebGL 컨텍스트가 바로 풀리지 않습니다. 움직임을 껐다 켜며 장면을 다시 만들 때
+      // 컨텍스트가 쌓여 브라우저 한도(보통 16개)에 닿지 않게 바로 놓아 줍니다.
+      renderer.forceContextLoss();
     },
   };
 }
