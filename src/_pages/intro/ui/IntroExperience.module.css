@@ -188,6 +188,13 @@
   text-shadow: 0 1px 8px rgb(0 0 0 / 0.9);
 }
 
+/* 작은 글자라도 누르기 쉬운 높이(24px 이상) */
+.credit a {
+  display: inline-block;
+  padding-block: 4px;
+  text-underline-offset: 0.2em;
+}
+
 .enter:hover {
   transform: scale(1.04);
   box-shadow: 0 0 44px rgb(255 90 60 / 0.75);

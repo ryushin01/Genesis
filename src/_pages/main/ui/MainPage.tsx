@@ -3,6 +3,7 @@ import Link from "next/link";
 import { Fragment, type CSSProperties } from "react";
 import styles from "./MainPage.module.css";
 import { SiteMenu } from "./SiteMenu";
+import { SOURCES_URL } from "@/shared/config";
 
 /** 앱과 함께 배포한 Storybook. 개발 서버에는 빌드 결과물이 없어 Storybook 개발 서버로 보냅니다. */
 const STORYBOOK_URL =
@@ -256,14 +257,7 @@ export function MainPage() {
 
       <footer className={styles.footer}>
         <small>
-          © 2026 프로젝트 제로 · 3D 모델:{" "}
-          <a href="https://sketchfab.com/3d-models/phoenix-243fea4f846f44d18d37bf371272b7ec">“Phoenix”</a> by{" "}
-          <a href="https://sketchfab.com/norberto3d">NORBERTO-3D</a>,{" "}
-          <a href="https://sketchfab.com/3d-models/feathers-c987c56694a44559b75ed66429b04ee4">“Feathers”</a> by{" "}
-          <a href="https://sketchfab.com/victorberdugo1">victorberdugo1</a>,{" "}
-          <a href="https://sketchfab.com/3d-models/phoenix-logo-8dc1ba8095f1447fac7092d0299add27">“Phoenix Logo”</a> by{" "}
-          <a href="https://sketchfab.com/Suraj-456tyu">Suraj-456tyu</a>, 모두{" "}
-          <a href="http://creativecommons.org/licenses/by/4.0/">CC BY 4.0</a> (색 변경·일부 수정) ·{" "}
+          © 2026 프로젝트 제로 · <a href={SOURCES_URL}>3D 모델·글꼴 출처 (README)</a> ·{" "}
           <a href={STORYBOOK_URL}>디자인 시스템(Storybook)</a>
         </small>
       </footer>
