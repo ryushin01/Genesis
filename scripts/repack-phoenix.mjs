@@ -100,7 +100,11 @@ for (const texture of json.textures) {
 }
 
 // 버퍼 뷰: 지운 이미지의 뷰를 빼고, 남은 데이터(meshopt 압축분 포함)를 4바이트 정렬로 다시 이어 붙입니다.
-const dropped = new Set([...sameAs.keys()].map((index) => json.images[index].bufferView));
+// 남기는 이미지가 같은 뷰를 함께 쓰면 그 뷰는 지우지 않습니다.
+const keptViews = new Set(kept.map((index) => json.images[index].bufferView));
+const dropped = new Set(
+  [...sameAs.keys()].map((index) => json.images[index].bufferView).filter((view) => !keptViews.has(view)),
+);
 const imageOfView = new Map(kept.map((index) => [json.images[index].bufferView, index]));
 const segments = [];
 json.bufferViews.forEach((view, index) => {
