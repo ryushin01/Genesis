@@ -55,7 +55,11 @@ export function initMonitoring() {
           integrations: (defaults) => defaults.filter(({ name }) => !OFF_INTEGRATIONS.has(name)),
           // 오류 내용이 아닌 것은 지웁니다. 감싼 콜백이 던진 오류에는 그 콜백의 인수(입력 이벤트 등)가 extra.arguments로 붙습니다.
           beforeSend(event) {
-            if (event.extra) delete event.extra.arguments;
+            if (event.extra) {
+              delete event.extra.arguments;
+              // Error가 아닌 일반 객체로 거부된 Promise는 그 필드 값(이메일·토큰 등)이 여기에 담깁니다.
+              delete event.extra.__serialized__;
+            }
             // 주소의 # 뒤(로그인 토큰 등)는 보내지 않습니다.
             if (event.request?.url) event.request.url = event.request.url.split('#')[0];
             return event;
