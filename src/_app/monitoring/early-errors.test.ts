@@ -20,8 +20,24 @@ vi.mock('./sentry', () => sentry);
 vi.mock('web-vitals', () => ({ onCLS() {}, onINP() {}, onLCP() {}, onFCP() {}, onTTFB() {} }));
 
 afterEach(() => {
+  vi.useRealTimers();
+  vi.restoreAllMocks();
   vi.unstubAllEnvs();
   vi.resetModules();
+});
+
+it('load가 10초 안에 오지 않아도 그때 Sentry를 받는다', async () => {
+  vi.useFakeTimers();
+  vi.spyOn(document, 'readyState', 'get').mockReturnValue('loading');
+  vi.stubEnv('NEXT_PUBLIC_SENTRY_DSN', 'https://key@o1.ingest.sentry.io/1');
+  const { initMonitoring } = await import('./index');
+  sentry.init.mockClear();
+
+  initMonitoring();
+  await vi.advanceTimersByTimeAsync(9_000);
+  expect(sentry.init).not.toHaveBeenCalled();
+  await vi.advanceTimersByTimeAsync(1_000);
+  await vi.waitFor(() => expect(sentry.init).toHaveBeenCalledTimes(1));
 });
 
 it('Sentry를 받기 전에 난 오류도 준비되면 처리되지 않은 오류로 보낸다', async () => {
