@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.4.4 - 2026-11-13
+
+- 출처: 3D 모델(Phoenix·Feathers·Phoenix Logo, CC BY 4.0)과 글꼴(Cormorant·Inter·JetBrains Mono)의 출처를 README '출처' 표에 두고, 메인 바닥글과 인트로 마지막 장면의 출처 문장은 그 표로 가는 링크로 바꿈
+
 ## 0.4.3 - 2026-11-13
 
 - 모니터링: load가 10초 안에 오지 않으면 한가할 때를 다시 기다리지 않고 그때 바로 Sentry를 받음(전에는 기한 뒤에도 한가할 때를 최대 3초 더 기다려 13초까지 늦어질 수 있었음). 끝내 부르지 않는 `requestIdleCallback`으로 확인하는 테스트로 바꿈. load가 10초 전에 오면 기한을 거두고 한가할 때를 기다림(+테스트)
