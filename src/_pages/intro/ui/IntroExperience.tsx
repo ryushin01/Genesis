@@ -126,7 +126,9 @@ export function IntroExperience() {
       ) : null}
 
       <header className={styles.brand}>
-        <span lang="en">project zero</span>
+        {/* 40px 로고 한 장이라 next/image 런타임(용량 예산 초과)을 쓰지 않습니다. */}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src="/brand/logo.png" alt="project zero" width={40} height={40} className={styles.logo} />
       </header>
 
       <main className={styles.story}>
