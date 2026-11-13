@@ -38,6 +38,42 @@ test.describe('인트로', () => {
     await expect.poll(() => page.evaluate(() => window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2)).toBe(true);
   });
 
+  test('인트로와 메인을 오가도 WebGL 컨텍스트가 남지 않는다', async ({ page, isMobile }) => {
+    test.skip(isMobile, '장면을 여러 번 만드는 검사는 데스크톱에서만 합니다');
+    test.setTimeout(180_000);
+    // 페이지가 만든 WebGL 컨텍스트를 약한 참조로 모아, 살아 있는(잃지 않은) 컨텍스트 수를 셉니다.
+    await page.addInitScript(() => {
+      const log: WeakRef<WebGLRenderingContext>[] = [];
+      Object.assign(window, { __webglContexts: log });
+      const original = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, ...args: Parameters<typeof original>) {
+        const context = original.apply(this, args);
+        if (context && String(args[0]).startsWith('webgl')) log.push(new WeakRef(context as WebGLRenderingContext));
+        return context;
+      } as typeof original;
+    });
+    const liveContexts = () =>
+      page.evaluate(() => {
+        const log = (window as unknown as { __webglContexts: WeakRef<WebGLRenderingContext>[] }).__webglContexts;
+        return log.filter((ref) => {
+          const context = ref.deref();
+          return context !== undefined && !context.isContextLost();
+        }).length;
+      });
+
+    await page.goto('/');
+    for (let round = 0; round < 2; round += 1) {
+      // CI에는 GPU가 없어 장면이 느리게 뜹니다.
+      await expect(page.getByRole('button', { name: '배경 애니메이션 정지' })).toBeVisible({ timeout: 60_000 });
+      expect(await liveContexts()).toBe(1);
+      await page.getByRole('link', { name: '메인으로 들어가기' }).click();
+      await expect(page).toHaveURL(/\/main$/);
+      await expect.poll(liveContexts).toBe(0);
+      await page.getByRole('link', { name: '인트로 다시 보기' }).click();
+      await expect(page).toHaveURL(/\/$/);
+    }
+  });
+
   test('동작 줄이기에서는 장면 없이 모든 글을 보여 주고 접근성 위반이 없다', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
