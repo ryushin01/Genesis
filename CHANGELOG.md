@@ -1,5 +1,11 @@
 # Changelog
 
+## 0.5.2 - 2026-11-14
+
+- 파비콘·로고를 금빛 일식 아이콘(game-icons.net의 Lorc “Eclipse flare”, CC BY 3.0, 금색 #c99a2e로 칠함)으로: `favicon.ico`(16·32·48), `icon.png`(192), `apple-icon.png`(180, 크림슨 #8b0000 바탕), 인트로 머리글 로고(`public/brand/logo.png`)
+- README 출처 표에 아이콘을 더하고, 사이트의 출처 링크를 '3D 모델·아이콘 출처'(인트로), '3D 모델·글꼴·아이콘 출처'(메인)로 바꿈
+- README 스크린샷: `pnpm screenshots`(`scripts/screenshots.mjs`)를 더하고 로고가 보이는 인트로 4장을 다시 찍음. 인트로 루트에 장면 상태(`data-scene`: loading·ready·failed)를 두어, 불사조를 불러오지 못하면 기존 캡처를 덮어쓰지 않고 멈춤
+
 ## 0.5.1 - 2026-11-14
 
 - 대체 글꼴: 제목은 Garamond·Baskerville·Georgia와 운영체제 명조, 기록 글씨는 SF Mono·Menlo·Consolas·D2Coding, 한글 고딕은 Noto Sans CJK KR까지 이음
