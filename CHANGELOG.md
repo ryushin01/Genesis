@@ -1,5 +1,9 @@
 # Changelog
 
+## 0.5.1 - 2026-11-14
+
+- 대체 글꼴: 제목은 Garamond·Baskerville·Georgia와 운영체제 명조, 기록 글씨는 SF Mono·Menlo·Consolas·D2Coding, 한글 고딕은 Noto Sans CJK KR까지 이음
+
 ## 0.5.0 - 2026-11-14
 
 불사조 연출을 다듬고, 같은 기기에서 더 가볍게 돌도록 장면을 다시 짰습니다.
