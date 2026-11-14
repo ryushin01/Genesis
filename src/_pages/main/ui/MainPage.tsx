@@ -257,7 +257,7 @@ export function MainPage() {
 
       <footer className={styles.footer}>
         <small>
-          © 2026 프로젝트 제로 · <a href={SOURCES_URL}>3D 모델·글꼴 출처 (README)</a> ·{" "}
+          © 2026 프로젝트 제로 · <a href={SOURCES_URL}>3D 모델·글꼴·아이콘 출처 (README)</a> ·{" "}
           <a href={STORYBOOK_URL}>디자인 시스템(Storybook)</a>
         </small>
       </footer>
