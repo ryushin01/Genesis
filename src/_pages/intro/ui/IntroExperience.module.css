@@ -3,18 +3,30 @@
   --progress: 0;
   position: relative;
   color: #fff;
+  background: #1a0002;
+  min-height: 100svh;
+}
+
+/* 장면을 띄우지 않을 때 보이는 배경. background-attachment: fixed는 스크롤마다 메인 스레드에서 다시 칠하게 하므로
+   고정 위치 요소로 대신합니다. 장면이 뜨면 캔버스가 위를 덮습니다. */
+.root::before {
+  content: '';
+  position: fixed;
+  inset: 0;
   background:
     radial-gradient(120% 90% at 70% 15%, #b3131a 0%, transparent 60%),
     linear-gradient(160deg, #8b0000 0%, #3d0003 75%, #1a0002 100%);
-  background-attachment: fixed;
-  min-height: 100svh;
+  pointer-events: none;
 }
 
 .canvas {
   position: fixed;
-  inset: 0;
+  inset: 0 0 auto;
   width: 100%;
-  height: 100%;
+  /* 모바일 주소창이 접히고 펼쳐져도 크기가 바뀌지 않게 가장 큰 화면 높이로 고정합니다(그리기 버퍼를 다시 만들지 않음).
+     lvh를 모르는 브라우저는 vh를 씁니다. */
+  height: 100vh;
+  height: 100lvh;
   display: block;
 }
 
@@ -61,6 +73,10 @@
   position: sticky;
   top: 0;
   height: 100svh;
+}
+
+/* 화면 근처의 장만 투명도 변화를 합성 단계에서 처리합니다. */
+[data-motion='on'] .chapter[data-near='true'] .sticky {
   will-change: opacity;
 }
 

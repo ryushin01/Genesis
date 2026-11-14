@@ -38,6 +38,68 @@ test.describe('인트로', () => {
     await expect.poll(() => page.evaluate(() => window.scrollY + window.innerHeight >= document.documentElement.scrollHeight - 2)).toBe(true);
   });
 
+  test('인트로와 메인을 오가도 WebGL 컨텍스트와 그리기 루프가 남지 않는다', async ({ page, isMobile }) => {
+    test.skip(isMobile, '장면을 여러 번 만드는 검사는 데스크톱에서만 합니다');
+    test.setTimeout(180_000);
+    // 페이지가 만든 WebGL 컨텍스트를 약한 참조로 모아 살아 있는(잃지 않은) 컨텍스트 수를 세고, rAF 호출 수도 셉니다.
+    await page.addInitScript(() => {
+      const log: WeakRef<WebGLRenderingContext>[] = [];
+      const counter = { frames: 0 };
+      Object.assign(window, { __webglContexts: log, __frameRequests: counter });
+      const original = HTMLCanvasElement.prototype.getContext;
+      HTMLCanvasElement.prototype.getContext = function (this: HTMLCanvasElement, ...args: Parameters<typeof original>) {
+        const context = original.apply(this, args);
+        if (context && String(args[0]).startsWith('webgl')) log.push(new WeakRef(context as WebGLRenderingContext));
+        return context;
+      } as typeof original;
+      const request = window.requestAnimationFrame.bind(window);
+      window.requestAnimationFrame = (callback) => {
+        counter.frames += 1;
+        return request(callback);
+      };
+    });
+    const liveContexts = () =>
+      page.evaluate(() => {
+        const log = (window as unknown as { __webglContexts: WeakRef<WebGLRenderingContext>[] }).__webglContexts;
+        return log.filter((ref) => {
+          const context = ref.deref();
+          return context !== undefined && !context.isContextLost();
+        }).length;
+      });
+    const frameRequests = () =>
+      page.evaluate(() => (window as unknown as { __frameRequests: { frames: number } }).__frameRequests.frames);
+
+    await page.goto('/');
+    for (let round = 0; round < 2; round += 1) {
+      // CI에는 GPU가 없어 장면이 느리게 뜹니다.
+      await expect(page.getByRole('button', { name: '배경 애니메이션 정지' })).toBeVisible({ timeout: 60_000 });
+      expect(await liveContexts()).toBe(1);
+      if (round === 0) {
+        // 느린 기기처럼 프레임을 밀어 해상도 자동 조절이 일어날 때까지 기다립니다.
+        // 이때 그리기 루프가 둘로 갈라지면 장면을 닫은 뒤에도 하나가 남습니다.
+        const canvasWidth = () => page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => canvas.width);
+        const fullWidth = await canvasWidth();
+        const cdp = await page.context().newCDPSession(page);
+        await cdp.send('Emulation.setCPUThrottlingRate', { rate: 60 });
+        try {
+          await expect.poll(canvasWidth, { timeout: 60_000 }).toBeLessThan(fullWidth);
+        } finally {
+          await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
+          await cdp.detach();
+        }
+      }
+      await page.getByRole('link', { name: '메인으로 들어가기' }).click();
+      await expect(page).toHaveURL(/\/main$/);
+      await expect.poll(liveContexts).toBe(0);
+      // 화면을 떠난 뒤에는 장면의 그리기 루프도 멈춰 있어야 합니다.
+      const before = await frameRequests();
+      await page.waitForTimeout(1_000);
+      expect(await frameRequests()).toBe(before);
+      await page.getByRole('link', { name: '인트로 다시 보기' }).click();
+      await expect(page).toHaveURL(/\/$/);
+    }
+  });
+
   test('동작 줄이기에서는 장면 없이 모든 글을 보여 주고 접근성 위반이 없다', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
