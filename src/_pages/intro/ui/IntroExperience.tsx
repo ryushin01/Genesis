@@ -132,7 +132,12 @@ export function IntroExperience() {
   };
 
   return (
-    <div ref={rootRef} className={styles.root} data-motion={motionOn ? 'on' : 'off'}>
+    <div
+      ref={rootRef}
+      className={styles.root}
+      data-motion={motionOn ? 'on' : 'off'}
+      data-scene={loadFailed ? 'failed' : sceneReady ? 'ready' : 'loading'}
+    >
       {motionOn ? <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" /> : null}
       <div className={styles.scrim} aria-hidden="true" />
       {motionOn && !sceneReady && !loadFailed ? (
@@ -200,7 +205,7 @@ export function IntroExperience() {
               메인으로 들어가기
             </Link>
             <p className={styles.credit}>
-              <a href={SOURCES_URL}>3D 모델 출처 (README)</a>
+              <a href={SOURCES_URL}>3D 모델·아이콘 출처 (README)</a>
             </p>
           </div>
         </section>

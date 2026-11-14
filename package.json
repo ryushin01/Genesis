@@ -1,6 +1,6 @@
 {
   "name": "genesis",
-  "version": "0.5.1",
+  "version": "0.5.3",
   "private": true,
   "type": "module",
   "description": "소설 프로젝트 제로 홍보 홈페이지",
@@ -17,7 +17,8 @@
     "storybook": "storybook dev -p 6006",
     "build-storybook": "storybook build -o public/storybook --quiet",
     "size": "size-limit",
-    "lhci": "lhci autorun"
+    "lhci": "lhci autorun",
+    "screenshots": "node scripts/screenshots.mjs"
   },
   "dependencies": {
     "@sentry/browser": "^11.12.0",
