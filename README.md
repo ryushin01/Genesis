@@ -90,6 +90,7 @@ scripts/            # 불사조 모델 텍스처 다시 담기
 | 문서 | 내용 |
 |---|---|
 | [개발 가이드](docs/development.md) | 문구 교체, 인트로 장면 조정, 디자인 기준 |
+| [시퀀스 다이어그램](docs/sequence-diagrams.md) | 인트로 장면 준비, 스크롤에 따른 장면 진행과 메인 이동 |
 | [CHANGELOG](CHANGELOG.md) | 버전 기록 |
 
 ## 출처
