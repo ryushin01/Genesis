@@ -9,9 +9,9 @@ jobs:
   check:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
-      - uses: pnpm/action-setup@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
@@ -22,4 +22,7 @@ jobs:
       - run: pnpm test
       - run: pnpm build-storybook
       - run: pnpm exec playwright install --with-deps chromium
+      # E2E가 만든 프로덕션 빌드로 크기와 Lighthouse 점수를 잽니다.
       - run: pnpm e2e
+      - run: pnpm size
+      - run: pnpm lhci

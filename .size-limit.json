@@ -1,0 +1,4 @@
+[
+  { "name": "전체 JS", "path": ".next/static/chunks/**/*.js", "gzip": true, "limit": "395 kB" },
+  { "name": "CSS", "path": ".next/static/chunks/**/*.css", "gzip": true, "limit": "8 kB" }
+]
