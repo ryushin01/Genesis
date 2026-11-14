@@ -107,4 +107,19 @@ describe('smoothLoopClip', () => {
     const eased = smoothLoopClip(clip, root, { strokeEase: 0.6 }).tracks[0] as QuaternionKeyframeTrack;
     for (const time of [0.1, 0.4, 0.8]) expect(Math.abs(angleAt(eased, time) - angleAt(plain, time))).toBeLessThan(4);
   });
+
+  it('사원수가 반구를 넘는 이웃(0→100→200°)에서도 키 앞뒤 각속도가 이어진다', () => {
+    const { root } = rig();
+    const times = [0, 0.25, 0.5, 0.75, 1];
+    const clip = new AnimationClip('swing', 1, [new QuaternionKeyframeTrack('wing.quaternion', times, keys([0, 100, 200, 100, 0]))]);
+    const track = smoothLoopClip(clip, root, { strokeEase: 0 }).tracks[0] as QuaternionKeyframeTrack;
+    const interpolant = new QuaternionLinearInterpolant(track.times, track.values, 4, new Float32Array(4));
+    const at = (time: number) => new Quaternion().fromArray(Array.from(interpolant.evaluate(time)));
+    // 부호와 상관없는 각(angleTo)으로 잽니다. 100° 키(0.25초) 앞뒤의 각속도가 같아야 합니다.
+    const speed = (time: number, dt = 1 / 480) => (at(time).angleTo(at(time + dt)) * 180) / Math.PI / dt;
+    const before = speed(0.24);
+    const after = speed(0.26);
+    expect(before).toBeGreaterThan(100);
+    expect(Math.abs(after - before)).toBeLessThan(before * 0.05);
+  });
 });
