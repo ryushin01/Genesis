@@ -41,6 +41,8 @@ test.describe('인트로', () => {
   test('인트로와 메인을 오가도 WebGL 컨텍스트와 그리기 루프가 남지 않는다', async ({ page, isMobile }) => {
     test.skip(isMobile, '장면을 여러 번 만드는 검사는 데스크톱에서만 합니다');
     test.setTimeout(180_000);
+    // 장면을 소프트웨어로 그리는 CI에서도 프레임이 너무 느려지지 않게 화면을 줄입니다.
+    await page.setViewportSize({ width: 800, height: 500 });
     // 페이지가 만든 WebGL 컨텍스트를 약한 참조로 모아 살아 있는(잃지 않은) 컨텍스트 수를 세고, rAF 호출 수도 셉니다.
     await page.addInitScript(() => {
       const log: WeakRef<WebGLRenderingContext>[] = [];
@@ -75,17 +77,29 @@ test.describe('인트로', () => {
       await expect(page.getByRole('button', { name: '배경 애니메이션 정지' })).toBeVisible({ timeout: 60_000 });
       expect(await liveContexts()).toBe(1);
       if (round === 0) {
-        // 느린 기기처럼 프레임을 밀어 해상도 자동 조절이 일어날 때까지 기다립니다.
-        // 이때 그리기 루프가 둘로 갈라지면 장면을 닫은 뒤에도 하나가 남습니다.
+        // 해상도 자동 조절이 일어난 뒤에 떠납니다. 이때 그리기 루프가 둘로 갈라지면 장면을 닫은 뒤에도 하나가 남습니다.
+        // 느린 기기처럼 매 프레임 메인 스레드를 40ms씩 붙잡아, GPU 유무와 상관없이 몇 초 안에 조절이 일어나게 합니다.
         const canvasWidth = () => page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => canvas.width);
-        const fullWidth = await canvasWidth();
-        const cdp = await page.context().newCDPSession(page);
-        await cdp.send('Emulation.setCPUThrottlingRate', { rate: 60 });
+        const fullWidth = await page.evaluate(() => Math.floor(window.innerWidth * Math.min(window.devicePixelRatio, 1.75)));
+        await page.evaluate(() => {
+          const state = { busy: true };
+          Object.assign(window, { __busyFrames: state });
+          const hold = () => {
+            if (!state.busy) return;
+            const start = performance.now();
+            while (performance.now() - start < 40) {
+              // 프레임을 늦추려고 일부러 기다립니다.
+            }
+            window.requestAnimationFrame(hold);
+          };
+          window.requestAnimationFrame(hold);
+        });
         try {
           await expect.poll(canvasWidth, { timeout: 60_000 }).toBeLessThan(fullWidth);
         } finally {
-          await cdp.send('Emulation.setCPUThrottlingRate', { rate: 1 });
-          await cdp.detach();
+          await page.evaluate(() => {
+            (window as unknown as { __busyFrames: { busy: boolean } }).__busyFrames.busy = false;
+          });
         }
       }
       await page.getByRole('link', { name: '메인으로 들어가기' }).click();

@@ -44,12 +44,25 @@ describe('measureWingbeat', () => {
 });
 
 describe('sampleLoop', () => {
-  it('표본 사이를 잇고, 한 바퀴를 넘거나 음수여도 이어진다', () => {
+  it('표본을 그대로 지나고, 한 바퀴를 넘거나 음수여도 이어진다', () => {
     const values = Float32Array.from([0, 1, 0, -1]);
+    expect(sampleLoop(values, 0)).toBeCloseTo(0);
     expect(sampleLoop(values, 0.25)).toBeCloseTo(1);
-    expect(sampleLoop(values, 0.125)).toBeCloseTo(0.5);
-    expect(sampleLoop(values, 0.875)).toBeCloseTo(-0.5);
     expect(sampleLoop(values, 1.25)).toBeCloseTo(1);
     expect(sampleLoop(values, -0.75)).toBeCloseTo(1);
+    // 사인처럼 둥글게 이어집니다(직선이면 0.5).
+    expect(sampleLoop(values, 0.125)).toBeCloseTo(0.625);
+    expect(sampleLoop(values, 0.875)).toBeCloseTo(-0.625);
+  });
+
+  it('표본 지점에서 기울기가 끊기지 않는다', () => {
+    const values = Float32Array.from([0, 0.7, 1, 0.7, 0, -0.7, -1, -0.7]);
+    const h = 1e-5;
+    for (let k = 0; k < values.length; k += 1) {
+      const at = k / values.length;
+      const left = (sampleLoop(values, at) - sampleLoop(values, at - h)) / h;
+      const right = (sampleLoop(values, at + h) - sampleLoop(values, at)) / h;
+      expect(Math.abs(left - right)).toBeLessThan(1e-2);
+    }
   });
 });

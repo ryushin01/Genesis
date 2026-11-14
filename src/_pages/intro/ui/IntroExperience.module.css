@@ -66,6 +66,10 @@
   place-items: center;
   min-height: 100svh;
   padding: 88px clamp(20px, 5vw, 72px);
+}
+
+/* 투명도는 글이 든 안쪽 요소에만 줍니다. 화면 전체 크기의 상자에 주면 장이 바뀔 때마다 큰 레이어를 새로 래스터해 프레임이 밀립니다. */
+.sticky > * {
   opacity: var(--reveal);
 }
 
@@ -76,7 +80,7 @@
 }
 
 /* 화면 근처의 장만 투명도 변화를 합성 단계에서 처리합니다. */
-[data-motion='on'] .chapter[data-near='true'] .sticky {
+[data-motion='on'] .chapter[data-near='true'] .sticky > * {
   will-change: opacity;
 }
 

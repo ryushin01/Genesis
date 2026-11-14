@@ -13,6 +13,7 @@ import {
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { birdAlbedo, birdEmissive, birdFragmentHead, birdOutput } from '../shaders';
 import { disposeObject } from './disposer';
+import { smoothLoopClip } from './smoothClip';
 
 /** 불사조 날개 폭(장면 단위). 카메라 거리와 불티 꼬리 폭의 기준입니다. */
 export const WINGSPAN = 7;
@@ -60,12 +61,23 @@ export function measureWingbeat(model: Object3D, mixer: AnimationMixer, duration
   return heights.map((height) => ((height - min) / range) * 2 - 1);
 }
 
-/** 한 바퀴를 도는 표본 사이를 선형으로 잇습니다. */
+/** 한 바퀴를 도는 표본 사이를 Catmull-Rom 곡선으로 잇습니다. 표본을 그대로 지나고 기울기도 이어져 몸이 꺾이지 않고 오르내립니다. */
 export function sampleLoop(values: Float32Array, phase: number) {
-  const x = (((phase % 1) + 1) % 1) * values.length;
+  const n = values.length;
+  const x = (((phase % 1) + 1) % 1) * n;
   const i = Math.floor(x);
   const t = x - i;
-  return values[i % values.length] * (1 - t) + values[(i + 1) % values.length] * t;
+  const p0 = values[(i - 1 + n) % n];
+  const p1 = values[i % n];
+  const p2 = values[(i + 1) % n];
+  const p3 = values[(i + 2) % n];
+  return (
+    0.5 *
+    (2 * p1 +
+      (p2 - p0) * t +
+      (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t +
+      (3 * p1 - p0 - 3 * p2 + p3) * t * t * t)
+  );
 }
 
 /** 불사조 모델을 맞추고, 재질에 #8B0000 색·불길·소멸·윤곽 셰이더를 끼워 넣습니다. */
@@ -89,6 +101,8 @@ export function createBird(gltf: GLTF, uniforms: BirdUniforms) {
     const material = mesh.material as MeshStandardMaterial;
     material.transparent = false;
     material.alphaTest = 0.35;
+    // 깃털 가장자리(알파로 잘라 내는 부분)를 MSAA 표본으로 부드럽게 해, 날갯짓할 때 계단이 깜빡이지 않게 합니다.
+    material.alphaToCoverage = true;
     material.depthWrite = true;
     material.metalness = 0;
     material.roughness = 0.7;
@@ -105,9 +119,11 @@ export function createBird(gltf: GLTF, uniforms: BirdUniforms) {
     material.needsUpdate = true;
   });
 
+  // 성긴 키를 직선으로 잇고 처음·끝 자세가 다른 원래 클립 대신, 이음매를 맞추고 곡선으로 다시 샘플한 클립을 씁니다.
+  const clips = gltf.animations.map((clip) => smoothLoopClip(clip, model));
   const mixer = new AnimationMixer(model);
-  const actions: AnimationAction[] = gltf.animations.map((clip) => mixer.clipAction(clip).play());
-  const duration = gltf.animations[0]?.duration ?? 0;
+  const actions: AnimationAction[] = clips.map((clip) => mixer.clipAction(clip).play());
+  const duration = clips[0]?.duration ?? 0;
   const wingbeat = measureWingbeat(model, mixer, duration);
   let rate = -1;
 
