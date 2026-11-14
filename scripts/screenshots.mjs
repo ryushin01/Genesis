@@ -1,5 +1,6 @@
 // README의 인트로 화면 캡처(docs/images/intro-*.jpg)를 다시 만든다.
-// 프로덕션 서버를 띄운 뒤 실행한다: pnpm build && pnpm start -p 3210 & pnpm screenshots [주소]
+// 프로덕션 서버를 먼저 띄운다: pnpm build 뒤 다른 터미널에서 pnpm start -p 3210을 실행하고,
+// 서버가 응답하면 pnpm screenshots [주소]를 실행한다.
 import { chromium } from "@playwright/test";
 
 const base = process.argv[2] ?? "http://localhost:3210";
@@ -11,8 +12,12 @@ const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--ena
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
 await page.goto(base);
-// 불사조 모델을 다 받을 때까지 기다린다(로딩 표시가 사라짐).
-await page.getByText("불사조를 깨우는 중").waitFor({ state: "detached", timeout: 120_000 }).catch(() => {});
+// 불사조 장면이 준비될 때까지 기다린다. 불러오지 못했으면 기존 캡처를 덮어쓰지 않고 멈춘다.
+await page.locator('[data-scene="ready"], [data-scene="failed"]').first().waitFor({ timeout: 120_000 });
+if ((await page.locator("[data-scene]").getAttribute("data-scene")) !== "ready") {
+  await browser.close();
+  throw new Error("불사조 장면을 불러오지 못해 스크린샷을 바꾸지 않았습니다.");
+}
 await page.waitForTimeout(4000);
 await shot(page, "intro-hero");
 

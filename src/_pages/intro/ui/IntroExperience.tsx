@@ -132,7 +132,12 @@ export function IntroExperience() {
   };
 
   return (
-    <div ref={rootRef} className={styles.root} data-motion={motionOn ? 'on' : 'off'}>
+    <div
+      ref={rootRef}
+      className={styles.root}
+      data-motion={motionOn ? 'on' : 'off'}
+      data-scene={loadFailed ? 'failed' : sceneReady ? 'ready' : 'loading'}
+    >
       {motionOn ? <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" /> : null}
       <div className={styles.scrim} aria-hidden="true" />
       {motionOn && !sceneReady && !loadFailed ? (
