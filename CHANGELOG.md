@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.2 - 2026-11-14
+
+- 파비콘·로고를 금빛 일식 아이콘(game-icons.net의 Lorc “Eclipse flare”, CC BY 3.0, 금색 #c99a2e로 칠함)으로: `favicon.ico`(16·32·48), `icon.png`(192), `apple-icon.png`(180, 크림슨 #8b0000 바탕), 인트로 머리글 로고(`public/brand/logo.png`)
+- README 출처 표에 아이콘을 더하고, 사이트의 출처 링크를 '3D 모델·아이콘 출처'(인트로), '3D 모델·글꼴·아이콘 출처'(메인)로 바꿈
+
 ## 0.5.1 - 2026-11-14
 
 - 대체 글꼴: 제목은 Garamond·Baskerville·Georgia와 운영체제 명조, 기록 글씨는 SF Mono·Menlo·Consolas·D2Coding, 한글 고딕은 Noto Sans CJK KR까지 이음

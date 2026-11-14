@@ -1,7 +1,7 @@
 # project zero
 
 [![CI](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-0.5.1-8B0000)
+![version](https://img.shields.io/badge/version-0.5.2-8B0000)
 
 다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 **프로젝트 제로**의 홍보 홈페이지입니다.
 
@@ -69,6 +69,7 @@ pnpm dev
 | `pnpm test` | 단위·컴포넌트 테스트 |
 | `pnpm e2e` | 프로덕션 빌드 E2E 테스트 |
 | `pnpm size` · `pnpm lhci` | 번들 크기 예산 · Lighthouse 점수 기준 검사 (먼저 빌드 필요) |
+| `pnpm screenshots` | README 인트로 화면 캡처 다시 만들기 (먼저 서버 실행) |
 | `pnpm storybook` | Storybook 실행 |
 
 ## 프로젝트 구조
@@ -100,8 +101,9 @@ scripts/            # 불사조 모델 텍스처 다시 담기
 | “Phoenix” 3D 모델 (불사조, 색 변경·목 장식 제거) | NORBERTO-3D | CC BY 4.0 | [Sketchfab](https://sketchfab.com/3d-models/phoenix-243fea4f846f44d18d37bf371272b7ec) |
 | “Feathers” 3D 모델 (마지막 장면의 깃털, 색 변경) | victorberdugo1 | CC BY 4.0 | [Sketchfab](https://sketchfab.com/3d-models/feathers-c987c56694a44559b75ed66429b04ee4) |
 | “Phoenix Logo” 3D 모델 (로고, 색 변경) | Suraj-456tyu | CC BY 4.0 | [Sketchfab](https://sketchfab.com/3d-models/phoenix-logo-8dc1ba8095f1447fac7092d0299add27) |
+| “Eclipse flare” 아이콘 (파비콘·로고, 금색 #c99a2e로 칠함) | Lorc (game-icons.net) | CC BY 3.0 | [game-icons.net](https://game-icons.net/1x1/lorc/eclipse-flare.html) |
 | Cormorant 글꼴 | The Cormorant Project Authors | SIL OFL 1.1 | [CatharsisFonts/Cormorant](https://github.com/CatharsisFonts/Cormorant) |
 | Inter 글꼴 | The Inter Project Authors | SIL OFL 1.1 | [rsms/inter](https://github.com/rsms/inter) |
 | JetBrains Mono 글꼴 | The JetBrains Mono Project Authors | SIL OFL 1.1 | [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono) |
 
-모델별 라이선스 원문은 `public/models/*-license.txt`에 함께 있습니다. 불길·빛·배경은 셰이더로 직접 그렸고, 사이트의 '3D 모델·글꼴 출처' 링크가 이 표로 옵니다.
+아이콘의 라이선스는 [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)입니다. 모델별 라이선스 원문은 `public/models/*-license.txt`에 함께 있습니다. 불길·빛·배경은 셰이더로 직접 그렸고, 사이트의 '3D 모델·글꼴·아이콘 출처' 링크가 이 표로 옵니다.

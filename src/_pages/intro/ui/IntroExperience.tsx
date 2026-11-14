@@ -200,7 +200,7 @@ export function IntroExperience() {
               메인으로 들어가기
             </Link>
             <p className={styles.credit}>
-              <a href={SOURCES_URL}>3D 모델 출처 (README)</a>
+              <a href={SOURCES_URL}>3D 모델·아이콘 출처 (README)</a>
             </p>
           </div>
         </section>

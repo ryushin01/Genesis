@@ -30,8 +30,8 @@ describe('IntroExperience', () => {
     expect(link).toHaveAttribute('href', '/main');
     const toMain = screen.getAllByRole('link').filter((a) => a.getAttribute('href') === '/main');
     expect(toMain).toHaveLength(1);
-    // 3D 모델 출처는 화면이 아니라 README에 있고, 여기서는 그곳으로 잇습니다.
-    expect(screen.getByRole('link', { name: '3D 모델 출처 (README)' })).toHaveAttribute(
+    // 3D 모델·아이콘 출처는 화면이 아니라 README에 있고, 여기서는 그곳으로 잇습니다.
+    expect(screen.getByRole('link', { name: '3D 모델·아이콘 출처 (README)' })).toHaveAttribute(
       'href',
       'https://github.com/ryushin01/Genesis#출처',
     );
