@@ -17,6 +17,7 @@ import {
 import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.js';
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MODEL_URLS } from '../model/assets';
+import { createFollower } from '../model/follow';
 import { createSceneState, sampleTimeline } from '../model/timeline';
 import { createBackdrop } from './scene/backdrop';
 import { createBird, WINGSPAN } from './scene/bird';
@@ -210,6 +211,10 @@ export async function createPhoenixScene(
 
     let targetProgress = 0;
     let progress = 0;
+    // 스크롤·포인터를 2차로 따라가 휠 한 칸마다 속도가 튀지 않게 합니다(1차 감쇠 4.2/s·3/s와 비슷한 빠르기).
+    const progressFollower = createFollower(9);
+    const pointerXFollower = createFollower(6.5);
+    const pointerYFollower = createFollower(6.5);
     let paused = false;
     let time = 0;
     let previous = performance.now();
@@ -258,9 +263,9 @@ export async function createPhoenixScene(
         measure(delta);
         time += delta;
       }
-      progress += (targetProgress - progress) * (1 - Math.exp(-delta * 4.2));
-      easedX += (pointerX - easedX) * (1 - Math.exp(-delta * 3));
-      easedY += (pointerY - easedY) * (1 - Math.exp(-delta * 3));
+      progress = progressFollower.step(targetProgress, delta);
+      easedX = pointerXFollower.step(pointerX, delta);
+      easedY = pointerYFollower.step(pointerY, delta);
 
       const s = sampleTimeline(progress, width / height, state);
       shared.uTime.value = time;
@@ -371,9 +376,9 @@ export async function createPhoenixScene(
       // 정지 중에는 스크롤·포인터를 따라잡은 뒤 그리기를 멈춥니다. 다음 입력이 오면 다시 깨웁니다.
       const settled =
         paused &&
-        Math.abs(targetProgress - progress) < 1e-4 &&
-        Math.abs(pointerX - easedX) < 1e-3 &&
-        Math.abs(pointerY - easedY) < 1e-3;
+        progressFollower.settled(targetProgress, 1e-4) &&
+        pointerXFollower.settled(pointerX, 1e-3) &&
+        pointerYFollower.settled(pointerY, 1e-3);
       // 이 프레임 안에서 이미 다음 프레임을 예약했으면(해상도를 낮추며 깨운 경우) 또 예약하지 않습니다.
       // 두 번 예약하면 그리기 루프가 둘로 갈라지고, 장면을 닫아도 하나가 남아 계속 돕니다.
       if (!settled && frame === 0) frame = requestAnimationFrame(render);
