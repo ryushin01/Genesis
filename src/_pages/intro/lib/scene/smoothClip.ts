@@ -116,9 +116,11 @@ function resampleLoop(track: KeyframeTrack, duration: number, samplesPerSecond: 
     const h10 = s3 - 2 * s2 + s;
     const h01 = -2 * s3 + 3 * s2;
     const h11 = s3 - s2;
+    // 사원수 부호는 바로 옆 키끼리 맞춥니다. 다음다음 키를 구간 시작(p0)에 대 맞추면, p0와 180° 넘게 떨어진 키가
+    // 이 구간에서만 뒤집혀 다음 구간과 공유하는 키의 접선이 달라집니다(속도가 끊김). 그래서 p1에 맞춘 부호를 이어 받습니다.
     const sign0 = signAgainst(segment - 1, segment);
     const sign1 = signAgainst(segment + 1, segment);
-    const sign2 = signAgainst(segment + 2, segment);
+    const sign2 = sign1 * signAgainst(segment + 2, segment + 1);
     for (let c = 0; c < size; c += 1) {
       const pPrev = valueAt(segment - 1, c, sign0);
       const p0 = valueAt(segment, c, 1);
@@ -130,7 +132,11 @@ function resampleLoop(track: KeyframeTrack, duration: number, samplesPerSecond: 
     }
     if (quaternion) {
       const length = Math.hypot(outValues[i * 4], outValues[i * 4 + 1], outValues[i * 4 + 2], outValues[i * 4 + 3]) || 1;
-      for (let c = 0; c < 4; c += 1) outValues[i * 4 + c] /= length;
+      // 구간마다 시작 키를 기준으로 계산하므로, 주기를 넘는 구간에서 부호가 바뀌면 앞 샘플과 같은 반구로 돌려 놓습니다.
+      let dot = 0;
+      if (i > 0) for (let c = 0; c < 4; c += 1) dot += outValues[i * 4 + c] * outValues[(i - 1) * 4 + c];
+      const flip = dot < 0 ? -1 : 1;
+      for (let c = 0; c < 4; c += 1) outValues[i * 4 + c] *= flip / length;
     }
   }
   // 끝 샘플은 처음 샘플과 같게 둬 반복이 정확히 이어지게 합니다.
