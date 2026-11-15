@@ -44,8 +44,9 @@
 
 - 인트로는 프라이머리 `#8B0000`을 중심으로 한 적색 계열입니다. 메인은 흑백만 씁니다.
 - 3D 모델은 모두 CC BY 4.0입니다: “Phoenix” by NORBERTO-3D, “Feathers” by victorberdugo1, “Phoenix Logo” by Suraj-456tyu. 작품명·작가·라이선스와 변경 사항은 README의 '출처' 표에 두고, 인트로 끝과 메인 바닥글에는 그 표로 가는 링크만 둡니다. 라이선스 원문은 `public/models/*-license.txt`에 둡니다. 표기를 지우지 않습니다.
-- 참고 사이트의 모델, 텍스처, 로고, 사진, 유료 글꼴은 저작물이므로 가져오지 않습니다. 글꼴은 OFL 라이선스의 Inter, JetBrains Mono, Cormorant를 씁니다.
-- 한글은 첫 화면 성능을 위해 운영체제 글꼴을 씁니다.
+- 참고 사이트의 모델, 텍스처, 로고, 사진, 유료 글꼴은 저작물이므로 가져오지 않습니다. 글꼴은 OFL 라이선스의 Inter, JetBrains Mono, Cormorant(영문 제목은 기울임, 한글 서사 문장 속 영문은 똑바른 Bold), 우아한 세리프(한글)를 씁니다.
+- 한글은 화면에 쓰는 글자만 담은 우아한 세리프 파일을 첫 화면 CSS와 함께 받고, 나머지 글자는 조각으로 나눠 나중에 붙입니다. 문구를 바꾸면 `pnpm fonts`로 다시 만듭니다(빠진 글자는 단위 테스트가 잡음). 예약 글꼴 이름이 있어 줄인 파일의 이름은 GenesisSerif로 바꾸고, 라이선스 원문(`LICENSE.txt`)을 파일 옆에 둡니다.
+- 한글 서사 문장(`--font-narrative`: 메인 서사, 인트로 장 문장) 속 영문·숫자는 Cormorant 똑바른 Bold를 `size-adjust: 136%`로 키워 씁니다. 우아한 세리프 한글은 글자 면을 꽉 채워(높이 1em) Cormorant 대문자(0.625em)만으로는 작고 가늘어 보이기 때문입니다.
 
 ## TypeScript 버전
 

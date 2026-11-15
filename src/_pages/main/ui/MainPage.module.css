@@ -115,8 +115,10 @@
   font-weight: 700;
 }
 
+/* 서사 글꼴: 한글은 우아한 세리프, 문장 속 영문(SF)은 Cormorant 똑바른 Bold */
 .statement {
   max-width: 21em;
+  font-family: var(--font-narrative);
   font-size: clamp(2.1rem, 5.4vw, 5.25rem);
   font-weight: 800;
   line-height: 1.14;
