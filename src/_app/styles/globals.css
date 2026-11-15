@@ -1,23 +1,25 @@
 /*
- * 한글 큰 글자(서사 문장·장 제목): 학교안심 별빛하늘(KERIS, SIL OFL). 화면에 쓰는 글자만 담은 파일을 먼저 받고,
- * 나머지 글자 조각(public/fonts/byeolbichhaneul-rest.css)은 RestFonts가 페이지를 다 받은 뒤 붙입니다.
- * 화면 글자가 바뀌면 pnpm fonts로 다시 만듭니다.
+ * 한글: 우아한 세리프(Pear Type Foundry, SIL OFL). 예약 글꼴 이름이 있어 줄인 파일은 GenesisSerif로 이름을 바꿔 싣습니다.
+ * 화면에 쓰는 글자만 담은 파일을 먼저 받고, 나머지 글자 조각(public/fonts/genesis-serif-rest.css)은
+ * RestFonts가 페이지를 다 받은 뒤 붙입니다. 화면 글자가 바뀌면 pnpm fonts로 다시 만듭니다.
  */
-@import './fonts/byeolbichhaneul.css';
+@import './fonts/genesis-serif.css';
 
 :root {
   /*
    * 대체 글꼴: 흑백 편집 디자인이 남도록 제목은 올드스타일 세리프와 운영체제 명조, 본문은 운영체제 한글 고딕, 기록은 고정폭
    */
   --font-sans:
-    var(--font-sans-latin), "Hakgyoansim Byeolbichhaneul", "Apple SD Gothic Neo", "Malgun Gothic",
+    var(--font-sans-latin), "GenesisSerif", "Apple SD Gothic Neo", "Malgun Gothic",
     "Noto Sans CJK KR", system-ui, sans-serif;
   --font-mono:
     var(--font-mono-latin), ui-monospace, "SF Mono", Menlo, Consolas,
     "D2Coding", "Apple SD Gothic Neo", "Malgun Gothic", monospace;
   --font-display:
-    var(--font-display-latin), "Hakgyoansim Byeolbichhaneul", Garamond, Baskerville, Georgia, "AppleMyungjo",
+    var(--font-display-latin), "GenesisSerif", Garamond, Baskerville, Georgia, "AppleMyungjo",
     "Noto Serif CJK KR", "Batang", serif;
+  /* 한글 서사 문장(메인 서사·인트로 장): 문장 속 영문·숫자는 Inter 대신 Cormorant 똑바른 Bold(키운 크기) */
+  --font-narrative: var(--font-narrative-latin), var(--font-sans);
 
   --color-primary: #8b0000;
   --color-ink: #000;

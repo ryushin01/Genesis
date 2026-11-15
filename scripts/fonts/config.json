@@ -1,19 +1,18 @@
 {
   "outDir": "src/_app/styles/fonts",
   "restDir": "public/fonts",
-  "scan": [
-    "src"
-  ],
-  "dataExtensions": [
-    "json"
-  ],
+  "scan": ["src"],
+  "dataExtensions": ["json"],
   "extra": "",
   "fonts": [
     {
-      "family": "Hakgyoansim Byeolbichhaneul",
-      "slug": "byeolbichhaneul",
+      "family": "GenesisSerif",
+      "slug": "genesis-serif",
+      "rename": true,
+      "license": "scripts/fonts/genesis-serif/LICENSE.txt",
       "weights": {
-        "600": "scripts/fonts/byeolbichhaneul/HakgyoansimByeolbichhaneulTTF-B.woff2"
+        "400": "scripts/fonts/genesis-serif/GraceSerif-Regular.ttf",
+        "700": "scripts/fonts/genesis-serif/GraceSerif-Bold.ttf"
       }
     }
   ]

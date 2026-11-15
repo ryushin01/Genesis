@@ -1,7 +1,7 @@
 # project zero
 
 [![CI](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-0.6.0-8B0000)
+![version](https://img.shields.io/badge/version-0.8.0-8B0000)
 
 다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 **프로젝트 제로**의 홍보 홈페이지입니다.
 
@@ -69,7 +69,7 @@ pnpm dev
 | `pnpm test` | 단위·컴포넌트 테스트 |
 | `pnpm e2e` | 프로덕션 빌드 E2E 테스트 |
 | `pnpm size` · `pnpm lhci` | 번들 크기 예산 · Lighthouse 점수 기준 검사 (먼저 빌드 필요) |
-| `pnpm fonts` | 한글 웹 폰트(학교안심 별빛하늘) 화면 글자 파일과 조각 다시 만들기 (화면 글자를 바꾼 뒤) |
+| `pnpm fonts` | 한글 웹 폰트(우아한 세리프) 화면 글자 파일과 조각 다시 만들기 (화면 글자를 바꾼 뒤, `pip install fonttools brotli` 필요) |
 | `pnpm screenshots` | README 화면 캡처(인트로·메인·모바일) 다시 만들기 (먼저 서버 실행) |
 | `pnpm storybook` | Storybook 실행 |
 
@@ -84,7 +84,8 @@ src/
 │   └── main/       # 흑백 메인 페이지
 └── shared/lib/     # 공통 훅
 public/models/      # 불사조·깃털·로고 3D 모델(glTF)과 라이선스
-scripts/            # 불사조 모델 텍스처 다시 담기
+public/fonts/       # 한글 글꼴 나머지 조각과 라이선스
+scripts/            # 불사조 모델 텍스처 다시 담기, 한글 웹 폰트 만들기(fonts/)
 ```
 
 ## 문서
@@ -100,11 +101,12 @@ scripts/            # 불사조 모델 텍스처 다시 담기
 | 글꼴 | 쓰는 곳 | 굵기 |
 |---|---|---|
 | Cormorant (기울임) | 영문 제목 | 400 |
+| Cormorant (똑바른) | 한글 서사 문장 속 영문·숫자 | 700 (크기 136%) |
 | Inter | 영문·숫자 본문 | 100~900 가변 |
 | JetBrains Mono | 기록·수치 | 100~800 가변 |
-| 학교안심 별빛하늘 | 한글 큰 글자(서사 문장·장 제목) | B 하나(600) |
+| 우아한 세리프 (GenesisSerif) | 한글 제목·본문 | Regular(400)·Bold(700) |
 
-저작자·라이선스·원본은 아래 출처 표에 있습니다. 모두 같은 사이트에서 제공합니다(외부 글꼴 CDN 없음). 학교안심 별빛하늘은 화면에 쓰는 한글만 담은 파일(약 8KB)을 첫 화면 CSS와 함께 받고, 나머지 한글은 글자 묶음별 조각(`public/fonts/byeolbichhaneul`)으로 나눠 페이지를 다 받은 뒤 붙입니다. 화면 글자가 바뀌면 `pnpm fonts`로 다시 만듭니다. 라이선스 원문은 `public/fonts/byeolbichhaneul/OFL.txt`에 있습니다.
+저작자·라이선스·원본은 아래 출처 표에 있습니다. 모두 같은 사이트에서 제공합니다(외부 글꼴 CDN 없음). 우아한 세리프는 화면에 쓰는 한글만 담은 파일(굵기마다 약 5.5KB)을 첫 화면 CSS와 함께 받고, 나머지 한글은 글자 묶음별 조각(`public/fonts/genesis-serif`)으로 나눠 페이지를 다 받은 뒤 붙입니다. 예약 글꼴 이름(우아한세리프·GraceSerif)이 있어 줄인 파일의 이름은 GenesisSerif로 바꿨습니다. 화면 글자가 바뀌면 `pnpm fonts`로 다시 만듭니다. 라이선스 원문은 `public/fonts/genesis-serif/LICENSE.txt`에 있습니다. 한글 서사 문장 속 영문(SF)은 Cormorant 가변 글꼴을 700으로 고정하고 라틴 글자만 담은 파일(`src/_app/styles/fonts/cormorant`, 라이선스 `OFL.txt`)로 그리고, 꽉 찬 한글 옆에서 작고 가늘어 보이지 않게 136%로 키웁니다.
 
 ## 출처
 
@@ -114,9 +116,9 @@ scripts/            # 불사조 모델 텍스처 다시 담기
 | “Feathers” 3D 모델 (마지막 장면의 깃털, 색 변경) | victorberdugo1 | CC BY 4.0 | [Sketchfab](https://sketchfab.com/3d-models/feathers-c987c56694a44559b75ed66429b04ee4) |
 | “Phoenix Logo” 3D 모델 (로고, 색 변경) | Suraj-456tyu | CC BY 4.0 | [Sketchfab](https://sketchfab.com/3d-models/phoenix-logo-8dc1ba8095f1447fac7092d0299add27) |
 | “Eclipse flare” 아이콘 (파비콘·로고, 금색 #c99a2e로 칠함) | Lorc (game-icons.net) | CC BY 3.0 | [game-icons.net](https://game-icons.net/1x1/lorc/eclipse-flare.html) |
-| Cormorant 글꼴 | The Cormorant Project Authors | SIL OFL 1.1 | [CatharsisFonts/Cormorant](https://github.com/CatharsisFonts/Cormorant) |
+| Cormorant 글꼴 (기울임, 똑바른 Bold는 700 고정·라틴만 담음) | The Cormorant Project Authors | SIL OFL 1.1 | [CatharsisFonts/Cormorant](https://github.com/CatharsisFonts/Cormorant) |
 | Inter 글꼴 | The Inter Project Authors | SIL OFL 1.1 | [rsms/inter](https://github.com/rsms/inter) |
 | JetBrains Mono 글꼴 | The JetBrains Mono Project Authors | SIL OFL 1.1 | [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono) |
-| 학교안심 별빛하늘 글꼴 | 한국교육학술정보원(KERIS), 제작 헤움디자인 | SIL OFL 1.1 | [KERIS 학교 안심폰트](https://copyright.keris.or.kr/wft/fntDwnldView?fntGrpId=GFT202408200000000000005) |
+| 우아한 세리프 글꼴 (필요한 글자만 담고 이름을 GenesisSerif로 바꿈) | 이희배(페어 타입 파운드리) | SIL OFL 1.1 | [Pear Type Foundry](https://www.peartype.kr/font.html?id=elegant-serif) |
 
 아이콘의 라이선스는 [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)입니다. 모델별 라이선스 원문은 `public/models/*-license.txt`에 함께 있습니다. 불길·빛·배경은 셰이더로 직접 그렸고, 사이트의 '3D 모델·글꼴·아이콘 출처' 링크가 이 표로 옵니다.

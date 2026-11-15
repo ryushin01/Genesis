@@ -11,16 +11,16 @@ const shot = (page, name) => page.screenshot({ path: `${out}/${name}.jpg`, type:
 const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
-// 한글 큰 글자 글꼴(학교안심 별빛하늘)을 받아 그린 뒤에 찍는다.
+// 한글 글꼴(우아한 세리프, 줄인 파일 이름 GenesisSerif)을 받아 그린 뒤에 찍는다.
 // 화면에 쓰인 글꼴 면이 하나도 받아지지 않았으면 기존 캡처를 덮어쓰지 않고 멈춘다.
 async function fontsReady(p) {
   await p.evaluate(() => document.fonts.ready);
   const loaded = await p.evaluate(() =>
-    [...document.fonts].some((face) => face.family.includes("Hakgyoansim Byeolbichhaneul") && face.status === "loaded"),
+    [...document.fonts].some((face) => face.family.includes("GenesisSerif") && face.status === "loaded"),
   );
   if (!loaded) {
     await browser.close();
-    throw new Error("학교안심 별빛하늘을 받지 못해 스크린샷을 바꾸지 않았습니다.");
+    throw new Error("우아한 세리프(GenesisSerif)를 받지 못해 스크린샷을 바꾸지 않았습니다.");
   }
 }
 
