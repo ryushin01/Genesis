@@ -74,14 +74,9 @@ a {
   gap: 32px;
   background: var(--color-ink);
   color: var(--color-paper);
-  transition:
-    opacity 0.7s ease,
-    visibility 0s linear 0.7s;
 }
 [data-fonts="ready"] .font-loader {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
+  display: none;
 }
 [data-fonts="loading"] body > :not(.font-loader) {
   visibility: hidden;
@@ -120,15 +115,8 @@ a {
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  [data-fonts] .font-loader {
-    transition: none;
-  }
   .font-loader__ray {
     animation: none;
   }
 }
 
-/* 걷힐 때 글자는 바로 숨기고 배경만 서서히 사라지게 함(반투명한 글자가 명도 대비를 해치지 않게) */
-[data-fonts="ready"] .font-loader > * {
-  visibility: hidden;
-}
