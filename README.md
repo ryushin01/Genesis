@@ -69,7 +69,7 @@ pnpm dev
 | `pnpm test` | 단위·컴포넌트 테스트 |
 | `pnpm e2e` | 프로덕션 빌드 E2E 테스트 |
 | `pnpm size` · `pnpm lhci` | 번들 크기 예산 · Lighthouse 점수 기준 검사 (먼저 빌드 필요) |
-| `pnpm screenshots` | README 인트로 화면 캡처 다시 만들기 (먼저 서버 실행) |
+| `pnpm screenshots` | README 화면 캡처(인트로·메인·모바일) 다시 만들기 (먼저 서버 실행) |
 | `pnpm storybook` | Storybook 실행 |
 
 ## 프로젝트 구조
