@@ -21,7 +21,7 @@
 
 | 메인: 서사 (스크롤) | 모바일 서사 |
 |---|---|
-| ![흰 화면에 고정된 서사 문장에서 앞 단어들은 또렷하고 뒤 단어들은 아직 흐릿하게 번져 있는 장면](docs/images/main-prologue.jpg) | <img src="docs/images/mobile-prologue.jpg" alt="모바일에서 서사 문장의 앞 두 줄은 또렷하고 마지막 줄은 흐릿한 장면" width="240"> |
+| ![흰 화면에 고정된 서사 문장에서 앞 단어들은 또렷하고 뒤 단어들은 아직 흐릿하게 번져 있는 장면](docs/images/main-prologue.jpg) | <img src="docs/images/mobile-prologue.jpg" alt="모바일에서 서사 문장의 앞 두 줄은 또렷하고 나머지 줄은 아직 흐릿한 장면" width="240"> |
 
 | 메인 | 세 개의 흐름 |
 |---|---|
