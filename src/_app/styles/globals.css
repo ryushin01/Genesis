@@ -127,3 +127,8 @@ a {
     animation: none;
   }
 }
+
+/* 걷힐 때 글자는 바로 숨기고 배경만 서서히 사라지게 함(반투명한 글자가 명도 대비를 해치지 않게) */
+[data-fonts="ready"] .font-loader > * {
+  visibility: hidden;
+}

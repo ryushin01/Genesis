@@ -6,6 +6,9 @@
  */
 export const FONT_LOADER_TIMEOUT_MS = 8000;
 
+/** 글꼴 정의는 외부 CSS 대신 페이지에 바로 넣어, CSS를 기다리느라 제한 시간 타이머가 늦게 시작하지 않게 합니다. */
+export const FONT_FACE_CSS = "@font-face {font-family: \"KBIZ Hanmaum Myungjo\";font-style: normal;font-weight: 400;font-display: swap;src: url(\"/fonts/kbiz-hanmaum-myungjo/KBIZHanmaumMyungjo.woff\") format(\"woff\");unicode-range: U+1100-11FF, U+3130-318F, U+A960-A97F, U+AC00-D7A3, U+D7B0-D7FF;}";
+
 export const FONT_LOADER_SCRIPT = `(function(){var d=document.documentElement,f=document.fonts;function done(){d.dataset.fonts='ready'}if(!f||!f.load){done();return}d.dataset.fonts='loading';var t=setTimeout(done,${FONT_LOADER_TIMEOUT_MS});f.load('400 1em "KBIZ Hanmaum Myungjo"','가').then(function(){clearTimeout(t);done()},function(){clearTimeout(t);done()})})()`;
 
 export function FontLoader() {
