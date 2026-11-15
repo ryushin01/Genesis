@@ -33,7 +33,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
           type="font/woff"
           crossOrigin=""
         />
-        <style dangerouslySetInnerHTML={{ __html: FONT_FACE_CSS }} />
+        <style id="font-faces" dangerouslySetInnerHTML={{ __html: FONT_FACE_CSS }} />
       </head>
       <body>
         <FontLoader />
