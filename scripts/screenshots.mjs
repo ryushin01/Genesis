@@ -18,7 +18,7 @@ async function fontsReady(p) {
   const loaded = await p.evaluate(
     () =>
       document.getElementById("font-faces")?.disabled === false &&
-      document.fonts.check('400 1em "KBIZ Hanmaum Myungjo"', "가"),
+      [...document.fonts].some((face) => face.family.includes("KBIZ Hanmaum Myungjo") && face.status === "loaded"),
   );
   if (!loaded) {
     await browser.close();
