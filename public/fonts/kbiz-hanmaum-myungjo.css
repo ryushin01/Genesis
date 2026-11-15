@@ -1,4 +1,4 @@
-/* KBIZ한마음명조: 변형할 수 없는 글꼴이라 원본 파일(woff, 3.6MB) 그대로 씁니다. DeferredFonts가 페이지를 다 받은 뒤 붙입니다. */
+/* KBIZ한마음명조: 변형할 수 없는 글꼴이라 원본 파일(woff, 3.6MB) 그대로 씁니다. 다 받을 때까지 FontLoader가 로딩 화면을 보여 줍니다. */
 @font-face {
   font-family: "KBIZ Hanmaum Myungjo";
   font-style: normal;
