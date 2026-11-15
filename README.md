@@ -1,7 +1,7 @@
 # project zero
 
 [![CI](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-0.5.4-8B0000)
+![version](https://img.shields.io/badge/version-0.6.0-8B0000)
 
 다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 **프로젝트 제로**의 홍보 홈페이지입니다.
 
@@ -94,6 +94,17 @@ scripts/            # 불사조 모델 텍스처 다시 담기
 | [시퀀스 다이어그램](docs/sequence-diagrams.md) | 인트로 장면 준비, 스크롤에 따른 장면 진행과 메인 이동 |
 | [CHANGELOG](CHANGELOG.md) | 버전 기록 |
 
+## 웹 폰트
+
+| 글꼴 | 쓰는 곳 | 굵기 |
+|---|---|---|
+| Cormorant (기울임) | 영문 제목 | 400 |
+| Inter | 영문·숫자 본문 | 100~900 가변 |
+| JetBrains Mono | 기록·수치 | 100~800 가변 |
+| KBIZ한마음명조 | 한글 제목·본문 | 400 (굵기 하나라 굵은 글씨는 브라우저가 두껍게 그림) |
+
+저작자·라이선스·원본은 아래 출처 표에 있습니다. 모두 같은 사이트에서 제공합니다(외부 글꼴 CDN 없음). KBIZ한마음명조는 변형할 수 없는 글꼴이라 원본 파일(woff, 3.6MB)을 그대로 쓰고(`public/fonts/kbiz-hanmaum-myungjo`), 첫 화면을 막지 않게 페이지를 다 받은 뒤 붙입니다. 그 전에는 운영체제 글꼴로 보입니다.
+
 ## 출처
 
 | 자료 | 저작자 | 사용 허락 | 원본 |
@@ -105,5 +116,6 @@ scripts/            # 불사조 모델 텍스처 다시 담기
 | Cormorant 글꼴 | The Cormorant Project Authors | SIL OFL 1.1 | [CatharsisFonts/Cormorant](https://github.com/CatharsisFonts/Cormorant) |
 | Inter 글꼴 | The Inter Project Authors | SIL OFL 1.1 | [rsms/inter](https://github.com/rsms/inter) |
 | JetBrains Mono 글꼴 | The JetBrains Mono Project Authors | SIL OFL 1.1 | [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono) |
+| KBIZ한마음명조 글꼴 | 중소기업중앙회 (디자인 헤움디자인) | 무료(웹 임베딩 가능, 변형·재배포 금지) | [눈누](https://noonnu.cc/font_page/12) |
 
 아이콘의 라이선스는 [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)입니다. 모델별 라이선스 원문은 `public/models/*-license.txt`에 함께 있습니다. 불길·빛·배경은 셰이더로 직접 그렸고, 사이트의 '3D 모델·글꼴·아이콘 출처' 링크가 이 표로 옵니다.

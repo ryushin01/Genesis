@@ -1,13 +1,16 @@
 :root {
-  /* 대체 글꼴: 흑백 편집 디자인이 남도록 제목은 올드스타일 세리프와 운영체제 명조, 본문은 운영체제 한글 고딕, 기록은 고정폭 */
+  /*
+   * 한글은 제목·본문 모두 KBIZ한마음명조(변형할 수 없는 글꼴이라 원본 파일 그대로, DeferredFonts가 페이지를 다 받은 뒤 붙임).
+   * 대체 글꼴: 흑백 편집 디자인이 남도록 제목은 올드스타일 세리프와 운영체제 명조, 본문은 운영체제 한글 고딕, 기록은 고정폭
+   */
   --font-sans:
-    var(--font-sans-latin), "Apple SD Gothic Neo", "Malgun Gothic",
+    var(--font-sans-latin), "KBIZ Hanmaum Myungjo", "Apple SD Gothic Neo", "Malgun Gothic",
     "Noto Sans CJK KR", system-ui, sans-serif;
   --font-mono:
     var(--font-mono-latin), ui-monospace, "SF Mono", Menlo, Consolas,
     "D2Coding", "Apple SD Gothic Neo", "Malgun Gothic", monospace;
   --font-display:
-    var(--font-display-latin), Garamond, Baskerville, Georgia, "AppleMyungjo",
+    var(--font-display-latin), "KBIZ Hanmaum Myungjo", Garamond, Baskerville, Georgia, "AppleMyungjo",
     "Noto Serif CJK KR", "Batang", serif;
 
   --color-primary: #8b0000;
