@@ -69,6 +69,7 @@ pnpm dev
 | `pnpm test` | 단위·컴포넌트 테스트 |
 | `pnpm e2e` | 프로덕션 빌드 E2E 테스트 |
 | `pnpm size` · `pnpm lhci` | 번들 크기 예산 · Lighthouse 점수 기준 검사 (먼저 빌드 필요) |
+| `pnpm fonts` | 한글 웹 폰트(학교안심 별빛하늘) 화면 글자 파일과 조각 다시 만들기 (화면 글자를 바꾼 뒤) |
 | `pnpm screenshots` | README 화면 캡처(인트로·메인·모바일) 다시 만들기 (먼저 서버 실행) |
 | `pnpm storybook` | Storybook 실행 |
 
@@ -101,9 +102,9 @@ scripts/            # 불사조 모델 텍스처 다시 담기
 | Cormorant (기울임) | 영문 제목 | 400 |
 | Inter | 영문·숫자 본문 | 100~900 가변 |
 | JetBrains Mono | 기록·수치 | 100~800 가변 |
-| KBIZ한마음명조 | 한글 제목·본문 | 400 (굵기 하나라 굵은 글씨는 브라우저가 두껍게 그림) |
+| 학교안심 별빛하늘 | 한글 큰 글자(서사 문장·장 제목) | B 하나(600) |
 
-저작자·라이선스·원본은 아래 출처 표에 있습니다. 모두 같은 사이트에서 제공합니다(외부 글꼴 CDN 없음). KBIZ한마음명조는 변형할 수 없는 글꼴이라 원본 파일(woff, 3.6MB)을 그대로 쓰고(`public/fonts/kbiz-hanmaum-myungjo`), 첫 화면을 막지 않게 페이지를 다 받은 뒤 붙입니다. 그 전에는 운영체제 글꼴로 보입니다.
+저작자·라이선스·원본은 아래 출처 표에 있습니다. 모두 같은 사이트에서 제공합니다(외부 글꼴 CDN 없음). 학교안심 별빛하늘은 화면에 쓰는 한글만 담은 파일(약 8KB)을 첫 화면 CSS와 함께 받고, 나머지 한글은 글자 묶음별 조각(`public/fonts/byeolbichhaneul`)으로 나눠 페이지를 다 받은 뒤 붙입니다. 화면 글자가 바뀌면 `pnpm fonts`로 다시 만듭니다. 라이선스 원문은 `public/fonts/byeolbichhaneul/OFL.txt`에 있습니다.
 
 ## 출처
 
@@ -116,6 +117,6 @@ scripts/            # 불사조 모델 텍스처 다시 담기
 | Cormorant 글꼴 | The Cormorant Project Authors | SIL OFL 1.1 | [CatharsisFonts/Cormorant](https://github.com/CatharsisFonts/Cormorant) |
 | Inter 글꼴 | The Inter Project Authors | SIL OFL 1.1 | [rsms/inter](https://github.com/rsms/inter) |
 | JetBrains Mono 글꼴 | The JetBrains Mono Project Authors | SIL OFL 1.1 | [JetBrains/JetBrainsMono](https://github.com/JetBrains/JetBrainsMono) |
-| KBIZ한마음명조 글꼴 | 중소기업중앙회 (디자인 헤움디자인) | 무료(웹 임베딩 가능, 변형·재배포 금지) | [눈누](https://noonnu.cc/font_page/12) |
+| 학교안심 별빛하늘 글꼴 | 한국교육학술정보원(KERIS), 제작 헤움디자인 | SIL OFL 1.1 | [KERIS 학교 안심폰트](https://copyright.keris.or.kr/wft/fntDwnldView?fntGrpId=GFT202408200000000000005) |
 
 아이콘의 라이선스는 [CC BY 3.0](https://creativecommons.org/licenses/by/3.0/)입니다. 모델별 라이선스 원문은 `public/models/*-license.txt`에 함께 있습니다. 불길·빛·배경은 셰이더로 직접 그렸고, 사이트의 '3D 모델·글꼴·아이콘 출처' 링크가 이 표로 옵니다.

@@ -1,0 +1,20 @@
+{
+  "outDir": "src/_app/styles/fonts",
+  "restDir": "public/fonts",
+  "scan": [
+    "src"
+  ],
+  "dataExtensions": [
+    "json"
+  ],
+  "extra": "",
+  "fonts": [
+    {
+      "family": "Hakgyoansim Byeolbichhaneul",
+      "slug": "byeolbichhaneul",
+      "weights": {
+        "600": "scripts/fonts/byeolbichhaneul/HakgyoansimByeolbichhaneulTTF-B.woff2"
+      }
+    }
+  ]
+}

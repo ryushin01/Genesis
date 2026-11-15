@@ -1,16 +1,22 @@
+/*
+ * 한글 큰 글자(서사 문장·장 제목): 학교안심 별빛하늘(KERIS, SIL OFL). 화면에 쓰는 글자만 담은 파일을 먼저 받고,
+ * 나머지 글자 조각(public/fonts/byeolbichhaneul-rest.css)은 RestFonts가 페이지를 다 받은 뒤 붙입니다.
+ * 화면 글자가 바뀌면 pnpm fonts로 다시 만듭니다.
+ */
+@import './fonts/byeolbichhaneul.css';
+
 :root {
   /*
-   * 한글은 제목·본문 모두 KBIZ한마음명조(변형할 수 없는 글꼴이라 원본 파일 그대로, 다 받을 때까지 FontLoader가 로딩 화면을 보여 줌).
    * 대체 글꼴: 흑백 편집 디자인이 남도록 제목은 올드스타일 세리프와 운영체제 명조, 본문은 운영체제 한글 고딕, 기록은 고정폭
    */
   --font-sans:
-    var(--font-sans-latin), "KBIZ Hanmaum Myungjo", "Apple SD Gothic Neo", "Malgun Gothic",
+    var(--font-sans-latin), "Hakgyoansim Byeolbichhaneul", "Apple SD Gothic Neo", "Malgun Gothic",
     "Noto Sans CJK KR", system-ui, sans-serif;
   --font-mono:
     var(--font-mono-latin), ui-monospace, "SF Mono", Menlo, Consolas,
     "D2Coding", "Apple SD Gothic Neo", "Malgun Gothic", monospace;
   --font-display:
-    var(--font-display-latin), "KBIZ Hanmaum Myungjo", Garamond, Baskerville, Georgia, "AppleMyungjo",
+    var(--font-display-latin), "Hakgyoansim Byeolbichhaneul", Garamond, Baskerville, Georgia, "AppleMyungjo",
     "Noto Serif CJK KR", "Batang", serif;
 
   --color-primary: #8b0000;
@@ -56,67 +62,3 @@ ul {
 a {
   color: inherit;
 }
-
-/*
- * 글꼴 로딩 화면: KBIZ한마음명조를 다 받을 때까지 검은 화면에 붉은 빛줄기가 번집니다.
- * html[data-fonts="loading"]일 때만 보이고 "ready"가 되면 걷힙니다.
- */
-.font-loader {
-  display: none;
-}
-[data-fonts] .font-loader {
-  position: fixed;
-  inset: 0;
-  z-index: 2147483000;
-  display: grid;
-  place-content: center;
-  justify-items: center;
-  gap: 32px;
-  background: var(--color-ink);
-  color: var(--color-paper);
-}
-[data-fonts="ready"] .font-loader {
-  display: none;
-}
-[data-fonts="loading"] body > :not(.font-loader) {
-  visibility: hidden;
-}
-.font-loader__ray {
-  display: block;
-  width: min(320px, 70vw);
-  height: 1px;
-  background: linear-gradient(90deg, transparent, var(--color-primary) 30%, #ff3b30 50%, var(--color-primary) 70%, transparent);
-  box-shadow: 0 0 18px 1px rgb(255 59 48 / 45%);
-  animation: font-loader-ray 2.4s cubic-bezier(0.65, 0, 0.35, 1) infinite;
-}
-.font-loader__text {
-  display: grid;
-  gap: 10px;
-  font-family: var(--font-mono);
-  font-size: 0.8125rem;
-  letter-spacing: 0.06em;
-  text-align: center;
-}
-.font-loader__mark {
-  font-family: var(--font-display);
-  font-size: 2rem;
-  font-style: italic;
-  letter-spacing: 0;
-}
-@keyframes font-loader-ray {
-  0%,
-  100% {
-    transform: scaleX(0.08);
-    opacity: 0.5;
-  }
-  50% {
-    transform: scaleX(1);
-    opacity: 1;
-  }
-}
-@media (prefers-reduced-motion: reduce) {
-  .font-loader__ray {
-    animation: none;
-  }
-}
-
