@@ -12,7 +12,15 @@ const browser = await chromium.launch({ args: ["--use-angle=swiftshader", "--ena
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
 // 통파일 글꼴(KBIZ한마음명조)을 다 받아 로딩 화면이 걷힐 때까지 기다린다.
-const fontsReady = (p) => p.waitForFunction(() => document.documentElement.dataset.fonts === "ready");
+// 글꼴을 받지 못한 채(8초 제한으로) 열렸으면 기존 캡처를 덮어쓰지 않고 멈춘다.
+async function fontsReady(p) {
+  await p.waitForFunction(() => document.documentElement.dataset.fonts === "ready", null, { timeout: 30_000 });
+  const loaded = await p.evaluate(() => document.fonts.check('400 1em "KBIZ Hanmaum Myungjo"', "가"));
+  if (!loaded) {
+    await browser.close();
+    throw new Error("KBIZ한마음명조를 받지 못해 스크린샷을 바꾸지 않았습니다.");
+  }
+}
 
 await page.goto(base);
 await fontsReady(page);
