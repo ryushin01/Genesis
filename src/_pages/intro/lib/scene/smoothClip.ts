@@ -7,14 +7,10 @@ import {
   QuaternionKeyframeTrack,
   VectorKeyframeTrack,
 } from 'three';
+import { clamp01, smoothstep } from '../../model/math';
 
 /** 이음매를 맞추는 구간(주기 끝부분의 비율). 넓을수록 보정이 고르게 퍼집니다. */
 const SEAM_BLEND = 0.35;
-
-const smoothstep = (edge0: number, edge1: number, x: number) => {
-  const t = Math.min(1, Math.max(0, (x - edge0) / (edge1 - edge0)));
-  return t * t * (3 - 2 * t);
-};
 
 function isConstant(track: KeyframeTrack) {
   const size = track.getValueSize();
@@ -109,7 +105,7 @@ function resampleLoop(track: KeyframeTrack, duration: number, samplesPerSecond: 
     const t0 = timeAt(segment);
     const t1 = timeAt(segment + 1);
     const h = t1 - t0;
-    const s = h > 0 ? Math.min(1, Math.max(0, (t - t0) / h)) : 0;
+    const s = h > 0 ? clamp01((t - t0) / h) : 0;
     const s2 = s * s;
     const s3 = s2 * s;
     const h00 = 2 * s3 - 3 * s2 + 1;

@@ -165,7 +165,7 @@ export function IntroExperience() {
       <header className={styles.brand}>
         {/* 40px 로고 한 장이라 next/image 런타임(용량 예산 초과)을 쓰지 않습니다. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/logo.png" alt="project zero" width={40} height={40} className={styles.logo} />
+        <img src="/brand/logo.webp" alt="project zero" width={40} height={40} className={styles.logo} />
       </header>
       {/* 정지 버튼은 화면 왼쪽 아래에 고정되어 있지만, 키보드로는 이야기보다 먼저 닿게 앞에 둡니다. */}
       {motionOn && sceneReady ? (

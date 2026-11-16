@@ -128,6 +128,8 @@ WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립�
 
 `.github/dependabot.yml`이 npm 패키지는 매주 부 버전·패치를 한 PR로 묶어 올리고, GitHub Actions는 매달 올립니다. 주 버전은 따로 PR이 열리므로 변경 내역을 확인하고 CI가 통과할 때만 병합합니다.
 
+개발 도구가 끌어오는 하위 의존성의 취약점은 상위 패키지를 올려도 풀리지 않으면 `pnpm-workspace.yaml`의 `overrides`로 고친 버전을 씁니다(이유를 주석으로 남김). 상위 패키지가 고친 범위를 쓰게 되면 그 줄을 지웁니다. `pnpm audit`으로 확인합니다.
+
 ## PR 미리보기 배포
 
 Vercel의 하루 배포 한도를 아끼려고 PR 미리보기 배포를 껐습니다(`vercel.json`의 `git.deploymentEnabled`). `main`에 머지할 때만 운영으로 배포하고, PR에서는 CI 검사만 돕니다. 미리보기가 꼭 필요하면 그 브랜치를 `deploymentEnabled`에 잠시 넣습니다.

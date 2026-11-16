@@ -181,7 +181,6 @@
 
 .finale {
   align-content: end;
-  row-gap: clamp(16px, 3vh, 28px);
   padding-bottom: clamp(56px, 7vh, 88px);
   justify-items: center;
   row-gap: clamp(28px, 5vh, 48px);

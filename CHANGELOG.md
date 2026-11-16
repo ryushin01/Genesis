@@ -1,5 +1,15 @@
 # Changelog
 
+## 0.9.2 - 2026-11-16
+
+의존성과 코드 정리입니다. 화면은 그대로입니다.
+
+- 의존성 패치 갱신: next 16.4.5 → 16.4.6, eslint-config-next 16.4.6, eslint 10.15.0, Storybook 10.6.7, Playwright 1.65.1, Lighthouse CI 0.16.1, jsdom 31.0.1, user-event 14.6.10. TypeScript 7은 typescript-eslint가 아직 지원하지 않아 6 그대로
+- 개발 의존성 취약점 5건(high 1, moderate 4) → 0건: 상위 패키지의 최신판도 옛 범위를 요구해 `pnpm-workspace.yaml`의 `overrides`로 고친 버전을 씀(ESLint → minimatch 11.0.1+, Storybook 문서 플러그인 → glob 14.0.2+, Lighthouse CI → basic-ftp 6.2.4+). 모두 배포 코드에는 들어가지 않는 개발 도구의 하위 의존성
+- 공통화: 장면·타임라인·문구 투명도에 흩어져 있던 `lerp`(3곳)·`smoothstep`(2곳)·`clamp01`(4곳)·`ease`를 `model/math.ts` 하나로(+테스트)
+- 경량화: 인트로 머리글 로고를 같은 픽셀의 무손실 WebP로(11.7KB → 6.1KB, `public/brand/logo.webp`)
+- 정리: 낡은 주석(불사조 모델 "약 2.7MB" → 1.2MB, 장 표제 "라틴어 필기체" → 영문 Cormorant 기울임), 두 번 선언된 `.finale`의 `row-gap`
+
 ## 0.9.1 - 2026-11-16
 
 인트로와 메뉴의 접근성·버그를 고치고, 장면을 준비할 때 메인 스레드가 오래 멈추지 않게 했습니다. 화면 디자인은 그대로입니다.
