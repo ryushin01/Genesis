@@ -1,13 +1,13 @@
 # project zero
 
 [![CI](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-0.9.2-8B0000)
+![version](https://img.shields.io/badge/version-1.0.0-8B0000)
 
 다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 **프로젝트 제로**의 홍보 홈페이지입니다.
 
 **[사이트 바로 보기](https://zero.ryushin0.co.kr/)** · **[디자인 시스템(Storybook)](https://zero.ryushin0.co.kr/storybook/index.html)**
 
-> **프로젝트 상태:** 개발 중입니다. 작품의 세계관·인물 자료가 정리되기 전이라 해당 구역은 "기록 준비 중"으로 표시하고, 인트로 문구는 작품 요약에서 뽑은 초안입니다.
+> **프로젝트 상태:** 1.0.0으로 운영 중입니다. 작품의 세계관·인물 자료는 작가가 정리하는 대로 더할 예정이라 기록 보관소는 "기록 준비 중"으로 표시하고, 인트로 문구는 작품 요약에서 뽑은 초안입니다. 자료가 오면 [개발 가이드](docs/development.md#작품-내용-바꾸기)에 적은 파일만 바꿉니다.
 
 ## 화면
 
