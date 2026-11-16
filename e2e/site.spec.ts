@@ -1,5 +1,23 @@
 import AxeBuilder from '@axe-core/playwright';
-import { expect, test, type Page } from '@playwright/test';
+import { test as base, expect, type Page } from '@playwright/test';
+
+/**
+ * 모든 테스트에서 CSP(보안 헤더)가 막은 요청·스크립트가 없는지 확인합니다.
+ * 콘솔은 화면을 옮겨도 이어지므로 인트로와 메인을 오가는 동안의 위반도 모두 잡습니다.
+ */
+const test = base.extend<{ cspViolations: string[] }>({
+  cspViolations: [
+    async ({ page }, use) => {
+      const violations: string[] = [];
+      page.on('console', (message) => {
+        if (message.type() === 'error' && /Content Security Policy/i.test(message.text())) violations.push(message.text());
+      });
+      await use(violations);
+      expect(violations, 'CSP 위반').toEqual([]);
+    },
+    { auto: true },
+  ],
+});
 
 async function expectNoOverflow(page: Page) {
   const overflow = await page.evaluate(() => document.documentElement.scrollWidth - window.innerWidth);
@@ -152,5 +170,57 @@ test.describe('메인', () => {
   test('인트로로 돌아갈 수 있다', async ({ page }) => {
     await page.getByRole('link', { name: '인트로 다시 보기' }).click();
     await expect(page).toHaveURL(/\/$/);
+  });
+});
+
+test.describe('운영 준비', () => {
+  test('없는 주소는 404 상태와 한국어 안내 화면을 보여 주고 접근성 위반이 없다', async ({ page }) => {
+    await page.emulateMedia({ reducedMotion: 'reduce' });
+    const response = await page.goto('/no-such-page');
+    expect(response?.status()).toBe(404);
+    await expect(page.getByRole('heading', { level: 1, name: '페이지를 찾을 수 없습니다' })).toBeVisible();
+    await expect(page).toHaveTitle('페이지를 찾을 수 없음 | 프로젝트 제로');
+    await expectNoOverflow(page);
+    await expectNoViolations(page);
+    await page.getByRole('link', { name: '메인으로 가기' }).click();
+    await expect(page).toHaveURL(/\/main$/);
+  });
+
+  test('보안 헤더와 공유 메타데이터를 보낸다', async ({ page, isMobile }) => {
+    test.skip(isMobile, '응답 헤더와 메타데이터는 화면 크기와 상관없습니다');
+    const response = await page.goto('/main');
+    const headers = response!.headers();
+    expect(headers['content-security-policy']).toContain("frame-ancestors 'none'");
+    expect(headers['content-security-policy']).toContain("'wasm-unsafe-eval'");
+    expect(headers['x-frame-options']).toBe('DENY');
+    expect(headers['x-content-type-options']).toBe('nosniff');
+    expect(headers['referrer-policy']).toBe('strict-origin-when-cross-origin');
+
+    await expect(page.locator('link[rel="canonical"]')).toHaveAttribute('href', 'https://zero.ryushin0.co.kr/main');
+    await expect(page.locator('meta[property="og:image"]')).toHaveAttribute(
+      'content',
+      /^https:\/\/zero\.ryushin0\.co\.kr\/opengraph-image\.jpg/,
+    );
+    await expect(page.locator('meta[property="og:locale"]')).toHaveAttribute('content', 'ko_KR');
+    await expect(page.locator('meta[name="twitter:card"]')).toHaveAttribute('content', 'summary_large_image');
+  });
+
+  test('robots.txt와 sitemap.xml을 내준다', async ({ request, isMobile }) => {
+    test.skip(isMobile, '파일 응답은 화면 크기와 상관없습니다');
+    const robots = await request.get('/robots.txt');
+    expect(robots.status()).toBe(200);
+    expect(await robots.text()).toContain('Sitemap: https://zero.ryushin0.co.kr/sitemap.xml');
+    const sitemap = await request.get('/sitemap.xml');
+    expect(sitemap.status()).toBe(200);
+    expect(await sitemap.text()).toContain('<loc>https://zero.ryushin0.co.kr/main</loc>');
+  });
+
+  test('함께 배포한 Storybook은 같은 출처 iframe으로 열린다', async ({ page, isMobile }) => {
+    test.skip(isMobile, 'Storybook은 데스크톱에서만 확인합니다');
+    const response = await page.goto('/storybook/index.html');
+    expect(response?.headers()['x-frame-options']).toBe('SAMEORIGIN');
+    // 미리보기 iframe 안의 스토리가 CSP에 막히지 않고 그려지는지 봅니다.
+    const preview = page.frameLocator('#storybook-preview-iframe');
+    await expect(preview.locator('#storybook-root')).not.toBeEmpty({ timeout: 30_000 });
   });
 });

@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.9.0 - 2026-11-16
+
+런칭(1.0.0)을 앞두고 운영에 필요한 기본기를 채웠습니다. 화면 디자인은 그대로입니다.
+
+- 404·오류 화면: 없는 주소는 Next 기본 영어 화면 대신 "페이지를 찾을 수 없습니다"(메인·인트로 링크), 화면을 그리다 오류가 나면 "다시 시도"(Next 16 `retry`)와 메인 링크를 보여 줌. 메인 맺음 구역의 흑백 디자인을 공통 안내 화면(`shared/ui`의 `NoticeScreen`)으로 함께 씀. 오류는 그동안 쓰이지 않던 `reportError`로 Sentry에 보냄(DSN이 있을 때). 루트 레이아웃까지 실패하면 `global-error`가 최소 인라인 스타일로 같은 문구와 다시 시도·메인 링크를 보여 줌. 404 화면은 모든 페이지의 RSC 데이터에 함께 실리고 오류 뒤에는 상태를 새로 시작하는 편이 나아, 두 화면의 링크는 `next/link` 대신 `<a>`를 씀(첫 화면 JS는 두 페이지 모두 약 1.6 kB만 늘어남)
+- 보안 헤더: CSP(nonce 없이 정적 페이지 유지, 불사조 모델의 meshopt WebAssembly를 위한 `'wasm-unsafe-eval'`, glTF 텍스처의 `blob:`, Sentry 수집 주소는 DSN이 있을 때만), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`. 함께 배포한 Storybook은 같은 출처 iframe과 내장 글꼴(`data:`)을 허용. `X-Powered-By` 끔
+- 검색·공유: `metadataBase`, 페이지별 canonical(`/`, `/main`), Open Graph(사이트 이름·`ko_KR`)·`summary_large_image` 카드, 인트로 첫 화면 캡처에서 조작 버튼을 뺀 위쪽을 1200×630으로 줄인 공유 그림(`pnpm og-image`, `pnpm screenshots`가 함께 만듦), `robots.txt`(Storybook 제외)·`sitemap.xml`
+- 크기 예산: 모든 청크를 더하던 "전체 JS 400 kB"(399.98 kB로 여유가 없었음)를 실제로 받는 파일 기준으로 나눔. 페이지별 첫 화면 JS(`/` 155 kB, `/main` 150 kB, noModule 폴리필 제외), 인트로 장면 청크(185 kB), Sentry 청크(32 kB, DSN이 있을 때만 받음), CSS(8 kB). 빌드한 HTML에서 스크립트를 골라 잼(`.size-limit.mjs`)
+- E2E: 모든 테스트에서 CSP 위반이 없는지(불사조 장면이 CSP 아래에서 뜨는지 포함), 404 상태와 화면·접근성, 보안 헤더와 공유 메타데이터, robots·sitemap, Storybook 미리보기 확인. 서버 포트를 `E2E_PORT`로 바꿀 수 있음(기본 3210)
+- 한글 화면 글자 파일에 새 문구의 글자를 더함(`pnpm fonts`, 굵기마다 약 0.4KB 늘어남)
+
 ## 0.8.0 - 2026-11-16
 
 - 한글 글꼴 교체: KBIZ한마음명조 → 우아한 세리프(이희배, 페어 타입 파운드리, SIL OFL 1.1). KBIZ한마음명조는 원문에 재배포 허락이 없고 다른 형식으로 바꾸는 것도 금지라, 공개 저장소에 원본 파일을 두지 않도록 바꿈. 지금처럼 제목·본문 모두(큰 서사 문장·장 제목과 첫 화면 부제·스크롤 안내·메인으로 들어가기·출처 링크·본문 바로가기 같은 작은 글자)에 씀. Regular(400)·Bold(700) 두 굵기라 굵은 글자도 굵은 꼴로 그림

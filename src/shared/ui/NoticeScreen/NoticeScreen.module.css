@@ -1,0 +1,74 @@
+.screen {
+  display: grid;
+  place-content: center;
+  justify-items: center;
+  gap: 24px;
+  min-height: 100svh;
+  padding: clamp(80px, 14vh, 140px) 20px;
+  background: var(--color-paper);
+  color: var(--color-ink);
+  text-align: center;
+}
+
+.label {
+  font-family: var(--font-mono);
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.mark {
+  font-size: clamp(7rem, 26vw, 22rem);
+  font-weight: 900;
+  line-height: 0.85;
+  letter-spacing: -0.04em;
+}
+
+.title {
+  font-size: clamp(1.5rem, 3.6vw, 3rem);
+  font-weight: 800;
+  letter-spacing: -0.04em;
+}
+
+.description {
+  max-width: 34em;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  line-height: 1.55;
+  color: var(--color-ink-muted);
+}
+
+.actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 12px 28px;
+}
+
+/* 메인 맺음 구역의 링크, 메뉴의 닫기 버튼과 같은 모양 */
+.actions a,
+.actions button {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  font-family: var(--font-mono);
+  font-size: 15px;
+  color: inherit;
+}
+
+.actions a {
+  text-underline-offset: 4px;
+}
+
+.actions button {
+  padding: 0 24px;
+  border: 1px solid currentcolor;
+  background: transparent;
+  cursor: pointer;
+}
+
+.actions a:focus-visible,
+.actions button:focus-visible {
+  outline: 3px solid var(--color-ink);
+  outline-offset: 3px;
+}

@@ -1,10 +1,12 @@
 import type { Metadata } from 'next';
 import { preload } from 'react-dom';
+import { SITE_NAME } from '@/shared/config';
 import { MODEL_URLS } from '../model/assets';
 import { IntroExperience } from './IntroExperience';
 
 export const metadata: Metadata = {
-  title: { absolute: '프로젝트 제로' },
+  title: { absolute: SITE_NAME },
+  alternates: { canonical: '/' },
 };
 
 export function IntroPage() {
