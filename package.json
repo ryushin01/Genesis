@@ -1,6 +1,6 @@
 {
   "name": "genesis",
-  "version": "0.9.2",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "소설 프로젝트 제로 홍보 홈페이지",
@@ -52,7 +52,7 @@
     "harfbuzzjs": "1.6.4",
     "jsdom": "^31.0.1",
     "size-limit": "^14.3.0",
-    "steiger": "^0.9.0",
+    "steiger": "^0.10.0",
     "storybook": "^10.6.7",
     "subset-font": "2.9.0",
     "typescript": "^6.0.3",
