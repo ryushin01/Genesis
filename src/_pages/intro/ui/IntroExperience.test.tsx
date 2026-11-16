@@ -106,13 +106,16 @@ describe('IntroExperience', () => {
     expect(container.querySelector('canvas')).toBeNull();
     expect(screen.queryByRole('button')).toBeNull();
 
+    // 정지 버튼을 누를 때의 호출과 섞이지 않게, 새 장면이 받는 호출만 봅니다.
+    setPaused.mockClear();
     act(() => setReducedMotion(false));
     expect(container.firstElementChild).toHaveAttribute('data-scene', 'loading');
     expect(screen.getByRole('status')).toHaveTextContent('불사조를 깨우는 중');
     expect(screen.queryByRole('button')).toBeNull();
 
     await screen.findByRole('button', { name: '배경 애니메이션 재생' });
-    expect(setPaused).toHaveBeenLastCalledWith(true);
+    expect(setPaused).toHaveBeenCalledTimes(1);
+    expect(setPaused).toHaveBeenCalledWith(true);
   });
 
   it('메인 링크에 키보드 초점이 오면 맨 아래로 이동한다', async () => {

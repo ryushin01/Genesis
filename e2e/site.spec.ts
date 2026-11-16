@@ -50,6 +50,9 @@ test.describe('인트로', () => {
 
   test('키보드로 버튼에 가면 맨 아래 장면으로 이동한다', async ({ page, isMobile }) => {
     test.skip(isMobile, '키보드 검사는 데스크톱에서만 합니다');
+    // 스크롤만 보는 검사라 장면은 띄우지 않습니다. GPU 없는 CI에서는 장면을 만드는 동안 메인 스레드가 몇 초씩 막혀
+    // 확인 호출이 늦어지고 시간을 넘기곤 했습니다(스크롤은 초점 직후 바로 맨 아래에 닿음).
+    await page.route('**/models/**', (route) => route.abort());
     await page.goto('/');
     await expect.poll(() => page.locator('[data-motion="on"]').count()).toBe(1);
     await page.getByRole('link', { name: '메인으로 들어가기' }).focus();
