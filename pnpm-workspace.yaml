@@ -1,2 +1,12 @@
 allowBuilds:
   esbuild: true
+
+# 개발 도구만 끌어오는 하위 의존성의 알려진 취약점(배포 코드에는 들어가지 않음). 상위 패키지의 최신판도 옛 범위를 요구해 덮어쓴다.
+overrides:
+  # ESLint → minimatch: globparts 증폭 DoS(11.0.1에서 고침)
+  "minimatch@>=7 <11.0.1": ^11.0.1
+  # Storybook 문서 플러그인 → glob: AbortSignal 취소 우회(14.0.2에서 고침)
+  "glob@>=9 <14.0.2": ^14.0.2
+  # Lighthouse CI(proxy-agent → get-uri) → basic-ftp: 목록 파싱 DoS 등(6.2.4에서 고침). get-uri는 최신판도 ^5를 요구한다.
+  # ftp:// 주소는 Lighthouse 측정에서 쓰지 않는다.
+  "basic-ftp@<6.2.4": ^6.2.4

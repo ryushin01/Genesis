@@ -1,6 +1,6 @@
 export interface Chapter {
   id: string;
-  /** 큰 필기체로 얹는 라틴어 표제. */
+  /** 장 문장 위에 크게 얹는 영문 표제(Cormorant 기울임). 오른쪽 아래 칩에도 장 이름으로 보입니다. */
   accent: string;
   lines: readonly string[];
   /** 스크롤 길이(svh). */
