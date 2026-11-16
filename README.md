@@ -1,7 +1,7 @@
 # project zero
 
 [![CI](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-0.8.0-8B0000)
+![version](https://img.shields.io/badge/version-0.9.0-8B0000)
 
 다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 **프로젝트 제로**의 홍보 홈페이지입니다.
 
@@ -34,6 +34,7 @@
 | 인트로 `/` | 스크롤에 따라 태양을 향해 날아가는 불사조 → 우주 → 전쟁 → 태양에 닿아 초신성처럼 터지고, 빛나는 깃털 하나가 화면 가운데로 내려와 로고로 바뀌는 적색 WebGL 장면. 로딩 화면, 현재 장 이름 칩, 따라오는 커서 원. 맨 아래에서 메인으로 이동 |
 | 메인 `/main` | 흑백 편집 디자인의 작품 소개: 서사, 세 개의 흐름, 기록 보관소, 전체 화면 메뉴. 스크롤하면 제목이 벌어지며 멀어지고, 고정된 서사 문장이 단어마다 또렷해지며, 흐름 카드가 떠오르며 선화가 그려짐(CSS 스크롤 타임라인) |
 | 접근성·성능 | 동작 줄이기 대응, 배경 애니메이션 정지(멈추면 그리기도 멈춤), 키보드 조작, 본문 바로가기, 저사양 기기 해상도 자동 조절, 장면 단계별로 보이는 것만 그리기 |
+| 운영 | 한국어 404·오류 화면(다시 시도), 보안 헤더(CSP 등), canonical·Open Graph 공유 그림·robots·sitemap |
 
 불사조는 [“Phoenix”](https://sketchfab.com/3d-models/phoenix-243fea4f846f44d18d37bf371272b7ec) by [NORBERTO-3D](https://sketchfab.com/norberto3d)([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/))를 실시간 3D로 그립니다. 색을 #8B0000으로 바꾸고 목의 장식을 뺐습니다. 마지막 장면의 깃털은 [“Feathers”](https://sketchfab.com/3d-models/feathers-c987c56694a44559b75ed66429b04ee4) by [victorberdugo1](https://sketchfab.com/victorberdugo1), 로고는 [“Phoenix Logo”](https://sketchfab.com/3d-models/phoenix-logo-8dc1ba8095f1447fac7092d0299add27) by [Suraj-456tyu](https://sketchfab.com/Suraj-456tyu)(모두 CC BY 4.0, 색 변경)입니다. 불길과 빛, 배경은 셰이더로 그립니다.
 
@@ -70,7 +71,8 @@ pnpm dev
 | `pnpm e2e` | 프로덕션 빌드 E2E 테스트 |
 | `pnpm size` · `pnpm lhci` | 번들 크기 예산 · Lighthouse 점수 기준 검사 (먼저 빌드 필요) |
 | `pnpm fonts` | 한글 웹 폰트(우아한 세리프) 화면 글자 파일과 조각 다시 만들기 (화면 글자를 바꾼 뒤, `pip install fonttools brotli` 필요) |
-| `pnpm screenshots` | README 화면 캡처(인트로·메인·모바일) 다시 만들기 (먼저 서버 실행) |
+| `pnpm screenshots` | README 화면 캡처(인트로·메인·모바일)와 공유 그림 다시 만들기 (먼저 서버 실행) |
+| `pnpm og-image` | 인트로 첫 화면 캡처로 공유 그림(Open Graph, 1200×630)만 다시 만들기 |
 | `pnpm storybook` | Storybook 실행 |
 
 ## 프로젝트 구조
@@ -78,21 +80,22 @@ pnpm dev
 ```text
 src/
 ├── app/            # Next 라우트 (재내보내기만)
-├── _app/           # 루트 레이아웃, 전역 스타일
+├── _app/           # 루트 레이아웃, 전역 스타일, 오류 화면, 모니터링, robots·sitemap
 ├── _pages/
 │   ├── intro/      # WebGL 인트로 (model: 문구·타임라인, lib: 장면·셰이더)
-│   └── main/       # 흑백 메인 페이지
-└── shared/lib/     # 공통 훅
+│   ├── main/       # 흑백 메인 페이지
+│   └── not-found/  # 404 화면
+└── shared/         # 사이트 설정, 공통 훅, 안내 화면(ui)
 public/models/      # 불사조·깃털·로고 3D 모델(glTF)과 라이선스
 public/fonts/       # 한글 글꼴 나머지 조각과 라이선스
-scripts/            # 불사조 모델 텍스처 다시 담기, 한글 웹 폰트 만들기(fonts/)
+scripts/            # 불사조 모델 텍스처 다시 담기, 한글 웹 폰트 만들기(fonts/), 화면 캡처·공유 그림
 ```
 
 ## 문서
 
 | 문서 | 내용 |
 |---|---|
-| [개발 가이드](docs/development.md) | 문구 교체, 인트로 장면 조정, 디자인 기준 |
+| [개발 가이드](docs/development.md) | 문구 교체, 인트로 장면 조정, 디자인 기준, 보안 헤더·검색·품질 예산 |
 | [시퀀스 다이어그램](docs/sequence-diagrams.md) | 인트로 장면 준비, 스크롤에 따른 장면 진행과 메인 이동 |
 | [CHANGELOG](CHANGELOG.md) | 버전 기록 |
 

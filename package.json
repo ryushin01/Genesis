@@ -1,6 +1,6 @@
 {
   "name": "genesis",
-  "version": "0.8.0",
+  "version": "0.9.0",
   "private": true,
   "type": "module",
   "description": "소설 프로젝트 제로 홍보 홈페이지",
@@ -18,7 +18,8 @@
     "build-storybook": "storybook build -o public/storybook --quiet",
     "size": "size-limit",
     "lhci": "lhci autorun",
-    "screenshots": "node scripts/screenshots.mjs",
+    "screenshots": "node scripts/screenshots.mjs && node scripts/og-image.mjs",
+    "og-image": "node scripts/og-image.mjs",
     "fonts": "node scripts/build-fonts.mjs"
   },
   "dependencies": {
