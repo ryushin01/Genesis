@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef } from 'react';
+import { type MouseEvent, useRef } from 'react';
 import styles from './SiteMenu.module.css';
 
 const SECTIONS = [
@@ -13,6 +13,13 @@ const SECTIONS = [
 export function SiteMenu() {
   const dialogRef = useRef<HTMLDialogElement>(null);
   const close = () => dialogRef.current?.close();
+  // 대화상자는 닫히면서 초점을 메뉴 버튼으로 돌려놓으므로, 키보드가 옮겨 간 구역부터 이어지게 그 구역으로 초점을 옮깁니다.
+  // 주소의 #과 스크롤은 링크의 기본 동작이 그대로 맡습니다.
+  const goToSection = (event: MouseEvent<HTMLAnchorElement>) => {
+    const section = document.getElementById(event.currentTarget.hash.slice(1));
+    close();
+    section?.focus({ preventScroll: true });
+  };
 
   return (
     <>
@@ -28,7 +35,7 @@ export function SiteMenu() {
           <ol className={styles.list}>
             {SECTIONS.map((item, index) => (
               <li key={item.href}>
-                <a href={item.href} className={styles.link} onClick={close}>
+                <a href={item.href} className={styles.link} onClick={goToSection}>
                   <span className={styles.number} aria-hidden="true">
                     {'∙'.repeat(index + 1)}
                   </span>

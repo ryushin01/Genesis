@@ -144,6 +144,11 @@
   50% { transform: scaleX(1); }
 }
 
+/* 배경 애니메이션을 정지하면 스크롤 안내 선도 멈춥니다. */
+.root[data-paused='true'] .scrollLine {
+  animation-play-state: paused;
+}
+
 .bottom {
   align-items: end;
 }

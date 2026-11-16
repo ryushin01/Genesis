@@ -2,6 +2,7 @@ import {
   AmbientLight,
   Color,
   DirectionalLight,
+  Group,
   HemisphereLight,
   LinearFilter,
   LinearMipmapLinearFilter,
@@ -45,6 +46,16 @@ const ease = (t: number) => t * t * (3 - 2 * t);
 const FX_DISTANCE = 12;
 /** 큰 깃털이 진자처럼 흔들리는 빠르기(라디안/초). */
 const SWING = 1.1;
+
+/**
+ * 긴 준비 작업 사이에 브라우저가 입력·그리기를 처리할 틈을 줍니다. 컨텍스트 만들기·날갯짓 다듬기·셰이더 준비가
+ * 한 작업(느린 휴대폰에서 150ms 넘게)에 몰리지 않게 나눕니다. scheduler.yield가 있으면 이어서 바로 돌아옵니다.
+ */
+function yieldToMain() {
+  const scheduler = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler;
+  if (typeof scheduler?.yield === 'function') return scheduler.yield();
+  return new Promise<void>((resolve) => setTimeout(resolve, 0));
+}
 
 /** 모델 파일을 받습니다. 받은 비율을 알리고, 신호가 오면 받기를 멈춥니다. */
 async function fetchModel(url: string, signal: AbortSignal, onProgress?: (ratio: number) => void) {
@@ -97,14 +108,14 @@ export async function createPhoenixScene(
 
   const disposer = createDisposer();
   try {
-    return buildScene();
+    return await buildScene();
   } catch (error) {
     disposer.dispose();
     disposeObject(gltf.scene);
     throw error;
   }
 
-  function buildScene(): PhoenixScene {
+  async function buildScene(): Promise<PhoenixScene> {
     const renderer = new WebGLRenderer({ canvas, antialias: true, powerPreference: 'high-performance' });
     // 가장 먼저 넣어 가장 나중에 풉니다. dispose만으로는 WebGL 컨텍스트가 바로 풀리지 않으므로,
     // 장면을 다시 만들 때 컨텍스트가 쌓여 브라우저 한도(보통 16개)에 닿지 않게 바로 놓아 줍니다.
@@ -127,7 +138,13 @@ export async function createPhoenixScene(
       uHazeAmount: { value: 0 },
       uDissolve: { value: 0 },
     };
+    // 화면을 떠났으면 남은 준비를 하지 않습니다(만든 자원은 바깥에서 놓아 줌).
+    const leaveIfAborted = () => {
+      if (signal?.aborted) throw new DOMException('장면을 만들기 전에 화면을 떠났습니다.', 'AbortError');
+    };
 
+    await yieldToMain();
+    leaveIfAborted();
     const bird = disposer.track(createBird(gltf, shared));
     const trail = disposer.track(createTrail(compact ? 220 : 420, shared.uTime, WINGSPAN));
     const scene = new Scene();
@@ -216,6 +233,8 @@ export async function createPhoenixScene(
     const pointerXFollower = createFollower(6.5);
     const pointerYFollower = createFollower(6.5);
     let paused = false;
+    // 셰이더가 모두 준비되기 전에는 그리지 않습니다. 첫 그리기에서 셰이더 링크를 기다리며 메인 스레드가 멈추지 않게 합니다.
+    let ready = false;
     let time = 0;
     let previous = performance.now();
     let frame = 0;
@@ -231,7 +250,7 @@ export async function createPhoenixScene(
 
     /** 멈춰 있던 그리기를 다시 시작합니다. 이미 돌고 있으면 아무것도 하지 않습니다. */
     const wake = () => {
-      if (frame !== 0 || disposer.disposed || contextLost) return;
+      if (!ready || frame !== 0 || disposer.disposed || contextLost) return;
       previous = performance.now();
       frame = requestAnimationFrame(render);
     };
@@ -405,10 +424,19 @@ export async function createPhoenixScene(
     });
 
     resize();
+    await yieldToMain();
+    leaveIfAborted();
     // 셰이더를 미리 컴파일해 둡니다. 함대처럼 나중에 보이는 것이 처음 나타날 때 멈칫하지 않습니다.
-    renderer.compile(scene, camera);
-    renderer.compile(fxScene, fxCamera);
-    renderer.compile(backdrop.scene, backdrop.camera);
+    // compileAsync는 KHR_parallel_shader_compile가 있으면 링크가 끝날 때까지 메인 스레드를 막지 않고 기다립니다
+    // (없는 브라우저는 예전처럼 첫 그리기에서 기다림).
+    await Promise.all([
+      renderer.compileAsync(scene, camera),
+      renderer.compileAsync(fxScene, fxCamera),
+      renderer.compileAsync(backdrop.scene, backdrop.camera),
+    ]);
+    leaveIfAborted();
+    ready = true;
+    wake();
 
     // 끝 장면(깃털·로고)은 불사조를 띄운 뒤에 받습니다. 받지 못해도 나머지 장면은 그대로 보여 줍니다.
     Promise.all([load(MODEL_URLS.feathers), load(MODEL_URLS.logo)])
@@ -421,11 +449,15 @@ export async function createPhoenixScene(
         const nextFeathers = disposer.track(createFeathers(featherGltf, { count: compact ? 26 : 44, uTime: shared.uTime }));
         nextFeathers.uniforms.uAspect.value = Math.min(1.6, width / height);
         const nextLogo = disposer.track(createLogo(logoGltf));
-        fxScene.add(...nextFeathers.meshes, nextLogo.group);
-        renderer.compile(fxScene, fxCamera);
-        feathers = nextFeathers;
-        logo = nextLogo;
-        wake();
+        // 깃털·로고의 셰이더도 장면의 빛(fxScene)에 맞춰 준비된 뒤에 장면에 넣습니다.
+        const pending = new Group().add(...nextFeathers.meshes, nextLogo.group);
+        return renderer.compileAsync(pending, fxCamera, fxScene).then(() => {
+          if (disposer.disposed) return;
+          fxScene.add(...nextFeathers.meshes, nextLogo.group);
+          feathers = nextFeathers;
+          logo = nextLogo;
+          wake();
+        });
       })
       .catch(() => {
         // 깃털과 로고 없이도 폭발과 마지막 문구는 보입니다.

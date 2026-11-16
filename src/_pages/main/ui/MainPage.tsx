@@ -4,6 +4,7 @@ import { Fragment, type CSSProperties } from "react";
 import styles from "./MainPage.module.css";
 import { SiteMenu } from "./SiteMenu";
 import { SITE_DESCRIPTION, SOURCES_URL } from "@/shared/config";
+import { VisuallyHidden } from "@/shared/ui";
 
 /** 앱과 함께 배포한 Storybook. 개발 서버에는 빌드 결과물이 없어 Storybook 개발 서버로 보냅니다. */
 const STORYBOOK_URL =
@@ -123,7 +124,7 @@ export function MainPage() {
             <circle cx="500" cy="500" r="300" />
           </svg>
           <h1 className={styles.heroTitle}>
-            <span className={styles.visuallyHidden}>프로젝트 제로</span>
+            <VisuallyHidden>프로젝트 제로</VisuallyHidden>
             <span aria-hidden="true">
               {LETTER_ROWS.map((row) => (
                 <span
@@ -147,6 +148,7 @@ export function MainPage() {
 
         <section
           id="prologue"
+          tabIndex={-1}
           className={styles.prologue}
           aria-labelledby="prologue-title"
         >
@@ -186,6 +188,7 @@ export function MainPage() {
 
         <section
           id="structure"
+          tabIndex={-1}
           className={styles.structure}
           aria-labelledby="structure-title"
         >
@@ -222,6 +225,7 @@ export function MainPage() {
 
         <section
           id="archive"
+          tabIndex={-1}
           className={styles.archive}
           aria-labelledby="archive-title"
         >
