@@ -165,6 +165,8 @@ test.describe('메인', () => {
     await dialog.getByRole('link', { name: /기록/ }).click();
     await expect(page).toHaveURL(/#archive$/);
     await expect(page.getByRole('heading', { name: '기록 보관소' })).toBeInViewport();
+    // 다음 탭이 옮겨 간 구역부터 이어지도록 초점도 그 구역에 있습니다.
+    await expect(page.locator('#archive')).toBeFocused();
   });
 
   test('인트로로 돌아갈 수 있다', async ({ page }) => {

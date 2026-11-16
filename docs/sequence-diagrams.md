@@ -32,7 +32,7 @@ sequenceDiagram
             인트로->>장면: signal 중단
             장면->>장면: 받던 모델도 멈춤
         else 준비됨
-            장면->>장면: 셰이더 미리 컴파일
+            장면->>장면: 셰이더 준비(compileAsync), 단계 사이에 브라우저에 틈 주기
             장면-->>인트로: PhoenixScene (setProgress, setPointer, setPaused, dispose)
             인트로-->>방문자: 불사조 장면 표시
             장면->>모델: feathers.glb, phoenix-logo.glb (뒤에서)
@@ -68,6 +68,7 @@ sequenceDiagram
     방문자->>인트로: 정지 버튼
     인트로->>장면: setPaused(true)
     장면->>장면: 스크롤과 포인터를 따라잡은 뒤 그리기를 멈춤
+    인트로->>인트로: data-paused로 CSS 애니메이션(스크롤 안내 선)도 멈춤
     방문자->>인트로: 맨 아래 메인으로 들어가기 (키보드 초점이면 맨 아래로 스크롤)
     인트로->>장면: dispose()
     장면->>장면: 자원과 WebGL 컨텍스트를 놓아 줌

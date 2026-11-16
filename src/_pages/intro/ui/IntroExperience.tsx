@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { type CSSProperties, useEffect, useRef, useState } from 'react';
 import { SOURCES_URL } from '@/shared/config';
 import { useReducedMotion } from '@/shared/lib';
+import { VisuallyHidden } from '@/shared/ui';
 import type { PhoenixScene } from '../lib/createPhoenixScene';
 import { CHAPTERS, FINALE_LENGTH, HERO_LENGTH } from '../model/chapters';
 import { chapterReveal, stickyProgress } from '../model/reveal';
@@ -23,6 +24,8 @@ export function IntroExperience() {
   const cursorRef = useRef<HTMLDivElement>(null);
   const chipRef = useRef<HTMLParagraphElement>(null);
   const [paused, setPaused] = useState(false);
+  // 장면을 다시 만들 때(동작 줄이기를 껐다 켤 때) 지금의 정지 상태를 넘겨주려고 함께 둡니다.
+  const pausedRef = useRef(false);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -100,6 +103,7 @@ export function IntroExperience() {
           scene.dispose();
           return;
         }
+        scene.setPaused(pausedRef.current);
         sceneRef.current = scene;
         update();
         setSceneReady(true);
@@ -117,14 +121,21 @@ export function IntroExperience() {
       window.removeEventListener('pointermove', onPointer);
       sceneRef.current?.dispose();
       sceneRef.current = null;
+      // 다음에 장면을 다시 만들 때 로딩 화면부터 보이도록 처음 상태로 돌립니다.
+      setSceneReady(false);
+      setLoadFailed(false);
+      setLoadedPercent(0);
     };
   }, [motionOn]);
 
   const togglePaused = () => {
     const next = !paused;
+    pausedRef.current = next;
     setPaused(next);
     sceneRef.current?.setPaused(next);
   };
+
+  const isLoading = motionOn && !sceneReady && !loadFailed;
 
   // 키보드로 버튼에 왔을 때도 깃털이 내려앉은 맨 아래 장면에서 보이게 합니다.
   const showFinale = () => {
@@ -137,16 +148,17 @@ export function IntroExperience() {
       className={styles.root}
       data-motion={motionOn ? 'on' : 'off'}
       data-scene={loadFailed ? 'failed' : sceneReady ? 'ready' : 'loading'}
+      data-paused={paused ? 'true' : undefined}
     >
       {motionOn ? <canvas ref={canvasRef} className={styles.canvas} aria-hidden="true" /> : null}
       <div className={styles.scrim} aria-hidden="true" />
-      {motionOn && !sceneReady && !loadFailed ? (
-        <div className={styles.loader} role="status">
-          <span className={styles.loaderMark} aria-hidden="true" />
+      {/* 상태 알림 영역은 처음부터 두고 글만 바꿔야 화면 낭독기가 읽습니다. 보이는 로딩 화면은 같은 내용이라 숨깁니다. */}
+      <VisuallyHidden role="status">{isLoading ? '불사조를 깨우는 중' : ''}</VisuallyHidden>
+      {isLoading ? (
+        <div className={styles.loader} aria-hidden="true">
+          <span className={styles.loaderMark} />
           <span>불사조를 깨우는 중</span>
-          <span className={styles.loaderValue} aria-hidden="true">
-            {loadedPercent}%
-          </span>
+          <span className={styles.loaderValue}>{loadedPercent}%</span>
         </div>
       ) : null}
 
@@ -155,6 +167,17 @@ export function IntroExperience() {
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src="/brand/logo.png" alt="project zero" width={40} height={40} className={styles.logo} />
       </header>
+      {/* 정지 버튼은 화면 왼쪽 아래에 고정되어 있지만, 키보드로는 이야기보다 먼저 닿게 앞에 둡니다. */}
+      {motionOn && sceneReady ? (
+        <button
+          type="button"
+          className={styles.pause}
+          onClick={togglePaused}
+          aria-label={paused ? '배경 애니메이션 재생' : '배경 애니메이션 정지'}
+        >
+          <span aria-hidden="true">{paused ? '▶' : 'Ⅱ'}</span>
+        </button>
+      ) : null}
 
       <main className={styles.story}>
         <section className={styles.chapter} style={lengthStyle(HERO_LENGTH)} data-chapter data-name="Prologue">
@@ -211,16 +234,6 @@ export function IntroExperience() {
         </section>
       </main>
 
-      {motionOn && sceneReady ? (
-        <button
-          type="button"
-          className={styles.pause}
-          onClick={togglePaused}
-          aria-label={paused ? '배경 애니메이션 재생' : '배경 애니메이션 정지'}
-        >
-          <span aria-hidden="true">{paused ? '▶' : 'Ⅱ'}</span>
-        </button>
-      ) : null}
       {motionOn ? (
         <>
           <p ref={chipRef} className={styles.chip} lang="en" aria-hidden="true">
