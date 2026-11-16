@@ -1,10 +1,4 @@
-const clamp01 = (v: number) => Math.min(1, Math.max(0, v));
-
-/** 구간 안에서 0→1로 부드럽게 오르는 값. */
-export function smoothstep(edge0: number, edge1: number, v: number) {
-  const t = clamp01((v - edge0) / (edge1 - edge0));
-  return t * t * (3 - 2 * t);
-}
+import { clamp01, smoothstep } from './math';
 
 /** 스티키 구간의 진행도(0~1)를 글자 불투명도로 바꿉니다. 첫 구간은 처음부터 보이고, 마지막 구간은 사라지지 않습니다. */
 export function chapterReveal(progress: number, { first = false, last = false } = {}) {

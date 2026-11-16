@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 };
 
 export function IntroPage() {
-  // 불사조 모델(약 2.7MB)을 JS를 받는 동안 함께 받기 시작합니다. 장면을 띄우지 않는 동작 줄이기 설정에서는 받지 않습니다.
+  // 불사조 모델(약 1.2MB)을 JS를 받는 동안 함께 받기 시작합니다. 장면을 띄우지 않는 동작 줄이기 설정에서는 받지 않습니다.
   preload(MODEL_URLS.phoenix, { as: 'fetch', crossOrigin: 'anonymous', media: '(prefers-reduced-motion: no-preference)' });
   return <IntroExperience />;
 }

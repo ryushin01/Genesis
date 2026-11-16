@@ -1,5 +1,5 @@
 import { createMonotoneCurve } from './curve';
-import { smoothstep } from './reveal';
+import { clamp01, lerp, smoothstep } from './math';
 
 type Vec3 = readonly [number, number, number];
 
@@ -72,7 +72,6 @@ export interface SceneState {
   trail: number;
 }
 
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 const DEG = Math.PI / 180;
 
 export function createSceneState(): SceneState {
@@ -102,7 +101,7 @@ export function createSceneState(): SceneState {
  * 매 프레임 부르므로 `out`을 넘기면 새 객체를 만들지 않고 그 안에 씁니다.
  */
 export function sampleTimeline(progress: number, aspect = 16 / 10, out: SceneState = createSceneState()): SceneState {
-  const p = Math.min(1, Math.max(0, progress));
+  const p = clamp01(progress);
   const azimuth = azimuthCurve(p) * DEG;
   const elevation = elevationCurve(p) * DEG;
   const reach = smoothstep(0.1, 0.34, p);

@@ -1,8 +1,7 @@
 import { Box3, Color, Group, type Material, type Mesh, MeshLambertMaterial, type MeshStandardMaterial, Vector3 } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
+import { lerp } from '../../model/math';
 import { disposeObject } from './disposer';
-
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
 
 /** 깃털이 내려앉은 자리에 나타나는 불사조 로고. 색을 #8B0000 계열로 옮기고 빛을 받아 입체감이 나게 합니다. */
 export function createLogo(gltf: GLTF) {

@@ -19,6 +19,7 @@ import { MeshoptDecoder } from 'three/examples/jsm/libs/meshopt_decoder.module.j
 import { GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader.js';
 import { MODEL_URLS } from '../model/assets';
 import { createFollower } from '../model/follow';
+import { ease, lerp } from '../model/math';
 import { createSceneState, sampleTimeline } from '../model/timeline';
 import { createBackdrop } from './scene/backdrop';
 import { createBird, WINGSPAN } from './scene/bird';
@@ -41,8 +42,6 @@ export interface PhoenixSceneOptions {
   signal?: AbortSignal;
 }
 
-const lerp = (a: number, b: number, t: number) => a + (b - a) * t;
-const ease = (t: number) => t * t * (3 - 2 * t);
 const FX_DISTANCE = 12;
 /** 큰 깃털이 진자처럼 흔들리는 빠르기(라디안/초). */
 const SWING = 1.1;
