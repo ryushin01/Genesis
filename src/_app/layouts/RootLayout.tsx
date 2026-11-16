@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from 'next';
 import { Cormorant, Inter, JetBrains_Mono } from 'next/font/google';
 import localFont from 'next/font/local';
 import type { ReactNode } from 'react';
+import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/shared/config';
 import '../styles/globals.css';
 import { RestFonts } from './RestFonts';
 
@@ -37,9 +38,22 @@ const narrativeLatin = localFont({
   ],
 });
 
+/*
+ * 공유 미리보기: 그림은 src/app/opengraph-image.jpg(인트로 첫 화면, pnpm og-image)를 Next가 붙입니다.
+ * 페이지가 openGraph를 따로 정하면 이 값을 통째로 덮으므로, 페이지에서는 canonical만 정합니다.
+ */
 export const metadata: Metadata = {
-  title: { default: '프로젝트 제로', template: '%s | 프로젝트 제로' },
-  description: '다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 프로젝트 제로.',
+  metadataBase: new URL(SITE_URL),
+  title: { default: SITE_NAME, template: `%s | ${SITE_NAME}` },
+  description: SITE_DESCRIPTION,
+  openGraph: {
+    type: 'website',
+    siteName: SITE_NAME,
+    locale: 'ko_KR',
+    title: SITE_NAME,
+    description: SITE_DESCRIPTION,
+  },
+  twitter: { card: 'summary_large_image' },
 };
 
 export const viewport: Viewport = { themeColor: '#8b0000' };

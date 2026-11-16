@@ -3,7 +3,7 @@ import Link from "next/link";
 import { Fragment, type CSSProperties } from "react";
 import styles from "./MainPage.module.css";
 import { SiteMenu } from "./SiteMenu";
-import { SOURCES_URL } from "@/shared/config";
+import { SITE_DESCRIPTION, SOURCES_URL } from "@/shared/config";
 
 /** 앱과 함께 배포한 Storybook. 개발 서버에는 빌드 결과물이 없어 Storybook 개발 서버로 보냅니다. */
 const STORYBOOK_URL =
@@ -13,8 +13,8 @@ const STORYBOOK_URL =
 
 export const metadata: Metadata = {
   title: "메인",
-  description:
-    "다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 프로젝트 제로.",
+  description: SITE_DESCRIPTION,
+  alternates: { canonical: "/main" },
 };
 
 const LETTER_ROWS = [

@@ -54,7 +54,7 @@
 
 ## E2E
 
-WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립니다. 데스크톱에서는 인트로와 메인을 두 번 오간 뒤 살아 있는 WebGL 컨텍스트가 0개이고 그리기 루프(rAF)도 멈췄는지 확인합니다. 첫 왕복에서는 매 프레임 메인 스레드를 40ms씩 붙잡아 해상도 자동 조절이 일어난 뒤에 떠납니다(조절하며 루프가 둘로 갈라지면 하나가 남던 문제의 회귀 검사). 이 검사만 화면을 800×500으로 줄여 GPU 없는 CI에서도 15초 안팎에 끝납니다.
+WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립니다. 프로덕션 서버는 3210 포트에 띄우고, 같은 기기의 다른 앱이 그 포트를 쓰고 있으면 `E2E_PORT=3290 pnpm e2e`처럼 바꿉니다. 데스크톱에서는 인트로와 메인을 두 번 오간 뒤 살아 있는 WebGL 컨텍스트가 0개이고 그리기 루프(rAF)도 멈췄는지 확인합니다. 첫 왕복에서는 매 프레임 메인 스레드를 40ms씩 붙잡아 해상도 자동 조절이 일어난 뒤에 떠납니다(조절하며 루프가 둘로 갈라지면 하나가 남던 문제의 회귀 검사). 이 검사만 화면을 800×500으로 줄여 GPU 없는 CI에서도 15초 안팎에 끝납니다.
 
 ## 디자인 시스템(Storybook) 배포
 
@@ -66,7 +66,16 @@ WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립�
 
 ## 품질 예산
 
-- **번들 크기:** `pnpm size`가 전체 JS 400 kB, CSS 8 kB(gzip)를 넘으면 실패합니다. 이 가운데 약 180 kB는 인트로에서만 늦게 받는 three.js 장면 청크입니다. 기준은 `.size-limit.json`에 있습니다.
+- **번들 크기:** `pnpm size`가 방문자가 실제로 받는 파일만 나눠 잽니다(gzip). 기준은 `.size-limit.mjs`에 있습니다.
+
+  | 묶음 | 기준 | 무엇을 재나 |
+  |---|---|---|
+  | 첫 화면 JS: 인트로 `/` · 메인 `/main` | 155 kB · 150 kB | 빌드한 HTML(`.next/server/app/*.html`)이 처음에 받는 스크립트. 모던 브라우저가 받지 않는 noModule 폴리필은 뺌 |
+  | 인트로 장면(three.js) | 185 kB | 동작 줄이기를 끄고 인트로에 들어왔을 때 늦게 받는 장면 청크 |
+  | Sentry | 32 kB | DSN이 있을 때만 첫 화면 뒤에 받는 청크(DSN이 없어도 빌드에는 생김) |
+  | CSS | 8 kB | 모든 CSS |
+
+  예전에는 모든 청크를 더해 "전체 JS 400 kB"로 쟀는데, 받지 않는 폴리필(39 kB)과 Sentry(30 kB)까지 들어가 실제 비용과 달랐고 여유도 0.02 kB뿐이었습니다.
 - **Lighthouse:** `pnpm lhci`가 메인이 데스크톱 기준 성능 90·접근성 100·권장 사항 95·SEO 90점, LCP 2.5초·TBT 200ms·CLS 0.1 이하인지 3번씩 재서 확인합니다. 기준은 `lighthouserc.json`에 있습니다.
 - **README 스크린샷:** 인트로 화면 캡처(`docs/images/intro-*.jpg`)는 프로덕션 서버를 띄운 뒤 `pnpm screenshots [주소]`(기본 `http://localhost:3210`)로 다시 만듭니다. 로고나 인트로 화면을 바꾸면 함께 찍습니다.
 - **접근성 린트:** `eslint-config-next`는 jsx-a11y 규칙을 몇 개만 켭니다. 플러그인은 이미 등록되어 있어 `eslint.config`에서 recommended 규칙만 더해 모두 켭니다.
@@ -74,6 +83,31 @@ WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립�
 인트로(`/`)는 three.js WebGL 장면이라 GPU가 없는 CI에서는 소프트웨어로 그려 TBT가 40초까지 나옵니다(GPU가 있는 기기에서는 20ms 안팎). 그래서 인트로는 접근성·권장 사항·SEO·CLS만 검사하고, 성능 점수와 LCP·TBT는 메인(`/main`)에서 검사합니다.
 
 두 검사 모두 프로덕션 빌드가 먼저 있어야 하며, CI는 빌드 뒤에 돌립니다.
+
+## 오류·404 화면
+
+- 없는 주소는 `_pages/not-found`, 화면을 그리다 난 오류는 `_app/errors/error-page`의 `ErrorPage`(`error.tsx`), 루트 레이아웃까지 실패하면 `_app/errors/global-error`의 `GlobalError`(`global-error.tsx`)가 보여 줍니다. 앞의 둘은 메인 맺음 구역의 흑백 디자인을 담은 `shared/ui`의 `NoticeScreen`을 함께 씁니다.
+- 오류 화면은 `reportError`로 Sentry에 보내고(DSN이 있을 때), "다시 시도"는 Next 16의 `retry`(서버 컴포넌트를 다시 받고 오류 경계를 되돌림)를 부릅니다.
+- 두 화면의 링크는 `next/link` 대신 `<a>`입니다. 404 화면은 모든 페이지의 RSC 데이터에 함께 실려 `next/link`를 쓰면 그 코드(약 3 kB)가 모든 페이지의 첫 화면 JS에 더해지고, 오류 뒤에는 페이지를 다시 받아 상태를 새로 시작하는 편이 낫습니다. `error.tsx`·`global-error.tsx`는 서로의 코드를 싣지 않게 `_app/errors`의 `error-page`·`global-error`를 따로 가져옵니다.
+- `GlobalError`는 전역 CSS와 글꼴이 없는 상태라 인라인 스타일로 그립니다. `<html>`부터 그려 스토리는 두지 않고, 테스트는 정적 마크업으로 확인합니다.
+
+## 보안 헤더
+
+`next.config.ts`의 `headers()`가 모든 응답에 붙입니다. E2E가 모든 테스트에서 CSP 위반 콘솔 오류가 없는지 확인합니다.
+
+- CSP는 nonce 없이 씁니다. nonce를 쓰면 요청마다 페이지를 그려야 해서 정적 페이지(`○ Static`)를 잃습니다. 대신 다른 출처의 스크립트, 플러그인(`object-src`), `base`·폼 전송 주소, 프레임 끼워 넣기를 막습니다.
+- `'wasm-unsafe-eval'`: 불사조 모델의 meshopt 압축을 푸는 디코더가 WebAssembly입니다. 지우면 장면이 뜨지 않고 CSS 배경으로 바뀝니다.
+- `blob:`(`img-src`·`connect-src`): glTF 안의 텍스처를 blob 주소로 만들어 읽습니다.
+- Sentry 수집 주소는 `NEXT_PUBLIC_SENTRY_DSN`이 있을 때 그 호스트만 `connect-src`에 더합니다.
+- 개발 서버에서만 `'unsafe-eval'`과 `ws:`를 엽니다. `upgrade-insecure-requests`는 Vercel 배포에서만 씁니다.
+- `/storybook`은 미리보기를 같은 출처 iframe으로 띄우므로 `frame-ancestors 'self'`·`X-Frame-Options: SAMEORIGIN`, 내장 글꼴 `data:`를 허용합니다.
+- 다른 출처의 스크립트·글꼴·연결을 새로 쓰면 CSP에 그 출처를 더해야 합니다.
+
+## 검색·공유
+
+- `metadataBase`는 `shared/config`의 `SITE_URL`입니다. 페이지마다 `alternates.canonical`만 정하고, Open Graph·Twitter 카드는 루트 레이아웃에 둡니다(페이지가 `openGraph`를 정하면 레이아웃 값을 통째로 덮습니다).
+- 공유 그림 `src/app/opengraph-image.jpg`(1200×630)는 인트로 첫 화면 캡처(`docs/images/intro-hero.jpg`)에서 조작 버튼이 없는 위쪽을 잘라 줄인 것입니다. `pnpm screenshots`가 캡처 뒤에 함께 만들고, 따로는 `pnpm og-image`로 만듭니다. 대체 텍스트는 `opengraph-image.alt.txt`입니다.
+- `robots.txt`(`/storybook/` 제외)와 `sitemap.xml`(`/`, `/main`)은 `_app/seo`에 있고, `src/app/robots.ts`·`sitemap.ts`는 다시 내보내기만 합니다. 화면을 더하면 sitemap에도 더합니다.
 
 ## 모니터링
 
