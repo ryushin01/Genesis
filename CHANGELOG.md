@@ -4,7 +4,7 @@
 
 런칭(1.0.0)을 앞두고 운영에 필요한 기본기를 채웠습니다. 화면 디자인은 그대로입니다.
 
-- 404·오류 화면: 없는 주소는 Next 기본 영어 화면 대신 "페이지를 찾을 수 없습니다"(메인·인트로 링크), 화면을 그리다 오류가 나면 "다시 시도"(Next 16 `retry`)와 메인 링크를 보여 줌. 메인 맺음 구역의 흑백 디자인을 공통 안내 화면(`shared/ui`의 `NoticeScreen`)으로 함께 씀. 오류는 그동안 쓰이지 않던 `reportError`로 Sentry에 보냄(DSN이 있을 때). 루트 레이아웃까지 실패하면 `global-error`가 최소 인라인 스타일로 같은 문구를 보여 줌. 404 화면은 모든 페이지의 RSC 데이터에 함께 실리고 오류 뒤에는 상태를 새로 시작하는 편이 나아, 두 화면의 링크는 `next/link` 대신 `<a>`를 씀(첫 화면 JS는 두 페이지 모두 약 1.6 kB만 늘어남)
+- 404·오류 화면: 없는 주소는 Next 기본 영어 화면 대신 "페이지를 찾을 수 없습니다"(메인·인트로 링크), 화면을 그리다 오류가 나면 "다시 시도"(Next 16 `retry`)와 메인 링크를 보여 줌. 메인 맺음 구역의 흑백 디자인을 공통 안내 화면(`shared/ui`의 `NoticeScreen`)으로 함께 씀. 오류는 그동안 쓰이지 않던 `reportError`로 Sentry에 보냄(DSN이 있을 때). 루트 레이아웃까지 실패하면 `global-error`가 최소 인라인 스타일로 같은 문구와 다시 시도·메인 링크를 보여 줌. 404 화면은 모든 페이지의 RSC 데이터에 함께 실리고 오류 뒤에는 상태를 새로 시작하는 편이 나아, 두 화면의 링크는 `next/link` 대신 `<a>`를 씀(첫 화면 JS는 두 페이지 모두 약 1.6 kB만 늘어남)
 - 보안 헤더: CSP(nonce 없이 정적 페이지 유지, 불사조 모델의 meshopt WebAssembly를 위한 `'wasm-unsafe-eval'`, glTF 텍스처의 `blob:`, Sentry 수집 주소는 DSN이 있을 때만), `X-Frame-Options: DENY`, `X-Content-Type-Options: nosniff`, `Referrer-Policy`, `Permissions-Policy`. 함께 배포한 Storybook은 같은 출처 iframe과 내장 글꼴(`data:`)을 허용. `X-Powered-By` 끔
 - 검색·공유: `metadataBase`, 페이지별 canonical(`/`, `/main`), Open Graph(사이트 이름·`ko_KR`)·`summary_large_image` 카드, 인트로 첫 화면 캡처에서 조작 버튼을 뺀 위쪽을 1200×630으로 줄인 공유 그림(`pnpm og-image`, `pnpm screenshots`가 함께 만듦), `robots.txt`(Storybook 제외)·`sitemap.xml`
 - 크기 예산: 모든 청크를 더하던 "전체 JS 400 kB"(399.98 kB로 여유가 없었음)를 실제로 받는 파일 기준으로 나눔. 페이지별 첫 화면 JS(`/` 155 kB, `/main` 150 kB, noModule 폴리필 제외), 인트로 장면 청크(185 kB), Sentry 청크(32 kB, DSN이 있을 때만 받음), CSS(8 kB). 빌드한 HTML에서 스크립트를 골라 잼(`.size-limit.mjs`)

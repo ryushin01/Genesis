@@ -51,6 +51,10 @@ export function GlobalError({ error, retry }: { error: unknown; retry: () => voi
         >
           다시 시도
         </button>
+        {/* 다시 시도해도 실패하면 메인 화면을 처음부터 다시 받습니다. */}
+        <a href="/main" style={{ display: 'inline-flex', alignItems: 'center', minHeight: 44, color: 'inherit', textUnderlineOffset: 4 }}>
+          메인으로 가기
+        </a>
       </body>
     </html>
   );
