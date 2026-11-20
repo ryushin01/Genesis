@@ -24,7 +24,7 @@ import { createSceneState, sampleTimeline } from '../model/timeline';
 import { createBackdrop } from './scene/backdrop';
 import { createBird, WINGSPAN } from './scene/bird';
 import { createDisposer, disposeObject } from './scene/disposer';
-import { createEmbers, createFleet, createTrail } from './scene/effects';
+import { createEmbers, createMeteorShower, createTrail } from './scene/effects';
 import { createFeathers, type Feathers } from './scene/feathers';
 import { createLogo, type Logo } from './scene/logo';
 
@@ -43,6 +43,8 @@ export interface PhoenixSceneOptions {
 }
 
 const FX_DISTANCE = 12;
+/** 배경 셰이더 좌표에서 태양 중심의 높이(배경 셰이더의 `vec2(uSunX,.24)`와 같아야 함). */
+const SUN_Y = 0.24;
 /** 큰 깃털이 진자처럼 흔들리는 빠르기(라디안/초). */
 const SWING = 1.1;
 
@@ -155,17 +157,16 @@ export async function createPhoenixScene(
     scene.add(skyLight, sunLight, fillLight, bird.group, trail.points);
     const camera = new PerspectiveCamera(40, 1, 0.1, 200);
 
-    // 함대·불티·깃털·로고는 고정된 카메라로 그려 화면 전체를 채웁니다.
+    // 불티·깃털·로고는 고정된 카메라로 그려 화면 전체를 채웁니다.
     const fxScene = new Scene();
     const fxCamera = new PerspectiveCamera(40, 1, 0.1, 100);
     fxCamera.position.set(0, 0, FX_DISTANCE);
     const halfHeight = Math.tan((fxCamera.fov * Math.PI) / 360) * FX_DISTANCE;
-    const fleet = disposer.track(createFleet(compact ? 40 : 76, shared.uTime));
     const embers = disposer.track(createEmbers(compact ? 400 : 900, shared.uTime));
     // 로고에만 닿는 빛. 깃털·불티는 빛을 쓰지 않는 셰이더라 영향을 받지 않습니다.
     const logoKey = new DirectionalLight(0xffc8bd, 2.1);
     logoKey.position.set(-2.5, 3, 6);
-    fxScene.add(fleet.mesh, embers.points, logoKey, new AmbientLight(0xff7466, 0.8));
+    fxScene.add(embers.points, logoKey, new AmbientLight(0xff7466, 0.8));
 
     // 불사조 윤곽: 배경의 빛 무리·불길·빛줄기에 씁니다. 밉맵을 만들어 넓게 흐린 값도 몇 번만 읽습니다.
     const mask = disposer.track(
@@ -178,6 +179,9 @@ export async function createPhoenixScene(
       }),
     );
     const backdrop = disposer.track(createBackdrop(mask.texture, shared));
+    // 유성우는 배경과 함께 그려, 불사조보다 먼저(뒤에) 하늘을 지나가게 합니다.
+    const shower = disposer.track(createMeteorShower(compact ? 36 : 72, compact ? 2 : 3, shared.uTime));
+    backdrop.scene.add(shower.group);
 
     let feathers: Feathers | null = null;
     let logo: Logo | null = null;
@@ -210,6 +214,9 @@ export async function createPhoenixScene(
       mask.setSize(maskWidth, maskHeight);
       backdrop.uniforms.uMaskSize.value.set(maskWidth, maskHeight);
       backdrop.uniforms.uRes.value.copy(drawingBuffer);
+      shower.uniforms.uAspect.value = width / height;
+      // 굵기는 CSS 픽셀로 잽니다. 고해상도 화면에서도 가늘어지지 않고, 해상도를 낮춰도 그대로입니다.
+      shower.uniforms.uPixel.value = 1 / height;
       // 점 크기는 화면 높이에 맞추고, 카메라 바로 앞의 점이 커다란 흐린 원이 되지 않게 묶습니다.
       const pointScale = drawingBuffer.y * 0.42;
       embers.uniforms.uScale.value = pointScale;
@@ -331,8 +338,6 @@ export async function createPhoenixScene(
 
       embers.uniforms.uHeat.value = s.burn;
       embers.uniforms.uFlight.value = s.flight;
-      fleet.mesh.visible = s.war > 0.001;
-      fleet.uniforms.uWar.value = s.war;
 
       // 큰 깃털: 태양에서 화면 가운데(로고 자리)로, 진자처럼 흔들리며 내려옵니다.
       // 흔들리는 끝에서 살짝 떠오르고, 가운데 쪽으로 몸을 기울입니다.
@@ -364,8 +369,14 @@ export async function createPhoenixScene(
       bu.uWar.value = s.war;
       bu.uNova.value = s.nova;
       bu.uLogo.value = s.logo;
+      // 유성우는 전쟁 장면에서 쏟아지고, 깃털이 로고 자리로 내려오는 끝 장면에서는 로고를 가리지 않게 잦아듭니다.
+      const showerLevel = s.war * (1 - 0.55 * s.fall);
+      shower.group.visible = showerLevel > 0.001;
+      shower.uniforms.uIntensity.value = showerLevel;
+      shower.uniforms.uSun.value.set(sunX, SUN_Y);
+      shower.uniforms.uShift.value.copy(bu.uShift.value);
       // 폭발은 태양 자리에서, 잔광은 로고 자리에서 일어납니다(배경 셰이더 좌표).
-      bu.uNovaAt.value.set(sunX, 0.24);
+      bu.uNovaAt.value.set(sunX, SUN_Y);
       bu.uLogoAt.value.set(0, logoAt.y / (2 * halfHeight));
       bu.uHeroAt.value.set(heroAt.x / (2 * halfHeight), heroAt.y / (2 * halfHeight));
       bu.uHeroGlow.value = Math.min(1, s.fall * 4) * (1 - s.logo);
@@ -425,7 +436,7 @@ export async function createPhoenixScene(
     resize();
     await yieldToMain();
     leaveIfAborted();
-    // 셰이더를 미리 컴파일해 둡니다. 함대처럼 나중에 보이는 것이 처음 나타날 때 멈칫하지 않습니다.
+    // 셰이더를 미리 컴파일해 둡니다. 유성우처럼 나중에 보이는 것이 처음 나타날 때 멈칫하지 않습니다.
     // compileAsync는 KHR_parallel_shader_compile가 있으면 링크가 끝날 때까지 메인 스레드를 막지 않고 기다립니다
     // (없는 브라우저는 예전처럼 첫 그리기에서 기다림).
     await Promise.all([
