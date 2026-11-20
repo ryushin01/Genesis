@@ -36,6 +36,9 @@ await page.waitForTimeout(4000);
 await shot(page, "intro-hero");
 
 // 장의 가운데쯤으로 옮긴 뒤 장면이 스크롤을 따라올 때까지 기다린다.
+// 소프트웨어 렌더러는 초당 몇 프레임뿐이고 장면은 한 프레임에 최대 0.05초만큼만 따라오므로, 장을 건너뛰면 여유 있게 기다린다.
+// 컴퓨터가 바빠 장면이 덜 따라온 채 찍히면 SCREENSHOT_WAIT_MS로 늘린다(예: SCREENSHOT_WAIT_MS=20000 pnpm screenshots).
+const CATCH_UP = Number(process.env.SCREENSHOT_WAIT_MS) || 9000;
 async function chapter(name, at, file) {
   await page.evaluate(
     ([n, ratio]) => {
@@ -44,14 +47,15 @@ async function chapter(name, at, file) {
     },
     [name, at],
   );
-  await page.waitForTimeout(5000);
+  await page.waitForTimeout(CATCH_UP);
   await shot(page, file);
 }
 
 await chapter("myths", 0.45, "intro-myth");
 await chapter("war", 0.55, "intro-war");
 await page.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
-await page.waitForTimeout(6000);
+// 끝 장면은 깃털을 많이 그려 더 느리므로, 로고가 다 나타날 때까지 두 배로 기다린다.
+await page.waitForTimeout(CATCH_UP * 2);
 await shot(page, "intro-zero");
 
 // 메인 화면: 첫 화면, 서사(흐릿한 글이 차례로 또렷해지는 중간), 구조(우주 카드가 가운데 온 때)

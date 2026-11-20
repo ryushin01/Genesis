@@ -311,28 +311,181 @@ void main(){
   gl_FragColor=vec4(col,1.);
 }`;
 
-export const fleetVertex = /* glsl */ `
-attribute vec3 aOffset;
+/**
+ * 유성. 배경 셰이더와 같은 화면 단위(세로 -0.5~0.5, 가로는 화면 비율만큼)에서 바로 화면 좌표를 냅니다.
+ * - 모든 유성은 화면 오른쪽 위 바깥의 한 점(복사점)에서 퍼져 나옵니다. 복사점에서 멀수록 길고 빠르게 긋습니다.
+ * - 저마다 3~6.4초 주기로 다시 태어나며 주기마다 자리·빠르기·밝기를 새로 뽑습니다. 다섯 번에 한 번은 쉬어 박자가 고르지 않습니다.
+ * - 밝기는 희미한 것이 많고 밝은 것은 드뭅니다. 꼬리는 지나온 거리보다 길어지지 않고, 밝을수록 끝에서 한 번 더 타오릅니다.
+ * - 밝은 불덩이는 다 탄 뒤에도 자국(잔광)이 남아 넓게 번지며 1초쯤 식고, 바람에 흔들리듯 살짝 굽습니다.
+ * - 화면 흔들림(uShift)은 배경과 같게 따르고, 세기(uIntensity)가 오를수록 더 많이 떨어집니다.
+ * - 보이지 않는 유성은 화면 밖으로 보내 조각 셰이더를 돌리지 않습니다.
+ */
+export const meteorVertex = /* glsl */ `
 attribute float aSeed;
-uniform float uTime, uWar;
-varying float vEngine, vSeed;
+uniform float uTime, uIntensity, uAspect, uPixel;
+uniform vec2 uShift;
+varying vec2 vLocal;
+varying float vLen, vCore, vGlow, vBright, vHeat, vTrain, vAfter, vSeed;
+float h(float n){return fract(sin(mod(n,628.3185))*43758.5453);}
 void main(){
-  vec3 o=aOffset;
-  o.x=mod(o.x+uTime*(.55+aSeed*.5)+30.,60.)-30.;
-  vec3 local=position*(.7+aSeed*.9)*uWar;
-  vEngine=smoothstep(-.1,-.27,local.x/max(.2,(.7+aSeed*.9)));
-  vSeed=aSeed;
-  gl_Position=projectionMatrix*modelViewMatrix*vec4(local+o,1.);
+  float period=3.+h(aSeed*3.1)*3.4;
+  float cyc=uTime/period+h(aSeed*5.7)*7.;
+  float k=mod(floor(cyc),997.);
+  float age=fract(cyc)*period;
+  float s=aSeed*17.3+k*1.618;
+  float bright=pow(h(s+.11),1.7);
+  float dur=mix(.45,1.,h(s+.23))*(1.+bright*.6);
+  vec2 R=vec2(uAspect*.5+.32,.86);
+  vec2 S=vec2((h(s+.37)-.5)*uAspect*1.1,mix(-.08,.5,h(s+.41)));
+  float dist=length(S-R);
+  vec2 D=(S-R)/dist;
+  float speed=dist*mix(.5,.95,h(s+.53));
+  float flown=speed*min(age,dur);
+  float trail=min(min(dist*mix(.13,.28,h(s+.67))*(1.+bright*.6),.5),flown);
+  vec2 head=S+D*flown;
+  float life=age/dur;
+  float after=max(age-dur,0.);
+  float flare=1.+bright*.9*smoothstep(.5,.78,life)*(1.-smoothstep(.78,.96,life));
+  float heat=smoothstep(0.,.14,life)*(1.-smoothstep(.62,1.,life))*flare;
+  float train=step(1.,life)*smoothstep(.5,.85,bright)*exp(-after*2.4)*(1.-smoothstep(.9,1.3,after));
+  float on=step(h(s+.79),.8)*smoothstep(h(s+.83)-.12,h(s+.83)+.12,uIntensity*1.15)*uIntensity;
+  float core=mix(.85,2.3,bright)*uPixel;
+  float glow=core*mix(4.5,8.5,bright)*step(life,1.);
+  float halfW=max(max(glow*1.6,core*(1.2+after*5.)*3.),uPixel*3.);
+  float a=mix(-max(glow,uPixel*2.),trail,position.x);
+  vec2 p=head-D*a+vec2(-D.y,D.x)*position.y*halfW;
+  if((heat+train)*on<.002) p=vec2(9.);
+  vLocal=vec2(a,position.y*halfW);
+  vLen=max(trail,uPixel);
+  vCore=core; vGlow=max(glow,1e-5); vBright=bright; vAfter=after; vSeed=aSeed;
+  vHeat=heat*on; vTrain=train*on;
+  gl_Position=vec4((p-uShift)/vec2(uAspect,1.)*2.,0.,1.);
 }`;
 
-export const fleetFragment = /* glsl */ `
+/**
+ * - 머리는 하얗게 달아오른 점과 뒤로 조금 늘어진 빛 무리, 꼬리는 주황에서 진홍을 거쳐 검붉게 식으며 가늘어지고,
+ *   머리 쪽 꼬리 둘레로는 빛이 은은하게 번집니다.
+ * - 한 픽셀보다 가는 선은 넓히는 대신 그만큼 어둡게 해 움직일 때 깜빡이지 않게 합니다.
+ * - 밝은 불덩이는 머리 쪽 꼬리가 부서지듯 자글거립니다.
+ * - 더하기 섞기에서 알파를 1로 두고, 색 자체를 빛의 양으로 씁니다.
+ */
+export const meteorFragment = /* glsl */ `
 precision highp float;
-uniform float uTime;
-varying float vEngine, vSeed;
+uniform float uTime, uPixel;
+varying vec2 vLocal;
+varying float vLen, vCore, vGlow, vBright, vHeat, vTrain, vAfter, vSeed;
+float h(float n){return fract(sin(mod(n,628.3185))*43758.5453);}
 void main(){
-  vec3 hull=vec3(.03,.012,.014);
-  float flick=.75+.25*sin(uTime*18.+vSeed*40.);
-  gl_FragColor=vec4(hull+vec3(.9,.08,.05)*vEngine*flick*1.5,1.);
+  float a=vLocal.x;
+  float t=clamp(a/vLen,0.,1.);
+  float back=step(0.,a);
+  float w=vCore*(1.-t*.8);
+  float we=max(w,uPixel*.75);
+  float body=back*exp(-vLocal.y*vLocal.y/(we*we)*1.6)*(w/we)*exp(-t*2.4)*(1.-smoothstep(.72,1.,t));
+  float grain=mix(1.,.55+.9*h(floor(a/(uPixel*4.))+floor(uTime*28.)+vSeed*91.),smoothstep(.6,1.,vBright)*(1.-t));
+  vec2 q=vec2(a*(a<0.?1.6:.55),vLocal.y);
+  float r2=dot(q,q);
+  float halo=exp(-r2/(vGlow*vGlow)*2.2);
+  float ce=max(vCore,uPixel*.8);
+  float hot=exp(-r2/(ce*ce)*1.4)*(vCore/ce);
+  vec3 white=vec3(1.,.95,.88);
+  vec3 tail=mix(mix(vec3(1.,.6,.38),vec3(.95,.18,.1),smoothstep(.04,.42,t)),vec3(.48,.02,.04),smoothstep(.42,1.,t));
+  tail=mix(white,tail,smoothstep(0.,.07,t));
+  float bloom=back*exp(-vLocal.y*vLocal.y/(we*we*9.))*exp(-t*3.5)*.22;
+  vec3 col=(tail*(body*grain*1.15+bloom)+vec3(1.,.5,.36)*halo*(.35+vBright*.6)+white*hot*1.6)*vHeat;
+  float c=vLocal.y-sin(a*70.+vSeed*40.)*vAfter*.006;
+  float tw=vCore*(1.2+vAfter*5.);
+  float train=back*exp(-c*c/(tw*tw))*(1.-smoothstep(.8,1.,t))*smoothstep(0.,.1,t+.03);
+  col+=mix(vec3(.95,.3,.22),vec3(.55,.03,.05),clamp(vAfter*1.2,0.,1.))*train*vTrain*.55;
+  gl_FragColor=vec4(col,1.);
+}`;
+
+/**
+ * 혜성. 유성과 같은 화면 단위를 씁니다.
+ * - 11~17초에 한 번씩 화면 양옆 바깥에서 들어와 태양 곁을 겨누고 날아듭니다. 태양에 끌려 휘며 점점 빨라지고,
+ *   다가갈수록 꼬리가 길고 밝아지다가 태양의 눈부심 속으로 사라집니다. 씨앗을 고르게 나눠 한꺼번에 몰리지 않습니다.
+ * - 길은 태양이 늘 있는 자리(가운데 위)를 기준으로 정해, 스크롤에 따라 태양이 옮겨 가도 혜성이 미끄러지지 않습니다.
+ * - 세로로 긴 화면에서는 태양이 위쪽을 거의 덮어 곁으로 날아들 자리가 없으므로, 화면이 좁을수록 불사조와 글 사이의
+ *   하늘을 천천히 가로질러 건너고 태양에 덜 끌립니다(데스크톱의 길에서 부드럽게 바뀜). 이때는 늘 태양 반대쪽
+ *   가장자리에서 태양 쪽으로 건너, 꼬리가 진행 방향의 앞에 놓이지 않습니다.
+ * - 꼬리는 늘 지금의 태양(uSun) 반대쪽, 곧 날아가는 방향의 뒤를 향합니다. 곧고 가는 이온 꼬리와,
+ *   지나온 길 쪽으로 휘며 넓게 퍼지는 먼지 꼬리 두 갈래입니다.
+ */
+export const cometVertex = /* glsl */ `
+attribute float aSeed;
+uniform float uTime, uIntensity, uAspect;
+uniform vec2 uShift, uSun;
+varying vec2 vLocal;
+varying float vLen, vComa, vCurve, vAlpha, vSeed;
+float h(float n){return fract(sin(mod(n,628.3185))*43758.5453);}
+void main(){
+  float period=11.+h(aSeed*3.3)*6.;
+  float cyc=uTime/period+aSeed;
+  float k=mod(floor(cyc),997.);
+  float life=fract(cyc);
+  float t=life*period;
+  float s=aSeed*13.7+k*2.414;
+  float side=h(s+.1)<.5?-1.:1.;
+  float hw=uAspect*.5;
+  float narrow=1.-smoothstep(.6,1.2,uAspect);
+  side=narrow>.5?-sign(uSun.x+1e-4):side;
+  vec2 focus=vec2(0.,.24);
+  vec2 start=vec2(side*(hw+.04),mix(mix(-.02,.44,h(s+.3)),mix(-.22,-.06,h(s+.3)),narrow));
+  vec2 aim=mix(focus+vec2(side*mix(.14,.34,h(s+.2)),mix(-.2,.16,h(s+.4))),vec2(-side*hw*mix(.3,.9,h(s+.2)),start.y+mix(-.05,.05,h(s+.4))),narrow);
+  float speed=mix(mix(.075,.12,h(s+.5)),mix(.045,.07,h(s+.5)),narrow);
+  vec2 vel=normalize(aim-start)*speed;
+  vec2 pull=normalize(focus-start)*mix(.003,.008,h(s+.6))*(1.-narrow*.8);
+  vec2 C=start+vel*t+.5*pull*t*t;
+  vec2 v=vel+pull*t;
+  float ta=length(aim-start)*1.25/speed;
+  float r=length(C-uSun);
+  vec2 T=(C-uSun)/max(r,1e-4);
+  vec2 N=vec2(-T.y,T.x);
+  float near=1.-smoothstep(.25,.95,r);
+  float len=mix(.15,.26,h(s+.7))*(1.+near*.7);
+  float coma=mix(.008,.013,h(s+.8))*(1.+near*.25)*(1.+.06*sin(uTime*1.7+aSeed*9.));
+  float curve=-sign(dot(v,N)+1e-5)*mix(.1,.2,h(s+.9));
+  float alpha=smoothstep(0.,.08,life)*(1.-smoothstep(.9,1.,life))*(1.-smoothstep(ta*.8,ta,t))*smoothstep(.17,.32,r)*(.75+near*.5)*smoothstep(h(s+.95)*.5,h(s+.95)*.5+.3,uIntensity)*uIntensity;
+  float halfW=len*(.13+abs(curve))+coma*3.5;
+  float a=mix(-coma*5.,len,position.x);
+  vec2 p=C+T*a+N*position.y*halfW;
+  vLocal=vec2(a,position.y*halfW);
+  vLen=len; vComa=coma; vCurve=curve; vAlpha=alpha; vSeed=aSeed;
+  if(alpha<.002) p=vec2(9.);
+  gl_Position=vec4((p-uShift)/vec2(uAspect,1.)*2.,0.,1.);
+}`;
+
+/**
+ * - 핵은 작고 하얗게 반짝이고, 둘레의 코마는 숨 쉬듯 조금씩 부풀며 꼬리 쪽으로 늘어집니다.
+ * - 이온 꼬리는 분홍빛 흰색으로 가늘게 곧고, 결이 꼬리 끝으로 빠르게 흘러갑니다.
+ * - 먼지 꼬리는 주황에서 진홍으로 식으며 끝으로 갈수록 넓고 흐려지고, 떨어져 나온 부스러기가 반짝이며 뒤로 흩어집니다.
+ */
+export const cometFragment = /* glsl */ `
+precision highp float;
+uniform float uTime, uPixel;
+varying vec2 vLocal;
+varying float vLen, vComa, vCurve, vAlpha, vSeed;
+float h(float n){return fract(sin(mod(n,628.3185))*43758.5453);}
+float vn(float x){float i=floor(x),f=fract(x);return mix(h(i),h(i+1.),f*f*(3.-2.*f));}
+void main(){
+  float a=vLocal.x, c=vLocal.y;
+  float s=clamp(a/vLen,0.,1.);
+  float back=step(0.,a);
+  float wi=vComa*.45+s*vLen*.03;
+  float ion=back*exp(-c*c/(wi*wi))*exp(-s*2.)*(1.-s)*(.45+.55*vn(c/wi*2.5+vSeed*31.)*vn(s*7.-uTime*2.4+vSeed*17.));
+  float c0=vCurve*s*s*vLen;
+  float wd=vComa*.9+s*vLen*.11;
+  float dust=back*exp(-(c-c0)*(c-c0)/(wd*wd)*1.4)*exp(-s*1.5)*(1.-s*s)*(.8+.2*vn(s*12.-uTime*.9+vSeed*7.));
+  vec2 cell=vec2(a/vComa*1.1-uTime*1.6,(c-c0)/vComa*1.1);
+  float speck=back*step(.9,h(floor(cell.x)+floor(cell.y)*7.13+vSeed*57.))*smoothstep(.32,.06,length(fract(cell)-.5))*exp(-(c-c0)*(c-c0)/(wd*wd)*.9)*smoothstep(0.,.06,s)*(1.-s);
+  vec2 q=vec2(a*(a<0.?1.3:.75),c);
+  float d2=dot(q,q);
+  float coma=exp(-d2/(vComa*vComa)*1.2);
+  float halo=exp(-d2/(vComa*vComa*5.8));
+  float pe=max(uPixel*1.1,vComa*.12);
+  float nucleus=exp(-d2/(pe*pe))*(.9+.1*sin(uTime*6.+vSeed*40.));
+  vec3 col=vec3(1.,.97,.93)*nucleus*1.7+vec3(1.,.8,.72)*coma*.9+vec3(1.,.4,.32)*halo*.28+vec3(1.,.74,.76)*ion*.5+mix(vec3(1.,.52,.34),vec3(.72,.07,.06),s)*dust*.55+vec3(1.,.7,.55)*speck*.45;
+  gl_FragColor=vec4(col*vAlpha,1.);
 }`;
 
 /**

@@ -2,40 +2,85 @@ import {
   AdditiveBlending,
   BufferAttribute,
   BufferGeometry,
-  ConeGeometry,
+  DoubleSide,
+  Group,
   InstancedBufferAttribute,
   InstancedBufferGeometry,
   Mesh,
   Points,
   ShaderMaterial,
+  Vector2,
   Vector3,
 } from 'three';
-import { emberFragment, emberVertex, fleetFragment, fleetVertex, trailFragment, trailVertex } from '../shaders';
+import {
+  cometFragment,
+  cometVertex,
+  emberFragment,
+  emberVertex,
+  meteorFragment,
+  meteorVertex,
+  trailFragment,
+  trailVertex,
+} from '../shaders';
 
-/** 전쟁 장면에서 지나가는 먼 함대. */
-export function createFleet(count: number, uTime: { value: number }) {
-  const uniforms = { uTime, uWar: { value: 0 } };
-  const cone = new ConeGeometry(0.09, 0.55, 3).rotateZ(-Math.PI / 2);
+type SkyUniforms = Record<string, { value: unknown }>;
+
+/**
+ * 전쟁 장면에 쏟아지는 유성우(유성과 혜성). 배경과 함께 불사조보다 먼저 그려, 불사조 뒤의 하늘을 지나갑니다.
+ * 꼭짓점 셰이더가 배경 셰이더와 같은 화면 단위에서 바로 화면 좌표를 내므로 카메라와 상관없습니다.
+ * 화면 비율(uAspect)과 CSS 한 픽셀의 크기(uPixel)는 화면 크기가 바뀔 때, 태양 자리(uSun)와 흔들림(uShift)은 매 프레임 넣습니다.
+ */
+export function createMeteorShower(meteorCount: number, cometCount: number, uTime: { value: number }) {
+  const uniforms = {
+    uTime,
+    uIntensity: { value: 0 },
+    uAspect: { value: 1.6 },
+    uPixel: { value: 1 / 900 },
+    uShift: { value: new Vector2() },
+    uSun: { value: new Vector2(0, 0.24) },
+  };
+  const meteors = createSkyQuads(meteorCount, uniforms, meteorVertex, meteorFragment);
+  const comets = createSkyQuads(cometCount, uniforms, cometVertex, cometFragment);
+  const group = new Group().add(meteors.mesh, comets.mesh);
+  group.visible = false;
+  return {
+    group,
+    uniforms,
+    dispose() {
+      meteors.dispose();
+      comets.dispose();
+    },
+  };
+}
+
+/**
+ * 하늘에 얹는 사각형 묶음. 사각형의 x는 머리(0)에서 꼬리 끝(1)까지, y는 폭 방향(-1~1)이고, 크기와 방향은 셰이더가 정합니다.
+ * 깊이 대신 그리는 순서로 앞뒤를 정하고(배경 다음, 불사조 앞), 빛이라 더하기로 섞습니다.
+ */
+function createSkyQuads(count: number, uniforms: SkyUniforms, vertexShader: string, fragmentShader: string) {
   const geometry = new InstancedBufferGeometry();
-  geometry.setIndex(cone.getIndex());
-  geometry.setAttribute('position', cone.getAttribute('position'));
-  const offsets = new Float32Array(count * 3);
-  const seeds = new Float32Array(count);
-  for (let i = 0; i < count; i += 1) {
-    const flank = i % 2 === 0 ? 1 : -1;
-    offsets.set([Math.random() * 60 - 30, flank * (2.6 + Math.random() * 5.5), -9 - Math.random() * 15], i * 3);
-    seeds[i] = Math.random();
-  }
-  geometry.setAttribute('aOffset', new InstancedBufferAttribute(offsets, 3));
+  geometry.setIndex([0, 1, 2, 2, 1, 3]);
+  geometry.setAttribute('position', new BufferAttribute(new Float32Array([0, -1, 0, 1, -1, 0, 0, 1, 0, 1, 1, 0]), 3));
+  // 씨앗을 고르게 나눠 여러 개가 같은 때·같은 자리에 몰리지 않게 합니다.
+  const seeds = Float32Array.from({ length: count }, (_, i) => (i + Math.random()) / count);
   geometry.setAttribute('aSeed', new InstancedBufferAttribute(seeds, 1));
   geometry.instanceCount = count;
-  const material = new ShaderMaterial({ uniforms, vertexShader: fleetVertex, fragmentShader: fleetFragment });
+  const material = new ShaderMaterial({
+    uniforms,
+    vertexShader,
+    fragmentShader,
+    transparent: true,
+    depthTest: false,
+    depthWrite: false,
+    blending: AdditiveBlending,
+    // 유성은 사각형을 진행 방향의 반대로(꼬리 쪽으로) 펼쳐 감김 방향이 뒤집히므로, 뒷면도 그립니다.
+    side: DoubleSide,
+  });
   const mesh = new Mesh(geometry, material);
   mesh.frustumCulled = false;
-  mesh.visible = false;
+  mesh.renderOrder = 1;
   return {
     mesh,
-    uniforms,
     dispose() {
       geometry.dispose();
       material.dispose();
