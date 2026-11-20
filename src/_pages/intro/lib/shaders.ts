@@ -405,6 +405,9 @@ void main(){
  * - 11~17초에 한 번씩 화면 양옆 바깥에서 들어와 태양 곁을 겨누고 날아듭니다. 태양에 끌려 휘며 점점 빨라지고,
  *   다가갈수록 꼬리가 길고 밝아지다가 태양의 눈부심 속으로 사라집니다. 씨앗을 고르게 나눠 한꺼번에 몰리지 않습니다.
  * - 길은 태양이 늘 있는 자리(가운데 위)를 기준으로 정해, 스크롤에 따라 태양이 옮겨 가도 혜성이 미끄러지지 않습니다.
+ * - 세로로 긴 화면에서는 태양이 위쪽을 거의 덮어 곁으로 날아들 자리가 없으므로, 화면이 좁을수록 불사조와 글 사이의
+ *   하늘을 천천히 가로질러 건너고 태양에 덜 끌립니다(데스크톱의 길에서 부드럽게 바뀜). 이때는 늘 태양 반대쪽
+ *   가장자리에서 태양 쪽으로 건너, 꼬리가 진행 방향의 앞에 놓이지 않습니다.
  * - 꼬리는 늘 지금의 태양(uSun) 반대쪽, 곧 날아가는 방향의 뒤를 향합니다. 곧고 가는 이온 꼬리와,
  *   지나온 길 쪽으로 휘며 넓게 퍼지는 먼지 꼬리 두 갈래입니다.
  */
@@ -423,12 +426,15 @@ void main(){
   float t=life*period;
   float s=aSeed*13.7+k*2.414;
   float side=h(s+.1)<.5?-1.:1.;
+  float hw=uAspect*.5;
+  float narrow=1.-smoothstep(.6,1.2,uAspect);
+  side=narrow>.5?-sign(uSun.x+1e-4):side;
   vec2 focus=vec2(0.,.24);
-  vec2 start=vec2(side*(uAspect*.5+.04),mix(-.02,.44,h(s+.3)));
-  vec2 aim=focus+vec2(side*mix(.14,.34,h(s+.2)),mix(-.2,.16,h(s+.4)));
-  float speed=mix(.075,.12,h(s+.5));
+  vec2 start=vec2(side*(hw+.04),mix(mix(-.02,.44,h(s+.3)),mix(-.22,-.06,h(s+.3)),narrow));
+  vec2 aim=mix(focus+vec2(side*mix(.14,.34,h(s+.2)),mix(-.2,.16,h(s+.4))),vec2(-side*hw*mix(.3,.9,h(s+.2)),start.y+mix(-.05,.05,h(s+.4))),narrow);
+  float speed=mix(mix(.075,.12,h(s+.5)),mix(.045,.07,h(s+.5)),narrow);
   vec2 vel=normalize(aim-start)*speed;
-  vec2 pull=normalize(focus-start)*mix(.003,.008,h(s+.6));
+  vec2 pull=normalize(focus-start)*mix(.003,.008,h(s+.6))*(1.-narrow*.8);
   vec2 C=start+vel*t+.5*pull*t*t;
   vec2 v=vel+pull*t;
   float ta=length(aim-start)*1.25/speed;
