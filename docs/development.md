@@ -66,6 +66,7 @@ WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립�
 - `/storybook`은 정적 파일 폴더라 `/storybook/index.html`로 보냅니다(`next.config.ts`의 `redirects`).
 - `pnpm build-storybook`(앱 빌드가 먼저 부르는 스크립트)으로 빌드할 때는 `public`을 복사하지 않습니다. 같은 주소에서 열리므로 파일은 사이트의 것을 씁니다.
 - 개발 서버(`pnpm dev`)에서는 링크가 Storybook 개발 서버(`http://localhost:6006`)로 갑니다.
+- Paseo처럼 프로젝트 아이콘을 자동으로 찾는 도구는 `src/`를 보지 않고 `public/`을 하위 폴더까지 뒤지므로, 그대로 두면 `public/storybook/favicon.svg`(Storybook 로고)를 고릅니다. 그래서 `public/` 바로 아래에 사이트 아이콘(`src/app/icon.png`)과 같은 `favicon.png`를 둡니다(사이트는 쓰지 않음). 아이콘을 바꾸면 함께 복사하고, `src/app/public-favicon.test.ts`가 두 파일이 같은지 확인합니다.
 
 ## 품질 예산
 
