@@ -1,20 +1,38 @@
 import type { Metadata, Viewport } from 'next';
-import { Cormorant, Inter, JetBrains_Mono } from 'next/font/google';
 import localFont from 'next/font/local';
 import type { ReactNode } from 'react';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/shared/config';
 import '../styles/globals.css';
 import { RestFonts } from './RestFonts';
 
-const sans = Inter({ subsets: ['latin'], variable: '--font-sans-latin', display: 'swap' });
-const mono = JetBrains_Mono({ subsets: ['latin'], variable: '--font-mono-latin', display: 'swap' });
-const display = Cormorant({
-  subsets: ['latin'],
-  style: 'italic',
-  weight: ['400'],
-  variable: '--font-display-latin',
+/*
+ * 라틴 글꼴(OFL)은 저장소의 파일을 씁니다. next/font/google은 빌드할 때 Google Fonts에서 받으므로
+ * 네트워크가 없으면 빌드가 실패합니다. 파일은 Fontsource 패키지의 라틴 조각(라틴 글자만 담겨 한글은 다음 글꼴로 넘어감)이고 라이선스는 각 폴더의 OFL.txt입니다.
+ */
+const sans = localFont({
+  src: '../styles/fonts/inter/inter-latin-wght-normal.woff2',
+  weight: '100 900',
+  style: 'normal',
+  variable: '--font-sans-latin',
   display: 'swap',
 });
+const mono = localFont({
+  src: '../styles/fonts/jetbrains-mono/jetbrains-mono-latin-wght-normal.woff2',
+  weight: '100 800',
+  style: 'normal',
+  variable: '--font-mono-latin',
+  display: 'swap',
+  adjustFontFallback: false,
+});
+const display = localFont({
+  src: '../styles/fonts/cormorant/cormorant-latin-400-italic.woff2',
+  weight: '400',
+  style: 'italic',
+  variable: '--font-display-latin',
+  display: 'swap',
+  adjustFontFallback: 'Times New Roman',
+});
+
 /*
  * 한글 서사 문장 속 영문·숫자(“SF” 등): Cormorant 똑바른 Bold(가변 글꼴을 700으로 고정하고 라틴 글자만 담음).
  * 우아한 세리프 한글은 글자 면을 꽉 채워(높이 1em) Cormorant 대문자(0.625em)가 작고 가늘어 보이므로,

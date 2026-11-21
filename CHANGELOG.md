@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.0 - 2026-11-21
+
+인터넷이 끊기거나 `.env`가 없어도 빌드·실행·화면이 그대로 되게 했습니다. 화면 모양은 그대로입니다.
+
+- 글꼴: Inter·JetBrains Mono·Cormorant 기울임을 `next/font/google`(빌드할 때 Google Fonts에서 받음) 대신 저장소 파일(Fontsource 라틴 조각, OFL 원문 동봉)로 바꿔, 네트워크 없이도 빌드됨
+- 오프라인 E2E(`e2e/offline.spec.ts`): localhost 밖 요청을 모두 끊고 인트로 3D 장면·동작 줄이기 글·메인 내용과 글꼴·Storybook이 뜨는지, 바깥 요청이 하나도 없는지 확인(CI의 `pnpm e2e`에 포함)
+- README·개발 가이드에 `.env` 없이 실행하는 법과 바깥 의존 목록을 적음
+
 ## 1.1.1 - 2026-11-20
 
 세로로 긴 화면에서도 혜성이 보이게 했습니다. 데스크톱 화면은 그대로입니다.
