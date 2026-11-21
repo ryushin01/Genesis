@@ -50,8 +50,13 @@ test.describe('오프라인', () => {
       [...document.fonts].filter((font) => font.status === 'loaded').map((font) => font.family),
     );
     expect(loaded.length, '받은 글꼴').toBeGreaterThan(0);
-    const failed = await page.evaluate(() => [...document.fonts].filter((font) => font.status === 'error').length);
-    expect(failed, '받지 못한 글꼴').toBe(0);
+    // next/font가 만드는 `… Fallback` 항목은 시스템 글꼴(local('Arial') 등)을 가리켜 Linux CI에서는 없을 수 있으므로 뺍니다.
+    const failed = await page.evaluate(() =>
+      [...document.fonts]
+        .filter((font) => font.status === 'error' && !/Fallback/.test(font.family))
+        .map((font) => font.family),
+    );
+    expect(failed, '받지 못한 글꼴').toEqual([]);
   });
 
   test('함께 배포한 Storybook이 열린다', async ({ page, isMobile }) => {
