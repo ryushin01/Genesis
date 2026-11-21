@@ -47,7 +47,7 @@
 
 - 인트로는 프라이머리 `#8B0000`을 중심으로 한 적색 계열입니다. 메인은 흑백만 씁니다.
 - 3D 모델은 모두 CC BY 4.0입니다: “Phoenix” by NORBERTO-3D, “Feathers” by victorberdugo1, “Phoenix Logo” by Suraj-456tyu. 작품명·작가·라이선스와 변경 사항은 README의 '출처' 표에 두고, 인트로 끝과 메인 바닥글에는 그 표로 가는 링크만 둡니다. 라이선스 원문은 `public/models/*-license.txt`에 둡니다. 표기를 지우지 않습니다.
-- 참고 사이트의 모델, 텍스처, 로고, 사진, 유료 글꼴은 저작물이므로 가져오지 않습니다. 글꼴은 OFL 라이선스의 Inter, JetBrains Mono, Cormorant(영문 제목은 기울임, 한글 서사 문장 속 영문은 똑바른 Bold), 우아한 세리프(한글)를 씁니다.
+- 참고 사이트의 모델, 텍스처, 로고, 사진, 유료 글꼴은 저작물이므로 가져오지 않습니다. 글꼴은 OFL 라이선스의 Inter, JetBrains Mono, Cormorant(영문 제목은 기울임, 한글 서사 문장 속 영문은 똑바른 Bold), 우아한 세리프(한글)를 씁니다. 모두 저장소 파일이며 외부 글꼴 CDN이나 `next/font/google`은 쓰지 않습니다.
 - 한글은 화면에 쓰는 글자만 담은 우아한 세리프 파일을 첫 화면 CSS와 함께 받고, 나머지 글자는 조각으로 나눠 나중에 붙입니다. 문구를 바꾸면 `pnpm fonts`로 다시 만듭니다(빠진 글자는 단위 테스트가 잡음). 예약 글꼴 이름이 있어 줄인 파일의 이름은 GenesisSerif로 바꾸고, 라이선스 원문(`LICENSE.txt`)을 파일 옆에 둡니다.
 - 한글 서사 문장(`--font-narrative`: 메인 서사, 인트로 장 문장) 속 영문·숫자는 Cormorant 똑바른 Bold를 `size-adjust: 136%`로 키워 씁니다. 우아한 세리프 한글은 글자 면을 꽉 채워(높이 1em) Cormorant 대문자(0.625em)만으로는 작고 가늘어 보이기 때문입니다.
 
@@ -58,6 +58,16 @@
 ## E2E
 
 WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립니다. 프로덕션 서버는 3210 포트에 띄우고, 같은 기기의 다른 앱이 그 포트를 쓰고 있으면 `E2E_PORT=3290 pnpm e2e`처럼 바꿉니다. 데스크톱에서는 인트로와 메인을 두 번 오간 뒤 살아 있는 WebGL 컨텍스트가 0개이고 그리기 루프(rAF)도 멈췄는지 확인합니다. 첫 왕복에서는 매 프레임 메인 스레드를 40ms씩 붙잡아 해상도 자동 조절이 일어난 뒤에 떠납니다(조절하며 루프가 둘로 갈라지면 하나가 남던 문제의 회귀 검사). 이 검사만 화면을 800×500으로 줄여 GPU 없는 CI에서도 15초 안팎에 끝납니다.
+
+### 오프라인 검사
+
+`e2e/offline.spec.ts`는 localhost 밖으로 나가는 요청을 모두 끊고(`route.abort`) `.env` 없이 만든 프로덕션 빌드로 인트로(3D 장면·동작 줄이기 글), 메인(내용과 글꼴), Storybook이 뜨는지 보고, 바깥으로 나간 요청이 하나도 없어야 통과합니다. 포트폴리오로 보여 줄 때 외부 서비스가 끊겨도 화면이 그대로여야 하므로 바깥 자료를 새로 쓰면 저장소에 넣습니다.
+
+| 바깥 의존 | 처리 |
+| --- | --- |
+| 라틴 글꼴(Inter·JetBrains Mono·Cormorant 기울임) | `next/font/google` 대신 `next/font/local`로 저장소 파일(`src/_app/styles/fonts`, Fontsource 라틴 조각, OFL)을 씀. 빌드할 때도 네트워크가 필요 없음 |
+| 한글 글꼴·3D 모델·Storybook | 원래 저장소(`src/_app/styles/fonts`, `public/fonts`, `public/models`, `public/storybook`)에 있음 |
+| Sentry·web-vitals | DSN이 없으면 Sentry를 번들에 넣지 않음. DSN이 있어도 보내기 실패는 화면에 영향이 없음 |
 
 ## 디자인 시스템(Storybook) 배포
 
