@@ -59,6 +59,8 @@ const storybookHeaders = securityHeaders.map((header) => {
 });
 
 const nextConfig: NextConfig = {
+  // next dev가 AGENTS.md에 영어 에이전트 안내 블록을 넣지 않게 합니다. 같은 내용은 AGENTS.md에 한국어로 적었습니다.
+  agentRules: false,
   reactStrictMode: true,
   poweredByHeader: false,
   async headers() {

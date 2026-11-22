@@ -1,6 +1,6 @@
-# AGENTS.md — Genesis (project zero)
+# Genesis (project zero) — 에이전트 작업 안내
 
-이 저장소에서 일하는 AI 에이전트(Codex, Claude Code 등)를 위한 안내입니다. 자세한 내용은 [개발 가이드](docs/development.md)에 있습니다.
+이 저장소에서 일하는 AI 에이전트(Codex, Claude Code 등)를 위한 안내입니다. 자세한 내용은 [개발 가이드](docs/development.md)에 있습니다. `next dev`가 넣던 영어 안내 블록은 `next.config.ts`의 `agentRules: false`로 꺼 두었으므로 이 파일은 손으로 관리합니다. 그 블록의 내용은 이렇습니다: 이 저장소의 Next.js 16은 학습 데이터와 API·규칙·파일 구조가 다를 수 있으니, 코드를 쓰기 전에 `node_modules/next/dist/docs/`에서 해당 안내를 읽고 지원 중단(deprecation) 안내를 따릅니다.
 
 ## 1. 프로젝트 개요
 
