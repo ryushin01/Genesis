@@ -11,7 +11,9 @@ const steps = [
   ['단위 테스트·커버리지', ['test:coverage']],
   ['커버리지 요약', ['exec', 'node', 'scripts/coverage-summary.mjs']],
   ['빌드(Storybook + Next)', ['build']],
-  ['E2E(기능·오프라인·접근성·시각·성능)', ['e2e'], { E2E_PREBUILT: '1' }],
+  ['E2E(기능·오프라인·접근성·성능)', ['e2e'], { E2E_PREBUILT: '1' }],
+  // Docker(로컬은 colima)가 켜져 있어야 합니다. 기준 이미지와 같은 Playwright 공식 이미지의 브라우저로 찍습니다.
+  ['시각 회귀(Docker 브라우저)', ['visual:docker'], { E2E_PREBUILT: '1' }],
   ['번들 크기', ['size']],
   ['Lighthouse', ['lhci', ...(ci ? [] : ['--upload.target=filesystem', '--upload.outputDir=.lighthouseci'])]],
 ];

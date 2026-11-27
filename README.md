@@ -72,7 +72,7 @@ pnpm build && pnpm start     # 프로덕션 빌드와 실행
 | `pnpm typecheck` | 타입 검사 |
 | `pnpm check` | CI와 같은 검사 전체(린트·FSD·타입·커버리지·빌드·E2E·크기·Lighthouse)를 같은 순서로 |
 | `pnpm test` · `pnpm test:coverage` | 단위·컴포넌트 테스트 · 커버리지(로직 계층 80%, 전체 기준선) |
-| `pnpm e2e` | 프로덕션 빌드 E2E 테스트 (오프라인·접근성·Storybook 접근성·성능, Linux에서는 시각 회귀 포함) |
+| `pnpm e2e` | 프로덕션 빌드 E2E 테스트 (오프라인·접근성·Storybook 접근성·성능) |
 | `pnpm visual:docker` | 시각 회귀 검사를 Linux 브라우저(Playwright 공식 Docker 이미지)로 (`--update-snapshots`로 기준 이미지 다시 만들기) |
 | `pnpm e2e:deployed` | 배포한 사이트(기본 운영 주소, `E2E_BASE_URL`로 바꿈)에 같은 오프라인 검사 |
 | `pnpm size` · `pnpm lhci` | 번들 크기 예산 · Lighthouse 점수 기준 검사 (먼저 빌드 필요) |

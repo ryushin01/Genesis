@@ -17,11 +17,12 @@ const deployed =
 const prebuilt = process.env.E2E_PREBUILT === '1';
 
 /**
- * 시각 회귀 기준 이미지는 Linux(CI)에서 만든 것이라, Linux이거나 Docker 안의 브라우저(`pnpm visual:docker`가 띄우는
- * Playwright 공식 이미지의 run-server)에 붙을 때만 비교합니다. macOS·Windows에서 그냥 돌리면 시각 검사는 건너뜁니다.
+ * 시각 회귀는 Playwright 공식 Docker 이미지 안의 브라우저(`pnpm visual:docker`가 띄우는 run-server)로만 찍고 비교합니다.
+ * 같은 Linux라도 CI 러너의 브라우저와 Docker 이미지의 브라우저는 그러데이션·글자 렌더링이 달라, 로컬과 CI가 같은 이미지를 쓰게 합니다.
+ * 그 브라우저에 붙지 않은 `pnpm e2e`에서는 시각 검사를 건너뜁니다(`pnpm check`는 따로 부름).
  */
 const visualEndpoint = process.env.VISUAL_WS_ENDPOINT;
-const visualEnabled = process.platform === 'linux' || Boolean(visualEndpoint);
+const visualEnabled = Boolean(visualEndpoint);
 
 const desktop = { ...devices['Desktop Chrome'], viewport: { width: 1440, height: 900 } };
 const mobile = devices['Pixel 7'];

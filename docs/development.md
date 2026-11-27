@@ -99,13 +99,21 @@ WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립�
 
 `e2e/visual.spec.ts`가 화면을 기준 이미지(`e2e/__screenshots__/desktop/` 41장, `mobile/` 38장)와 픽셀 단위로 비교합니다(`maxDiffPixels: 0`, `threshold: 0`). 인트로 각 장·끝 장면(장면 없이 CSS 배경)·호버·초점, 로딩 화면, 정지 버튼(장면을 띄운 뒤 캔버스만 숨김), 동작 줄이기, 메인 각 구역·스크롤 연출·바로가기·메뉴, 404, Storybook의 오류·알림·메뉴 스토리입니다. WebGL 캔버스는 GPU·드라이버마다 그림이 달라 비교하지 않습니다.
 
-- 기준 이미지는 Linux 브라우저로 찍은 것입니다. Playwright 프로젝트 `visual-desktop`·`visual-mobile`은 Linux(CI)에서만 켜지고, macOS·Windows의 `pnpm e2e`·`pnpm check`에서는 건너뜁니다.
-- 로컬에서 비교하거나 기준을 새로 만들 때는 Docker(colima 가능)를 켜고 `pnpm visual:docker`(새로 만들기: `pnpm visual:docker --update-snapshots`)를 씁니다. Playwright 공식 이미지(`mcr.microsoft.com/playwright:v<버전>-noble`)에서 브라우저 서버만 띄우고 이 기기의 E2E 서버에 붙습니다. 끝나면 컨테이너를 지우므로 colima도 `colima stop`으로 끕니다.
+- 찍는 브라우저는 로컬·CI 모두 Playwright 공식 Docker 이미지(`mcr.microsoft.com/playwright:v<버전>-noble`)입니다. `pnpm visual:docker`가 그 이미지에서 브라우저 서버(run-server)만 띄우고, 테스트와 E2E 서버는 이 기기에서 돌려 그 브라우저에 붙습니다. 같은 Linux라도 CI 러너의 브라우저로 찍으면 그러데이션·글자가 달라(화면의 최대 48%) 이렇게 맞췄습니다.
+- 그래서 Playwright 프로젝트 `visual-desktop`·`visual-mobile`은 그 브라우저에 붙을 때만 켜지고, 그냥 `pnpm e2e`에서는 건너뜁니다. `pnpm check`는 E2E 다음 단계로 `pnpm visual:docker`를 부르므로 Docker(colima 가능)가 켜져 있어야 합니다. 기준을 새로 만들 때는 `pnpm visual:docker --update-snapshots`. 다 쓰면 `colima stop`으로 끕니다(다른 작업의 컨테이너가 없는지 먼저 확인).
 - 화면을 일부러 바꿨으면 기준 이미지를 다시 만들어 같은 PR에 넣습니다. CI에서 실패하면 실행의 `reports` 결과물(7일 보관)에 차이 이미지(`*-diff.png`)와 실제 이미지가 있습니다.
 
 ### 성능(3D 인트로)
 
-Lighthouse는 장면이 뜨기 전에 재므로 `e2e/performance.spec.ts`가 장면을 띄운 뒤를 잽니다. web-vitals(앱과 같은 라이브러리)로 LCP·CLS·INP(정지 버튼)를 받아 '좋음' 기준(2.5초·0.1·200ms) 안인지 보고, 4초 동안 끝까지 스크롤하며 프레임 간격을 모아 중앙값 100ms·가장 긴 프레임 1초 이하인지 봅니다. GPU 없이 그리는 CI 기준의 하한이며, 잰 값은 테스트 주석(`측정`)과 로그에 남습니다.
+Lighthouse는 장면이 뜨기 전에 재므로 `e2e/performance.spec.ts`가 장면을 띄운 뒤를 잽니다. web-vitals(앱과 같은 라이브러리)로 LCP·CLS·INP(정지 버튼)를 받고, 4초 동안 끝까지 스크롤하며 프레임 간격을 모읍니다(데스크톱 1440×900).
+
+| 지표 | 기준 | CI에서 잰 값(1.3.2) |
+|---|---|---|
+| LCP · CLS | Web Vitals '좋음' 2.5초 · 0.1 | 112ms · 0.0026 |
+| INP(정지 버튼) | 2초 이하 | 928ms |
+| 프레임 간격 중앙값 · 가장 긴 프레임 | 800ms · 1.5초 이하 | 383ms · 483ms |
+
+CI는 GPU 없이 소프트웨어로 그려 한 프레임이 수백 ms이므로 INP·프레임은 실제 기기 기준(200ms, 60fps)을 쓸 수 없어, CI 값의 약 2배를 회귀 상한으로 둡니다(해상도 자동 조절이 깨지거나 메인 스레드를 오래 붙잡는 변경을 잡음). 잰 값은 테스트 주석(`측정`)과 로그에 남습니다.
 
 ### 접근성 검사 범위
 
@@ -124,7 +132,7 @@ WebGL 장면(`createPhoenixScene.ts`, `lib/scene/*`의 일부)은 jsdom에서 �
 
 ## CI와 `pnpm check`
 
-`pnpm check`(`scripts/check.mjs`)가 CI와 같은 검사를 같은 순서로 돌립니다: 린트 → FSD → 타입 → 단위·커버리지 → 커버리지 요약 → 빌드(Storybook + Next) 한 번 → E2E(`E2E_PREBUILT=1`로 그 빌드를 다시 씀) → 크기 → Lighthouse. CI(`.github/workflows/ci.yml`)는 이 스크립트 하나를 부릅니다. 로컬에서는 Lighthouse 결과를 바깥에 올리지 않고 `.lighthouseci`에 저장합니다. 장비가 바쁘면 `E2E_PORT`로 빈 포트를 씁니다.
+`pnpm check`(`scripts/check.mjs`)가 CI와 같은 검사를 같은 순서로 돌립니다: 린트 → FSD → 타입 → 단위·커버리지 → 커버리지 요약 → 빌드(Storybook + Next) 한 번 → E2E(`E2E_PREBUILT=1`로 그 빌드를 다시 씀) → 시각 회귀(`pnpm visual:docker`) → 크기 → Lighthouse. CI(`.github/workflows/ci.yml`)는 이 스크립트 하나를 부릅니다. 로컬에서는 Lighthouse 결과를 바깥에 올리지 않고 `.lighthouseci`에 저장합니다. 장비가 바쁘면 `E2E_PORT`로 빈 포트를 씁니다.
 
 - 캐시: pnpm 저장소(`setup-node`), Playwright 브라우저(`~/.cache/ms-playwright`, Playwright 버전마다. 있으면 시스템 라이브러리만 설치), `.next/cache`(잠금 파일·소스 해시). 토큰이 필요한 원격 캐시는 쓰지 않습니다.
 - 같은 PR에 새로 푸시하면 이전 실행을 취소합니다(`concurrency`). 문서(`*.md`, `docs/`)만 바뀌면 `changes` 작업이 `check`를 건너뜁니다(건너뛴 작업은 필수 검사에서 통과로 침).

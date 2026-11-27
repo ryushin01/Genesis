@@ -48,6 +48,8 @@ jobs:
       # Playwright 브라우저 캐시(버전마다). 캐시가 있으면 브라우저는 받지 않고 시스템 라이브러리만 설치합니다.
       - id: playwright
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      # 시각 회귀는 기준 이미지와 같은 Playwright 공식 Docker 이미지의 브라우저로 찍습니다. 앞 단계를 도는 동안 뒤에서 미리 받습니다.
+      - run: (docker pull "mcr.microsoft.com/playwright:v${{ steps.playwright.outputs.version }}-noble" > /tmp/docker-pull.log 2>&1 &)
       - id: browsers
         uses: actions/cache@v6
         with:
