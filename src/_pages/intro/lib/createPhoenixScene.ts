@@ -25,6 +25,7 @@ import { createBackdrop } from './scene/backdrop';
 import { createBird, WINGSPAN } from './scene/bird';
 import { createDisposer, disposeObject } from './scene/disposer';
 import { createEmbers, createMeteorShower, createTrail } from './scene/effects';
+import { fetchModel } from './fetchModel';
 import { createFeathers, type Feathers } from './scene/feathers';
 import { createLogo, type Logo } from './scene/logo';
 
@@ -56,31 +57,6 @@ function yieldToMain() {
   const scheduler = (globalThis as { scheduler?: { yield?: () => Promise<void> } }).scheduler;
   if (typeof scheduler?.yield === 'function') return scheduler.yield();
   return new Promise<void>((resolve) => setTimeout(resolve, 0));
-}
-
-/** 모델 파일을 받습니다. 받은 비율을 알리고, 신호가 오면 받기를 멈춥니다. */
-async function fetchModel(url: string, signal: AbortSignal, onProgress?: (ratio: number) => void) {
-  const response = await fetch(url, { signal });
-  if (!response.ok) throw new Error(`${url}: ${response.status}`);
-  const total = Number(response.headers.get('content-length')) || 0;
-  if (!onProgress || !total || !response.body) return response.arrayBuffer();
-  const reader = response.body.getReader();
-  const chunks: Uint8Array[] = [];
-  let loaded = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    chunks.push(value);
-    loaded += value.byteLength;
-    onProgress(Math.min(1, loaded / total));
-  }
-  const bytes = new Uint8Array(loaded);
-  let offset = 0;
-  for (const chunk of chunks) {
-    bytes.set(chunk, offset);
-    offset += chunk.byteLength;
-  }
-  return bytes.buffer;
 }
 
 export async function createPhoenixScene(
