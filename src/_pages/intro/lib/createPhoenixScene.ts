@@ -70,6 +70,19 @@ function yieldToMain() {
   return new Promise<void>((resolve) => setTimeout(resolve, 0));
 }
 
+/** 렌더러 이름을 읽는 데 필요한 WebGL 컨텍스트의 일부. */
+interface RendererInfoSource {
+  getExtension(name: 'WEBGL_debug_renderer_info'): { readonly UNMASKED_RENDERER_WEBGL: number } | null;
+  getParameter(pname: number): unknown;
+}
+
+/** WebGL이 GPU 없이 소프트웨어로 그리는지(렌더러 이름으로 판단). 이름을 알 수 없으면 false. */
+export function isSoftwareRenderer(gl: RendererInfoSource) {
+  const info = gl.getExtension('WEBGL_debug_renderer_info');
+  const name: unknown = info ? gl.getParameter(info.UNMASKED_RENDERER_WEBGL) : '';
+  return typeof name === 'string' && /swiftshader|llvmpipe|software|softpipe|basic render/i.test(name);
+}
+
 export async function createPhoenixScene(
   canvas: HTMLCanvasElement,
   { onProgress, signal }: PhoenixSceneOptions = {},
@@ -209,7 +222,9 @@ export async function createPhoenixScene(
     let width = 0;
     let height = 0;
     let dpr = 0;
-    let quality = 1;
+    // GPU 없이 소프트웨어로 그리는 환경(SwiftShader·llvmpipe 등)은 처음부터 해상도를 낮춥니다. 배경 셰이더가 화소마다
+    // 3D 노이즈를 여러 번 읽어, 전체 해상도로는 한 프레임이 1초 가까이 걸려 자동 조절(45프레임마다)이 따라오지 못합니다.
+    let quality = isSoftwareRenderer(renderer.getContext()) ? 0.45 : 1;
     let portrait = false;
     const resize = () => {
       const nextWidth = canvas.clientWidth || window.innerWidth;

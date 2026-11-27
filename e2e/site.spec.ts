@@ -101,7 +101,8 @@ test.describe('인트로', () => {
         // 해상도 자동 조절이 일어난 뒤에 떠납니다. 이때 그리기 루프가 둘로 갈라지면 장면을 닫은 뒤에도 하나가 남습니다.
         // 느린 기기처럼 매 프레임 메인 스레드를 40ms씩 붙잡아, GPU 유무와 상관없이 몇 초 안에 조절이 일어나게 합니다.
         const canvasWidth = () => page.locator('canvas').evaluate((canvas: HTMLCanvasElement) => canvas.width);
-        const fullWidth = await page.evaluate(() => Math.floor(window.innerWidth * Math.min(window.devicePixelRatio, 1.75)));
+        // GPU 없는 환경은 처음부터 해상도를 낮춰 시작하므로, 시작할 때의 폭보다 더 줄어드는지(자동 조절이 실제로 일어났는지) 봅니다.
+        const startWidth = await canvasWidth();
         await page.evaluate(() => {
           const state = { busy: true };
           Object.assign(window, { __busyFrames: state });
@@ -116,7 +117,7 @@ test.describe('인트로', () => {
           window.requestAnimationFrame(hold);
         });
         try {
-          await expect.poll(canvasWidth, { timeout: 60_000 }).toBeLessThan(fullWidth);
+          await expect.poll(canvasWidth, { timeout: 60_000 }).toBeLessThan(startWidth);
         } finally {
           await page.evaluate(() => {
             (window as unknown as { __busyFrames: { busy: boolean } }).__busyFrames.busy = false;
