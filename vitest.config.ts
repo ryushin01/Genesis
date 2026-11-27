@@ -12,5 +12,26 @@ export default defineConfig({
     environment: 'jsdom',
     setupFiles: ['./vitest.setup.ts'],
     include: ['src/**/*.test.{ts,tsx}'],
+    coverage: {
+      provider: 'v8',
+      include: ['src/**/*.{ts,tsx}'],
+      exclude: ['src/**/*.{test,stories}.{ts,tsx}'],
+      // text: 터미널, json-summary: CI 요약 표(scripts/coverage-summary.mjs), html: 실패할 때 올리는 리포트
+      reporter: ['text', 'json-summary', 'html'],
+      thresholds: {
+        // 전체: 기준선(1.3.2 측정값의 내림)보다 내려가면 실패합니다. 테스트를 더해 올라가면 함께 올립니다.
+        statements: 53,
+        branches: 54,
+        functions: 61,
+        lines: 52,
+        // 로직 계층(공용 로직, 모델, API, 장면 모델 받기·진행률)은 80% 이상.
+        ...Object.fromEntries(
+          ['src/shared/lib/**', 'src/**/model/**', 'src/**/api/**', 'src/_pages/intro/lib/fetchModel.ts'].map((glob) => [
+            glob,
+            { statements: 80, branches: 80, functions: 80, lines: 80 },
+          ]),
+        ),
+      },
+    },
   },
 });

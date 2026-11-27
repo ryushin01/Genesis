@@ -32,19 +32,21 @@ pnpm storybook    # http://localhost:6006
 
 ## 4. 검사·테스트 명령
 
-CI(`.github/workflows/ci.yml`) 순서입니다. PR 전에 로컬에서 같은 순서로 돌립니다.
+CI(`.github/workflows/ci.yml`)는 `pnpm check`(`scripts/check.mjs`) 하나를 부릅니다. PR 전에 로컬에서도 `pnpm check`를 돌립니다(장비가 바쁘면 `E2E_PORT`로 빈 포트).
 
 ```bash
+pnpm check            # 아래를 이 순서로, 빌드는 한 번만(E2E·크기·Lighthouse가 다시 씀)
 pnpm lint             # ESLint (jsx-a11y recommended 전체)
 pnpm lint:fsd         # Steiger
 pnpm typecheck
-pnpm test             # Vitest
-pnpm build-storybook  # public/storybook
-pnpm e2e              # 프로덕션 빌드 E2E, axe, CSP 위반 없음, WebGL 정리, 오프라인
+pnpm test:coverage    # Vitest + 커버리지(로직 계층 80%, 전체 기준선, vitest.config.ts)
+pnpm build            # Storybook(public/storybook) + Next
+pnpm e2e              # E2E, axe(모든 화면·Storybook 스토리), CSP, WebGL 정리, 오프라인, 3D 성능, 시각 회귀(Linux)
 pnpm size             # size-limit(.size-limit.mjs, 첫 화면 JS 155/150 kB 등)
-pnpm lhci             # Lighthouse(lighthouserc.json, 메인 성능 90·접근성 100)
+pnpm lhci             # Lighthouse(lighthouserc.json, 메인 성능 90·접근성 100). 로컬은 --upload.target=filesystem
 ```
 
+- 시각 회귀 기준 이미지(`e2e/__screenshots__`)는 Linux에서 만듭니다. macOS에서는 `pnpm visual:docker`(Docker·colima 필요, `--update-snapshots`로 다시 만들기)로 비교합니다. 번들 예산과 Lighthouse 기준 숫자는 사용자 결정 없이 바꾸지 않습니다.
 - `pnpm build`는 Storybook을 먼저 `public/storybook`에 빌드한 뒤 `next build`를 합니다.
 - E2E는 WebGL을 GPU 없이 그리므로 작업자 1개로 돌립니다.
 - **오프라인:** 인터넷과 `.env` 없이도 설치 뒤 빌드·실행·주요 화면이 되어야 합니다. `e2e/offline.spec.ts`(`pnpm e2e`에 포함)가 localhost 밖 요청을 모두 막고 인트로 모든 장·끝 장면(3D 장면, 모델 받는 중, 모델 실패 시 CSS 배경, 동작 줄이기), 메인 모든 구역·메뉴, 404, 오류 화면(Storybook), Storybook을 axe와 함께 보고 바깥 요청 0개·화면 오류 0개를 확인합니다. 배포본은 `pnpm e2e:deployed`(`E2E_BASE_URL`)로 같은 검사를 합니다. 글꼴은 모두 저장소 파일(`next/font/local`, `src/_app/styles/fonts`)이고 `next/font/google`·외부 CDN은 쓰지 않으며, 바깥 자료를 새로 쓰면 저장소에 넣습니다.
@@ -56,7 +58,7 @@ pnpm lhci             # Lighthouse(lighthouserc.json, 메인 성능 90·접근�
 - **TypeScript strict:** `tsconfig.json`에 `strict: true`. `any`·`as` 단언·`@ts-ignore`를 피하고 외부 입력은 검증합니다.
 - **형식:** 표준과 다른 점: Prettier·Biome 설정과 format 스크립트가 없습니다. 주변 코드 모양을 따릅니다.
 - 디자인 기준: 인트로는 `#8B0000` 중심의 적색 계열, 메인은 흑백만 씁니다. 글꼴은 OFL의 Inter·JetBrains Mono·Cormorant·우아한 세리프(줄인 파일 이름 GenesisSerif)만 씁니다. 참고 사이트의 모델·텍스처·로고·사진·유료 글꼴은 가져오지 않습니다.
-- **접근성(WCAG 2.2·KWCAG 2.2):** 네이티브 요소 먼저, 텍스트 대비 4.5:1 이상, 키보드 조작과 보이는 초점(`outline: none` 단독 금지), 조작 크기 24×24px 이상, 입력 오류의 `aria-invalid`·`aria-describedby` 연결. 로딩 알림은 처음부터 있는 `role="status"` 영역의 글만 바꿉니다. 동작 줄이기에서는 WebGL 장면을 띄우지 않고, 정지 버튼으로 그리기를 멈출 수 있어야 합니다. 자동 검사는 `eslint-plugin-jsx-a11y`(recommended 전체), Playwright + axe E2E, Lighthouse 접근성 100입니다. 표준과 다른 점: Storybook axe 애드온은 쓰지 않습니다.
+- **접근성(WCAG 2.2·KWCAG 2.2):** 네이티브 요소 먼저, 텍스트 대비 4.5:1 이상, 키보드 조작과 보이는 초점(`outline: none` 단독 금지), 조작 크기 24×24px 이상, 입력 오류의 `aria-invalid`·`aria-describedby` 연결. 로딩 알림은 처음부터 있는 `role="status"` 영역의 글만 바꿉니다. 동작 줄이기에서는 WebGL 장면을 띄우지 않고, 정지 버튼으로 그리기를 멈출 수 있어야 합니다. 자동 검사는 `eslint-plugin-jsx-a11y`(recommended 전체), Playwright + axe E2E, Lighthouse 접근성 100입니다. Storybook은 접근성 애드온(`a11y: { test: 'error' }`)을 켜고, `e2e/storybook-a11y.spec.ts`가 모든 스토리를 axe로 검사해 위반이 있으면 실패합니다.
 - 화면을 더하면 `sitemap`(`_app/seo`)에도 더합니다.
 
 ## 6. Git·PR

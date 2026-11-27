@@ -5,24 +5,79 @@ on:
     branches: [main]
   pull_request:
 
+# 같은 PR(또는 브랜치)에 새로 푸시하면 이전 실행을 취소합니다. main은 커밋마다 끝까지 검사합니다.
+concurrency:
+  group: ci-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
+permissions:
+  contents: read
+  pull-requests: read
+
 jobs:
+  # 문서(*.md, docs/)만 바뀌었으면 검사를 건너뜁니다. 건너뛴 check 작업은 필수 검사에서 통과로 칩니다.
+  changes:
+    runs-on: ubuntu-latest
+    outputs:
+      code: ${{ steps.filter.outputs.code }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
+        id: filter
+        with:
+          predicate-quantifier: every
+          filters: |
+            code:
+              - '!**/*.md'
+              - '!docs/**'
+
   check:
+    needs: changes
+    if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
       - uses: pnpm/action-setup@v6
+      # pnpm 저장소 캐시
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
-      - run: pnpm lint
-      - run: pnpm lint:fsd
-      - run: pnpm typecheck
-      - run: pnpm test
-      - run: pnpm build-storybook
-      - run: pnpm exec playwright install --with-deps chromium
-      # E2E가 만든 프로덕션 빌드로 크기와 Lighthouse 점수를 잽니다.
-      - run: pnpm e2e
-      - run: pnpm size
-      - run: pnpm lhci
+
+      # Playwright 브라우저 캐시(버전마다). 캐시가 있으면 브라우저는 받지 않고 시스템 라이브러리만 설치합니다.
+      - id: playwright
+        run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
+      - id: browsers
+        uses: actions/cache@v6
+        with:
+          path: ~/.cache/ms-playwright
+          key: playwright-${{ runner.os }}-${{ steps.playwright.outputs.version }}-chromium
+      - if: steps.browsers.outputs.cache-hit != 'true'
+        run: pnpm exec playwright install --with-deps chromium
+      - if: steps.browsers.outputs.cache-hit == 'true'
+        run: pnpm exec playwright install-deps chromium
+
+      # Next 빌드 캐시. 소스가 같으면 그대로, 다르면 같은 잠금 파일의 가장 최근 캐시에서 이어 받습니다.
+      - uses: actions/cache@v6
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**', 'public/**', 'next.config.ts', 'stylex.config.mjs', 'postcss.config.mjs') }}
+          restore-keys: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+
+      # 로컬과 같은 검사(scripts/check.mjs): 린트 → FSD → 타입 → 단위·커버리지(요약 표는 이 실행의 Summary) → 빌드 한 번 →
+      # E2E(기능·오프라인·접근성·Storybook 접근성·시각·성능) → 크기 → Lighthouse. 빌드 결과를 E2E·크기·Lighthouse가 다시 씁니다.
+      - run: pnpm check
+
+      # 실패했을 때만 리포트(Playwright HTML·차이 이미지·트레이스, 커버리지)를 올립니다.
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports
+          path: |
+            playwright-report/
+            test-results/
+            coverage/
+            .lighthouseci/
+          retention-days: 7
+          if-no-files-found: ignore

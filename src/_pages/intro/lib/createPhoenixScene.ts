@@ -33,6 +33,11 @@ export interface PhoenixScene {
   setProgress(progress: number): void;
   setPointer(x: number, y: number): void;
   setPaused(paused: boolean): void;
+  /**
+   * 화면을 떠나기 시작할 때 그리기를 멈춥니다. 마지막 그림은 캔버스에 그대로 남고, 자원은 dispose가 놓습니다.
+   * GPU 없이 그리는 느린 기기에서는 매 프레임이 메인 스레드를 오래 붙잡아, 멈추지 않으면 다음 화면으로 바뀌는 일이 몇 초씩 밀립니다.
+   */
+  stop(): void;
   dispose(): void;
 }
 
@@ -221,6 +226,7 @@ export async function createPhoenixScene(
     let previous = performance.now();
     let frame = 0;
     let contextLost = false;
+    let stopped = false;
     let pointerX = 0;
     let pointerY = 0;
     let easedX = 0;
@@ -230,9 +236,9 @@ export async function createPhoenixScene(
     let sampledFrames = 0;
     let sampledTime = 0;
 
-    /** 멈춰 있던 그리기를 다시 시작합니다. 이미 돌고 있으면 아무것도 하지 않습니다. */
+    /** 멈춰 있던 그리기를 다시 시작합니다. 이미 돌고 있거나 화면을 떠나는 중(stop)이면 아무것도 하지 않습니다. */
     const wake = () => {
-      if (!ready || frame !== 0 || disposer.disposed || contextLost) return;
+      if (!ready || frame !== 0 || disposer.disposed || contextLost || stopped) return;
       previous = performance.now();
       frame = requestAnimationFrame(render);
     };
@@ -257,7 +263,7 @@ export async function createPhoenixScene(
 
     const render = (now: number) => {
       frame = 0;
-      if (disposer.disposed || contextLost) return;
+      if (disposer.disposed || contextLost || stopped) return;
       const delta = Math.min(0.05, Math.max(0, (now - previous) / 1000));
       previous = now;
       if (!paused) {
@@ -467,6 +473,11 @@ export async function createPhoenixScene(
           sampledTime = 0;
         }
         wake();
+      },
+      stop() {
+        stopped = true;
+        cancelAnimationFrame(frame);
+        frame = 0;
       },
       dispose() {
         if (disposer.disposed) return;
