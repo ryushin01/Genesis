@@ -15,6 +15,11 @@ describe('chapterReveal', () => {
     expect(chapterReveal(0, { first: true })).toBe(1);
     expect(chapterReveal(1, { last: true })).toBe(1);
   });
+
+  it('마지막 구간은 깃털이 내려앉아 로고가 될 때(끝 무렵)에야 나타난다', () => {
+    expect(chapterReveal(0.5, { last: true })).toBe(0);
+    expect(chapterReveal(0.95, { last: true })).toBe(1);
+  });
 });
 
 describe('stickyProgress', () => {

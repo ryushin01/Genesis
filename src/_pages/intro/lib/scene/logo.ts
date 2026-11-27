@@ -4,7 +4,7 @@ import { lerp } from '../../model/math';
 import { disposeObject } from './disposer';
 
 /** 깃털이 내려앉은 자리에 나타나는 불사조 로고. 색을 #8B0000 계열로 옮기고 빛을 받아 입체감이 나게 합니다. */
-export function createLogo(gltf: GLTF) {
+export function createLogo(gltf: Pick<GLTF, 'scene'>) {
   const model = gltf.scene;
   const box = new Box3().setFromObject(model);
   const size = box.getSize(new Vector3());
@@ -37,11 +37,11 @@ export function createLogo(gltf: GLTF) {
   return {
     group,
     /** appear(0~1)만큼 돌며 커지면서 나타나고, 다 나타난 뒤에는 천천히 흔들립니다. */
-    update(appear: number, time: number, y: number) {
+    update(appear: number, time: number, x: number, y: number) {
       group.visible = appear > 0.001;
       if (!group.visible) return;
       group.scale.setScalar(baseScale * (0.4 + appear * 0.6));
-      group.position.set(0, y, 0);
+      group.position.set(x, y, 0);
       group.rotation.y = (1 - appear) * 2.4 + Math.sin(time * 0.4) * 0.12;
       if (appear !== lastAppear) {
         lastAppear = appear;

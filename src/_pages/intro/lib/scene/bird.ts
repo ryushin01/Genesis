@@ -1,151 +1,163 @@
 import {
   type AnimationAction,
+  type AnimationClip,
   AnimationMixer,
-  type Bone,
   Box3,
   type Color,
   Group,
-  type Mesh,
-  type MeshStandardMaterial,
-  type Object3D,
-  Vector3,
+  type Material,
+  Mesh,
+  MeshStandardMaterial,
+  ShaderMaterial,
+  type Vector3,
 } from 'three';
 import type { GLTF } from 'three/examples/jsm/loaders/GLTFLoader.js';
-import { birdAlbedo, birdEmissive, birdFragmentHead, birdOutput } from '../shaders';
+import type { PhoenixClips, PhoenixModelConfig } from '../../config/phoenix.config';
+import { birdAlbedo, birdEmissive, birdFragmentHead, birdOutput, crystalFragment, crystalVertex } from '../shaders';
 import { disposeObject } from './disposer';
 import { smoothLoopClip } from './smoothClip';
 
-/** 불사조 날개 폭(장면 단위). 카메라 거리와 불티 꼬리 폭의 기준입니다. */
-export const WINGSPAN = 7;
-
+/** 결정 재질과 예전 텍스처 재질이 함께 보는 값. 장면이 매 프레임 바꿉니다. */
 export interface BirdUniforms {
   uTime: { value: number };
   uBurn: { value: number };
   uMask: { value: number };
   uRim: { value: number };
+  uDissolve: { value: number };
+  /** 결정을 비추는 태양 방향(카메라 공간). */
+  uSunDir: { value: Vector3 };
+  /** 얇은 조각이 달아오르는 세기. */
+  uGlow: { value: number };
+  uOpacity: { value: number };
+  uShadow: { value: Vector3 };
+  uHighlight: { value: Vector3 };
+  uSaturation: { value: number };
+  uExposure: { value: number };
+  /** 예전 텍스처 재질에서만 씀: 공기의 옅은 막. */
   uHaze: { value: Color };
   uHazeAmount: { value: number };
-  uDissolve: { value: number };
+}
+
+/** 타임라인의 클립 번호(레퍼런스 glassAnimationIdToClipName 순서)를 설정의 클립 이름으로 바꿉니다. */
+export function clipNameFor(id: number, clips: PhoenixClips) {
+  if (id === 2) return clips.closeUp ?? clips.flying;
+  if (id === 3) return clips.gliding ?? clips.flying;
+  return clips.flying;
+}
+
+/** 이름으로 클립을 찾고, 없으면 평소 날갯짓(fallback), 그것도 없으면(이름이 비었거나 다른 모델) 첫 클립을 씁니다. */
+export function findClip(clips: readonly AnimationClip[], name: string, fallback = name) {
+  return clips.find((clip) => clip.name === name) ?? clips.find((clip) => clip.name === fallback) ?? clips[0];
+}
+
+/** 노멀·UV 없이 결정 조각을 그리는 재질. 같은 셰이더를 내려오는 깃털도 씁니다. */
+export function createCrystalMaterial(uniforms: BirdUniforms) {
+  return new ShaderMaterial({ uniforms: { ...uniforms }, vertexShader: crystalVertex, fragmentShader: crystalFragment });
+}
+
+/** 예전 텍스처 모델: 표준 재질에 진홍 색조·불길·소멸·윤곽 셰이더를 끼워 넣습니다. */
+function patchTextured(material: MeshStandardMaterial, uniforms: BirdUniforms) {
+  material.transparent = false;
+  material.alphaTest = 0.35;
+  // 깃털 가장자리(알파로 잘라 내는 부분)를 MSAA 표본으로 부드럽게 해, 날갯짓할 때 계단이 깜빡이지 않게 합니다.
+  material.alphaToCoverage = true;
+  material.depthWrite = true;
+  material.metalness = 0;
+  material.roughness = 0.7;
+  material.onBeforeCompile = (shader) => {
+    Object.assign(shader.uniforms, uniforms);
+    shader.fragmentShader =
+      birdFragmentHead +
+      shader.fragmentShader
+        .replace('#include <map_fragment>', `#include <map_fragment>\n${birdAlbedo}`)
+        .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n${birdEmissive}`)
+        .replace('#include <dithering_fragment>', `#include <dithering_fragment>\n${birdOutput}`);
+  };
+  material.customProgramCacheKey = () => 'phoenix-crimson';
+  material.needsUpdate = true;
 }
 
 /**
- * 날개 끝(몸에서 가장 먼 뼈)의 높이를 애니메이션 한 바퀴 동안 재어 -1~1로 맞춥니다.
- * 몸이 실제 날갯짓에 맞춰 오르내리게 할 때 씁니다. 모델이 바뀌어도 다시 맞출 필요가 없습니다.
+ * 설정(phoenix.config.ts)의 모델을 타임라인 노드에 얹을 수 있게 맞춥니다.
+ * 돌려주는 group에 타임라인의 위치·자세를 넣으면 됩니다. 안쪽의 모델은 설정의 회전·크기·위치 보정을 따릅니다.
  */
-export function measureWingbeat(model: Object3D, mixer: AnimationMixer, duration: number, samples = 48) {
-  if (duration <= 0) return null;
-  const bones: Object3D[] = [];
-  model.traverse((object) => {
-    if ((object as Bone).isBone) bones.push(object);
-  });
-  const point = new Vector3();
-  let tip: Object3D | null = null;
-  let reach = 0;
-  for (const bone of bones) {
-    const x = Math.abs(bone.getWorldPosition(point).x);
-    if (x > reach) {
-      reach = x;
-      tip = bone;
-    }
-  }
-  if (!tip) return null;
-  const heights = new Float32Array(samples);
-  for (let i = 0; i < samples; i += 1) {
-    mixer.setTime((i / samples) * duration);
-    heights[i] = tip.getWorldPosition(point).y;
-  }
-  mixer.setTime(0);
-  const min = Math.min(...heights);
-  const range = Math.max(...heights) - min;
-  if (range < 1e-6) return null;
-  return heights.map((height) => ((height - min) / range) * 2 - 1);
-}
-
-/** 한 바퀴를 도는 표본 사이를 Catmull-Rom 곡선으로 잇습니다. 표본을 그대로 지나고 기울기도 이어져 몸이 꺾이지 않고 오르내립니다. */
-export function sampleLoop(values: Float32Array, phase: number) {
-  const n = values.length;
-  const x = (((phase % 1) + 1) % 1) * n;
-  const i = Math.floor(x);
-  const t = x - i;
-  const p0 = values[(i - 1 + n) % n];
-  const p1 = values[i % n];
-  const p2 = values[(i + 1) % n];
-  const p3 = values[(i + 2) % n];
-  return (
-    0.5 *
-    (2 * p1 +
-      (p2 - p0) * t +
-      (2 * p0 - 5 * p1 + 4 * p2 - p3) * t * t +
-      (3 * p1 - p0 - 3 * p2 + p3) * t * t * t)
-  );
-}
-
-/** 불사조 모델을 맞추고, 재질에 #8B0000 색·불길·소멸·윤곽 셰이더를 끼워 넣습니다. */
-export function createBird(gltf: GLTF, uniforms: BirdUniforms) {
-  // 크기를 맞추고 머리가 화면 안쪽(-z)을 향하게 돌립니다.
+export function createBird(gltf: Pick<GLTF, 'scene' | 'animations'>, config: PhoenixModelConfig, uniforms: BirdUniforms) {
   const model = gltf.scene;
-  const box = new Box3().setFromObject(model);
-  const size = box.getSize(new Vector3());
-  const center = box.getCenter(new Vector3());
-  const scale = WINGSPAN / Math.max(size.x, size.z);
-  model.scale.setScalar(scale);
-  model.position.copy(center).multiplyScalar(-scale);
-  const group = new Group();
-  group.add(model);
-  group.rotation.y = Math.PI;
-
+  // 크기는 뼈대를 적용하지 않은 원래 형상의 상자로 잽니다. 뼈대를 적용해 재면(SkinnedMesh) 정점마다 뼈 행렬을 곱해
+  // 느린 기기에서 한 작업이 100ms를 넘깁니다.
+  const box = new Box3();
+  const part = new Box3();
+  model.updateMatrixWorld(true);
   model.traverse((object) => {
-    const mesh = object as Mesh;
-    if (!mesh.isMesh) return;
-    mesh.frustumCulled = false;
-    const material = mesh.material as MeshStandardMaterial;
-    material.transparent = false;
-    material.alphaTest = 0.35;
-    // 깃털 가장자리(알파로 잘라 내는 부분)를 MSAA 표본으로 부드럽게 해, 날갯짓할 때 계단이 깜빡이지 않게 합니다.
-    material.alphaToCoverage = true;
-    material.depthWrite = true;
-    material.metalness = 0;
-    material.roughness = 0.7;
-    material.onBeforeCompile = (shader) => {
-      Object.assign(shader.uniforms, uniforms);
-      shader.fragmentShader =
-        birdFragmentHead +
-        shader.fragmentShader
-          .replace('#include <map_fragment>', `#include <map_fragment>\n${birdAlbedo}`)
-          .replace('#include <emissivemap_fragment>', `#include <emissivemap_fragment>\n${birdEmissive}`)
-          .replace('#include <dithering_fragment>', `#include <dithering_fragment>\n${birdOutput}`);
-    };
-    material.customProgramCacheKey = () => 'phoenix-crimson';
-    material.needsUpdate = true;
+    if (!(object instanceof Mesh)) return;
+    if (!object.geometry.boundingBox) object.geometry.computeBoundingBox();
+    const local = object.geometry.boundingBox;
+    if (local) box.union(part.copy(local).applyMatrix4(object.matrixWorld));
   });
+  const width = Math.max(box.max.x - box.min.x, box.max.z - box.min.z, 1e-6);
+  const scale = config.wingspan / width;
+  const pose = new Group();
+  pose.rotation.set(...config.rotation);
+  pose.position.set(...config.offset);
+  model.scale.multiplyScalar(scale);
+  pose.add(model);
+  const group = new Group();
+  group.add(pose);
 
-  // 성긴 키를 직선으로 잇고 처음·끝 자세가 다른 원래 클립 대신, 이음매를 맞추고 곡선으로 다시 샘플한 클립을 씁니다.
-  const clips = gltf.animations.map((clip) => smoothLoopClip(clip, model));
+  const replaced: Material[] = [];
+  const crystal = config.material === 'crystal' ? createCrystalMaterial(uniforms) : null;
+  model.traverse((object) => {
+    if (!(object instanceof Mesh)) return;
+    if (config.hiddenMeshes.includes(object.name)) object.visible = false;
+    object.frustumCulled = false;
+    if (crystal) {
+      if (Array.isArray(object.material)) replaced.push(...object.material);
+      else replaced.push(object.material);
+      object.material = crystal;
+    } else if (object.material instanceof MeshStandardMaterial) {
+      patchTextured(object.material, uniforms);
+    }
+  });
+  // 결정 재질로 바꾼 원래 재질은 한 번도 그리지 않았으므로 바로 놓아 줍니다.
+  replaced.forEach((material) => material.dispose());
+
+  // 성긴 키를 직선으로 잇고 처음·끝 자세가 다른 클립은 이음매를 맞춰 다시 샘플합니다.
+  const clips = config.smoothLoop ? gltf.animations.map((clip) => smoothLoopClip(clip, model)) : gltf.animations;
   const mixer = new AnimationMixer(model);
-  const actions: AnimationAction[] = clips.map((clip) => mixer.clipAction(clip).play());
-  const duration = clips[0]?.duration ?? 0;
-  const wingbeat = measureWingbeat(model, mixer, duration);
-  let rate = -1;
-
-  const phase = () => (duration > 0 && actions[0] ? actions[0].time / duration : 0);
+  const actions = new Map<string, AnimationAction>();
+  const actionFor = (name: string) => {
+    const clip = findClip(clips, name, config.clips.flying);
+    if (!clip) return null;
+    let action = actions.get(clip.name);
+    if (!action) {
+      action = mixer.clipAction(clip);
+      actions.set(clip.name, action);
+    }
+    return action;
+  };
+  let current: AnimationAction | null = null;
+  let currentId = -1;
 
   return {
     group,
-    /** 날갯짓 한 주기에서 지금보다 offset(주기 비율)만큼 뒤의 날개 끝 높이(-1~1). */
-    wingLift(offset = 0) {
-      return wingbeat ? sampleLoop(wingbeat, phase() - offset) : Math.sin(phase() * Math.PI * 2);
+    /** 타임라인의 클립 번호로 날갯짓을 고릅니다. 바뀌면 0.4초 동안 이어 붙입니다. */
+    setClip(id: number) {
+      if (id === currentId) return;
+      currentId = id;
+      const next = actionFor(clipNameFor(id, config.clips));
+      if (!next || next === current) return;
+      next.reset().play();
+      if (current) current.crossFadeTo(next, 0.4, false);
+      current = next;
     },
-    /** 날갯짓을 rate 배속으로 delta초 진행합니다. */
-    update(delta: number, nextRate: number) {
-      if (Math.abs(nextRate - rate) > 1e-3) {
-        rate = nextRate;
-        actions.forEach((action) => action.setEffectiveTimeScale(rate));
-      }
+    /** 날갯짓을 delta초 진행합니다(레퍼런스와 같이 스크롤과 상관없이 제 속도로). */
+    update(delta: number) {
       mixer.update(delta);
     },
     dispose() {
       mixer.stopAllAction();
       mixer.uncacheRoot(model);
+      crystal?.dispose();
       disposeObject(model);
     },
   };

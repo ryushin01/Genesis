@@ -1,7 +1,7 @@
 # project zero
 
 [![CI](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-1.3.2-8B0000)
+![version](https://img.shields.io/badge/version-1.4.0-8B0000)
 
 다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 **프로젝트 제로**의 홍보 홈페이지입니다.
 
@@ -13,11 +13,11 @@
 
 | 인트로: 첫 화면 | 인트로: 신화 |
 |---|---|
-| ![붉은 배경에서 날개를 펼친 불사조의 뒷모습 위로 project zero 제목이 놓인 인트로 첫 화면](docs/images/intro-hero.jpg) | ![거대한 태양을 향해 날개를 치켜든 적색 불사조 위에 놓인 myths 문구](docs/images/intro-myth.jpg) |
+| ![진홍 결정 불사조의 날개가 화면을 가득 채운 위로 project zero 제목이 놓인 인트로 첫 화면](docs/images/intro-hero.jpg) | ![별이 가득한 우주에서 태양을 향해 날개를 뻗은 진홍 결정 불사조 위에 놓인 myths 문구](docs/images/intro-myth.jpg) |
 
 | 인트로: 전쟁 | 인트로: 마지막 |
 |---|---|
-| ![유성과 혜성이 쏟아지는 우주에서 커다란 태양 앞을 날개를 펴고 날아가는 진홍색 불사조와 그 아래의 war 문구](docs/images/intro-war.jpg) | ![초신성처럼 터진 자리에 나타난 붉은 불사조 로고와 그 아래의 메인으로 들어가기 버튼](docs/images/intro-zero.jpg) |
+| ![유성과 혜성이 쏟아지는 우주에서 태양 아래로 날아가는 진홍 결정 불사조와 war 문구](docs/images/intro-war.jpg) | ![어두워진 우주에서 깃털이 내려앉은 자리에 나타난 붉은 불사조 로고와 그 아래의 메인으로 들어가기 버튼](docs/images/intro-zero.jpg) |
 
 | 메인: 서사 (스크롤) | 모바일 서사 |
 |---|---|
@@ -31,12 +31,12 @@
 
 | 화면 | 내용 |
 |---|---|
-| 인트로 `/` | 스크롤에 따라 태양을 향해 날아가는 불사조 → 우주 → 전쟁 → 태양에 닿아 초신성처럼 터지고, 빛나는 깃털 하나가 화면 가운데로 내려와 로고로 바뀌는 적색 WebGL 장면. 로딩 화면, 현재 장 이름 칩, 따라오는 커서 원. 맨 아래에서 메인으로 이동 |
+| 인트로 `/` | 스크롤에 따라 진홍 결정 불사조가 태양을 향해 날아가고(레퍼런스의 비행 궤적·카메라·날갯짓) → 우주 → 전쟁 → 태양에 닿아 터진 뒤, 결정 깃털 하나가 빛줄기를 끌며 화면 가운데로 내려와 로고로 바뀌는 적색 WebGL 장면. 여러 겹의 별(시차)·성운·먼 은하·우주 먼지, 코로나·플레어의 태양, 장면별 색 보정. 로딩 화면, 현재 장 이름 칩, 따라오는 커서 원. 맨 아래에서 메인으로 이동 |
 | 메인 `/main` | 흑백 편집 디자인의 작품 소개: 서사, 세 개의 흐름, 기록 보관소, 전체 화면 메뉴. 스크롤하면 제목이 벌어지며 멀어지고, 고정된 서사 문장이 단어마다 또렷해지며, 흐름 카드가 떠오르며 선화가 그려짐(CSS 스크롤 타임라인) |
 | 접근성·성능 | 동작 줄이기 대응, 배경 애니메이션 정지(멈추면 그리기도 멈춤), 키보드 조작, 본문 바로가기, 저사양 기기 해상도 자동 조절, 장면 단계별로 보이는 것만 그리기 |
 | 운영 | 한국어 404·오류 화면(다시 시도), 보안 헤더(CSP 등), canonical·Open Graph 공유 그림·robots·sitemap |
 
-불사조는 [“Phoenix”](https://sketchfab.com/3d-models/phoenix-243fea4f846f44d18d37bf371272b7ec) by [NORBERTO-3D](https://sketchfab.com/norberto3d)([CC BY 4.0](http://creativecommons.org/licenses/by/4.0/))를 실시간 3D로 그립니다. 색을 #8B0000으로 바꾸고 목의 장식을 뺐습니다. 마지막 장면의 깃털은 [“Feathers”](https://sketchfab.com/3d-models/feathers-c987c56694a44559b75ed66429b04ee4) by [victorberdugo1](https://sketchfab.com/victorberdugo1), 로고는 [“Phoenix Logo”](https://sketchfab.com/3d-models/phoenix-logo-8dc1ba8095f1447fac7092d0299add27) by [Suraj-456tyu](https://sketchfab.com/Suraj-456tyu)(모두 CC BY 4.0, 색 변경)입니다. 불길과 빛, 배경은 셰이더로 그립니다.
+불사조 비행 장면은 레퍼런스 [storytelling.noomoagency.com](https://storytelling.noomoagency.com/)의 리소스(결정 불사조 모델·날갯짓 클립, 비행·카메라 타임라인, 깃털 모델)를 사용자 허락을 받아 쓰고, 색과 재질은 #8B0000 진홍 결정으로 바꿨습니다. 글과 이야기는 이 작품의 것이며 그 사이트의 문구·로고·소리는 쓰지 않습니다. 흩어지는 작은 깃털은 [“Feathers”](https://sketchfab.com/3d-models/feathers-c987c56694a44559b75ed66429b04ee4) by [victorberdugo1](https://sketchfab.com/victorberdugo1), 로고는 [“Phoenix Logo”](https://sketchfab.com/3d-models/phoenix-logo-8dc1ba8095f1447fac7092d0299add27) by [Suraj-456tyu](https://sketchfab.com/Suraj-456tyu)(모두 CC BY 4.0, 색 변경)입니다. 우주 배경·불길·빛은 셰이더로 그립니다.
 
 ## 기술 스택
 
@@ -92,9 +92,10 @@ src/
 │   ├── main/       # 흑백 메인 페이지
 │   └── not-found/  # 404 화면
 └── shared/         # 사이트 설정, 공통 훅, 안내 화면(ui)
-public/models/      # 불사조·깃털·로고 3D 모델(glTF)과 라이선스
+public/models/      # 불사조·비행 타임라인·깃털·로고 3D 파일(glTF)과 라이선스
+public/intro/       # 동작 줄이기용 정지 장면·결말 이미지
 public/fonts/       # 한글 글꼴 나머지 조각과 라이선스
-scripts/            # 불사조 모델 텍스처 다시 담기, 한글 웹 폰트 만들기(fonts/), 화면 캡처·공유 그림
+scripts/            # 레퍼런스 리소스 줄이기(build-reference-assets), 예전 불사조 텍스처 다시 담기, 한글 웹 폰트 만들기(fonts/), 화면 캡처·공유 그림
 ```
 
 ## 문서
@@ -121,8 +122,9 @@ scripts/            # 불사조 모델 텍스처 다시 담기, 한글 웹 폰�
 
 | 자료 | 저작자 | 사용 허락 | 원본 |
 |---|---|---|---|
-| “Phoenix” 3D 모델 (불사조, 색 변경·목 장식 제거) | NORBERTO-3D | CC BY 4.0 | [Sketchfab](https://sketchfab.com/3d-models/phoenix-243fea4f846f44d18d37bf371272b7ec) |
-| “Feathers” 3D 모델 (마지막 장면의 깃털, 색 변경) | victorberdugo1 | CC BY 4.0 | [Sketchfab](https://sketchfab.com/3d-models/feathers-c987c56694a44559b75ed66429b04ee4) |
+| storytelling.noomoagency.com 리소스(사용자 허락): 결정 불사조 모델·날갯짓 클립(`phoenix-crystal.glb`, 속성 줄임·재질 변경), 비행·카메라 타임라인(`phoenix-flight*.glb`), 결정 깃털(`phoenix-feather.glb`) | Noomo Agency | 사용자 허락 | [storytelling.noomoagency.com](https://storytelling.noomoagency.com/) |
+| “Phoenix” 3D 모델 (예전 불사조, 설정으로 바꿔 쓸 수 있게 남김, 색 변경·목 장식 제거) | NORBERTO-3D | CC BY 4.0 | [Sketchfab](https://sketchfab.com/3d-models/phoenix-243fea4f846f44d18d37bf371272b7ec) |
+| “Feathers” 3D 모델 (터진 뒤 흩어지는 작은 깃털, 색 변경) | victorberdugo1 | CC BY 4.0 | [Sketchfab](https://sketchfab.com/3d-models/feathers-c987c56694a44559b75ed66429b04ee4) |
 | “Phoenix Logo” 3D 모델 (로고, 색 변경) | Suraj-456tyu | CC BY 4.0 | [Sketchfab](https://sketchfab.com/3d-models/phoenix-logo-8dc1ba8095f1447fac7092d0299add27) |
 | “Eclipse flare” 아이콘 (파비콘·로고, 금색 #c99a2e로 칠함) | Lorc (game-icons.net) | CC BY 3.0 | [game-icons.net](https://game-icons.net/1x1/lorc/eclipse-flare.html) |
 | Cormorant 글꼴 (기울임, 똑바른 Bold는 700 고정·라틴만 담음) | The Cormorant Project Authors | SIL OFL 1.1 | [CatharsisFonts/Cormorant](https://github.com/CatharsisFonts/Cormorant) |

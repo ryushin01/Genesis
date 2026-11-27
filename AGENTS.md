@@ -14,8 +14,8 @@
 - Next.js 16(App Router, 정적 페이지), React 19, TypeScript 6(`typescript-eslint` 때문에 고정), three.js, StyleX, Sentry(`@sentry/browser`)·web-vitals, Storybook 10.
 - 스타일은 StyleX(`stylex.create`·`stylex.props`)입니다. 토큰은 `@/shared/ui/tokens.stylex`에서 바로 가져오고(index로 다시 내보내지 않음), 테마는 `shared/ui`의 `createTheme`, 전역 CSS는 `@font-face`와 `@layer reset` 초기화만 둡니다. 빌드 설정은 `stylex.config.mjs`(자세한 것은 개발 가이드 '스타일').
 - Feature-Sliced Design(Next `app/`과 겹치지 않게 층 이름을 바꿈): `src/_app` → `_pages` → `shared`. `src/app`의 라우트 파일은 다시 내보내기만 합니다. `pnpm lint:fsd`(Steiger)로 검사합니다.
-- 인트로 장면: `src/_pages/intro`(`model/`: 문구·타임라인·추종기, `lib/`: 장면·셰이더, `lib/scene/`: 부품). 셰이더 설명은 GLSL 문자열 안이 아니라 상수의 JSDoc에 씁니다.
-- 3D 모델은 `public/models/*.glb`와 라이선스 원문(`*-license.txt`)입니다.
+- 인트로 장면: `src/_pages/intro`(`config/phoenix.config.ts`: 불사조 모델 설정 한 곳, `model/`: 문구·타임라인·추종기, `lib/`: 장면·셰이더, `lib/scene/`: 부품). 비행은 레퍼런스의 Blender 타임라인(`public/models/phoenix-flight*.glb`)을 따릅니다. 셰이더 설명은 GLSL 문자열 안이 아니라 상수의 JSDoc에 씁니다.
+- 3D 모델은 `public/models/*.glb`와 라이선스 원문(`*-license.txt`)입니다. 레퍼런스 리소스는 `node scripts/build-reference-assets.mjs <받은 폴더>`로 다시 만듭니다.
 
 ## 3. 설치·개발 명령
 
@@ -58,7 +58,7 @@ pnpm lhci             # Lighthouse(lighthouserc.json, 메인 성능 90·접근�
 - ESLint(`eslint-config-next` + jsx-a11y recommended).
 - **TypeScript strict:** `tsconfig.json`에 `strict: true`. `any`·`as` 단언·`@ts-ignore`를 피하고 외부 입력은 검증합니다.
 - **형식:** 표준과 다른 점: Prettier·Biome 설정과 format 스크립트가 없습니다. 주변 코드 모양을 따릅니다.
-- 디자인 기준: 인트로는 `#8B0000` 중심의 적색 계열, 메인은 흑백만 씁니다. 글꼴은 OFL의 Inter·JetBrains Mono·Cormorant·우아한 세리프(줄인 파일 이름 GenesisSerif)만 씁니다. 참고 사이트의 모델·텍스처·로고·사진·유료 글꼴은 가져오지 않습니다.
+- 디자인 기준: 인트로는 `#8B0000` 중심의 적색 계열, 메인은 흑백만 씁니다. 글꼴은 OFL의 Inter·JetBrains Mono·Cormorant·우아한 세리프(줄인 파일 이름 GenesisSerif)만 씁니다. 참고 사이트의 모델·텍스처·로고·사진·유료 글꼴은 가져오지 않습니다(예외: 사용자가 허락한 storytelling.noomoagency.com의 불사조·타임라인·깃털 리소스, 문구·브랜드·소리는 쓰지 않음).
 - **접근성(WCAG 2.2·KWCAG 2.2):** 네이티브 요소 먼저, 텍스트 대비 4.5:1 이상, 키보드 조작과 보이는 초점(`outline: none` 단독 금지), 조작 크기 24×24px 이상, 입력 오류의 `aria-invalid`·`aria-describedby` 연결. 로딩 알림은 처음부터 있는 `role="status"` 영역의 글만 바꿉니다. 동작 줄이기에서는 WebGL 장면을 띄우지 않고, 정지 버튼으로 그리기를 멈출 수 있어야 합니다. 자동 검사는 `eslint-plugin-jsx-a11y`(recommended 전체), Playwright + axe E2E, Lighthouse 접근성 100입니다. Storybook은 접근성 애드온(`a11y: { test: 'error' }`)을 켜고, `e2e/storybook-a11y.spec.ts`가 모든 스토리를 axe로 검사해 위반이 있으면 실패합니다.
 - 화면을 더하면 `sitemap`(`_app/seo`)에도 더합니다.
 

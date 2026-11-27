@@ -140,6 +140,9 @@ test.describe('인트로', () => {
     await page.goto('/');
     await expect(page.locator('[data-motion="off"]')).toBeVisible();
     await expect(page.locator('canvas')).toHaveCount(0);
+    // 움직이는 장면 대신 정지 장면과 결말(로고) 이미지를 보입니다. 꾸밈이라 화면 낭독기에는 숨깁니다.
+    await expect(page.locator('[data-still="flight"][aria-hidden="true"]')).toHaveCount(1);
+    await expect(page.locator('[data-still="finale"][aria-hidden="true"]')).toHaveCount(1);
     await expect(page.getByText('SF 전쟁으로 이어진다.')).toBeVisible();
     await expectNoOverflow(page);
     await expectNoViolations(page);

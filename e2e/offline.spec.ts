@@ -119,6 +119,31 @@ async function expectEveryChapter(page: Page, { timeout = 5_000 } = {}) {
   await expect(story.getByRole('link', { name: '3D 모델·아이콘 출처 (README)' })).toBeVisible();
 }
 
+/**
+ * 동작 줄이기에서 움직이는 장면 대신 보이는 정지 화면(비행 장면 배경과 결말의 로고 장면)이
+ * 저장소의 이미지로 실제로 그려지는지 봅니다. 화면에 보이는 배경 이미지 주소를 읽어 그대로 풀어 봅니다.
+ */
+async function expectStills(page: Page) {
+  for (const [name, file] of [
+    ['flight', 'still-flight.webp'],
+    ['finale', 'still-finale.webp'],
+  ] as const) {
+    const still = page.locator(`[data-still="${name}"]`);
+    await expect(still).toHaveCount(1);
+    await expect(still).toHaveAttribute('aria-hidden', 'true');
+    const decoded = await still.evaluate(async (element) => {
+      const match = /url\("?([^")]+)"?\)/.exec(getComputedStyle(element).backgroundImage);
+      if (!match) return { url: '', width: 0 };
+      const image = new Image();
+      image.src = match[1];
+      await image.decode();
+      return { url: new URL(image.src).pathname, width: image.naturalWidth };
+    });
+    expect(decoded.url).toBe(`/intro/${file}`);
+    expect(decoded.width).toBeGreaterThan(0);
+  }
+}
+
 /** 장면이 없을 때 보이는 CSS 배경(적색 그러데이션)이 깔려 있는지 봅니다. */
 async function expectCssBackdrop(page: Page) {
   const backdrop = await page
@@ -150,7 +175,7 @@ test.describe('오프라인: 인트로', () => {
   test('깃털·로고 모델을 받지 못해도 장면과 끝 장면을 보여 준다', async ({ page, isMobile }) => {
     test.skip(isMobile, 'WebGL 장면은 데스크톱에서만 띄웁니다');
     test.setTimeout(180_000);
-    await page.route(/\/models\/(feathers|phoenix-logo)\.glb$/, (route) => route.abort('internetdisconnected'));
+    await page.route(/\/models\/(feathers|phoenix-logo|phoenix-feather)\.glb$/, (route) => route.abort('internetdisconnected'));
     await page.goto('/');
     await expect(page.getByRole('button', { name: '배경 애니메이션 정지' })).toBeVisible({ timeout: 60_000 });
     await page.evaluate(() => window.scrollTo({ top: document.documentElement.scrollHeight, behavior: 'instant' }));
@@ -184,11 +209,12 @@ test.describe('오프라인: 인트로', () => {
     await expectNoViolations(page);
   });
 
-  test('동작 줄이기에서는 장면 없이 CSS 배경과 모든 글을 보여 준다', async ({ page }) => {
+  test('동작 줄이기에서는 장면 없이 정지 장면·결말 이미지와 모든 글을 보여 준다', async ({ page }) => {
     await page.emulateMedia({ reducedMotion: 'reduce' });
     await page.goto('/');
     await expect(page.locator('canvas')).toHaveCount(0);
     await expectCssBackdrop(page);
+    await expectStills(page);
     await expectEveryChapter(page);
     await expectFontsLoaded(page);
     await expectNoViolations(page);

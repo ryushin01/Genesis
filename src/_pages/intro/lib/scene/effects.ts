@@ -15,8 +15,6 @@ import {
 import {
   cometFragment,
   cometVertex,
-  emberFragment,
-  emberVertex,
   meteorFragment,
   meteorVertex,
   trailFragment,
@@ -99,31 +97,6 @@ function seededPoints(count: number, position: (i: number) => [number, number, n
   geometry.setAttribute('position', new BufferAttribute(positions, 3));
   geometry.setAttribute('aSeed', new BufferAttribute(seeds, 1));
   return geometry;
-}
-
-/** 화면 전체를 떠다니는 불티. 비행 중에는 태양 쪽에서 카메라 쪽으로 스쳐 지나갑니다. */
-export function createEmbers(count: number, uTime: { value: number }) {
-  const uniforms = { uTime, uHeat: { value: 0 }, uScale: { value: 300 }, uFlight: { value: 0 }, uMaxPoint: { value: 32 } };
-  const geometry = seededPoints(count, () => [Math.random() * 26 - 13, Math.random() * 12 - 6, Math.random() * 12 - 7]);
-  const material = new ShaderMaterial({
-    uniforms,
-    vertexShader: emberVertex,
-    fragmentShader: emberFragment,
-    transparent: true,
-    depthWrite: false,
-    blending: AdditiveBlending,
-  });
-  const points = new Points(geometry, material);
-  points.frustumCulled = false;
-  points.renderOrder = 2;
-  return {
-    points,
-    uniforms,
-    dispose() {
-      geometry.dispose();
-      material.dispose();
-    },
-  };
 }
 
 /** 불사조 날개 뒤로 흩날리는 불티 꼬리. 불사조가 있는 장면에 넣고, 몸에 가려지도록 깊이 검사를 합니다. */

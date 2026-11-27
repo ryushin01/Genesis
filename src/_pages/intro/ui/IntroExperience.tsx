@@ -55,6 +55,24 @@ const styles = stylex.create({
     height: ['100vh', '100lvh'],
     display: 'block',
   },
+  /* 동작 줄이기: 움직이는 장면 대신 같은 장면의 정지 화면을 배경에 깔고, 결말에는 로고가 된 장면을 보입니다. */
+  still: {
+    position: 'fixed',
+    inset: 0,
+    backgroundImage: 'url(/intro/still-flight.webp)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center top',
+    pointerEvents: 'none',
+  },
+  stillFinale: {
+    width: 'min(78vw, 560px)',
+    aspectRatio: '16 / 10',
+    borderRadius: '24px',
+    backgroundImage: 'url(/intro/still-finale.webp)',
+    backgroundSize: 'cover',
+    backgroundPosition: 'center',
+    boxShadow: '0 0 80px rgb(139 0 0 / 0.55)',
+  },
   scrim: {
     position: 'fixed',
     inset: 'auto 0 0',
@@ -333,6 +351,7 @@ const styles = stylex.create({
 export function IntroExperience() {
   const reducedMotion = useReducedMotion();
   const motionOn = reducedMotion === false;
+  const still = reducedMotion === true;
   const rootRef = useRef<HTMLDivElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sceneRef = useRef<PhoenixScene | null>(null);
@@ -482,6 +501,7 @@ export function IntroExperience() {
       data-paused={paused ? 'true' : undefined}
     >
       {motionOn ? <canvas ref={canvasRef} {...stylex.props(styles.canvas)} aria-hidden="true" /> : null}
+      {still ? <div {...stylex.props(styles.still)} aria-hidden="true" data-still="flight" /> : null}
       <div {...stylex.props(styles.scrim)} aria-hidden="true" />
       {/* 상태 알림 영역은 처음부터 두고 글만 바꿔야 화면 낭독기가 읽습니다. 보이는 로딩 화면은 같은 내용이라 숨깁니다. */}
       <VisuallyHidden role="status">{isLoading ? '불사조를 깨우는 중' : ''}</VisuallyHidden>
@@ -546,6 +566,7 @@ export function IntroExperience() {
 
         <section {...chapterProps(FINALE_LENGTH)} data-chapter data-name="zero">
           <div {...stylex.props(sticky, styles.finale)}>
+            {still ? <div {...stylex.props(styles.stillFinale)} aria-hidden="true" data-still="finale" /> : null}
             <h2 {...stylex.props(styles.finaleTitle, revealed)}>
               모든 것은
               <br />

@@ -18,4 +18,4 @@ export const CHAPTERS: readonly Chapter[] = [
 ];
 
 export const HERO_LENGTH = 200;
-export const FINALE_LENGTH = 280;
+export const FINALE_LENGTH = 420;

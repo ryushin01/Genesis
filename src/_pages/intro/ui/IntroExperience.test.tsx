@@ -42,6 +42,19 @@ describe('IntroExperience', () => {
     window.scrollTo = vi.fn();
   });
 
+  it('동작 줄이기에서는 정지 장면과 결말 이미지를 꾸밈으로 보이고, 장면을 띄우면 보이지 않는다', () => {
+    stubReducedMotion(true);
+    const { container, unmount } = render(<IntroExperience />);
+    const stills = container.querySelectorAll('[data-still]');
+    expect([...stills].map((still) => still.getAttribute('data-still'))).toEqual(['flight', 'finale']);
+    stills.forEach((still) => expect(still).toHaveAttribute('aria-hidden', 'true'));
+    unmount();
+
+    stubReducedMotion(false);
+    const motion = render(<IntroExperience />);
+    expect(motion.container.querySelectorAll('[data-still]')).toHaveLength(0);
+  });
+
   it('메인으로 가는 링크는 이야기 마지막에 하나만 있다', () => {
     stubReducedMotion(true);
     render(<IntroExperience />);
