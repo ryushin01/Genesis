@@ -32,7 +32,7 @@ pnpm storybook    # http://localhost:6006
 
 ## 4. 검사·테스트 명령
 
-CI(`.github/workflows/ci.yml`)는 `pnpm check`(`scripts/check.mjs`) 하나를 부릅니다. PR 전에 로컬에서도 `pnpm check`를 돌립니다(장비가 바쁘면 `E2E_PORT`로 빈 포트).
+CI(`.github/workflows/ci.yml`)는 `pnpm check`(`scripts/check.mjs`)의 묶음(`--only static|e2e|visual|budget`)을 부르며, 한 번 빌드한 결과로 E2E·시각·크기·Lighthouse 작업을 나란히 돌리고 필수 검사는 `check` 작업입니다. PR 전에 로컬에서도 `pnpm check`를 돌립니다(장비가 바쁘면 `E2E_PORT`로 빈 포트).
 
 ```bash
 pnpm check            # 아래를 이 순서로, 빌드는 한 번만(E2E·크기·Lighthouse가 다시 씀)

@@ -14,8 +14,10 @@ permissions:
   contents: read
   pull-requests: read
 
+# 검사는 모두 `pnpm check`(scripts/check.mjs)의 묶음입니다. 빌드는 build 작업에서 한 번만 하고, 그 결과를 넘겨받아
+# e2e·visual·budget 작업이 나란히 돕니다. 필수 검사는 마지막 check 작업 하나입니다.
 jobs:
-  # 문서(*.md, docs/)만 바뀌었으면 검사를 건너뜁니다. 건너뛴 check 작업은 필수 검사에서 통과로 칩니다.
+  # 문서(*.md, docs/)만 바뀌었으면 검사를 건너뜁니다.
   changes:
     runs-on: ubuntu-latest
     outputs:
@@ -31,7 +33,8 @@ jobs:
               - '!**/*.md'
               - '!docs/**'
 
-  check:
+  # 린트 → FSD → 타입 → 단위·커버리지(요약 표는 이 실행의 Summary) → 빌드(Storybook + Next)
+  build:
     needs: changes
     if: needs.changes.outputs.code == 'true'
     runs-on: ubuntu-latest
@@ -44,12 +47,46 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      # Next 빌드 캐시. 소스가 같으면 그대로, 다르면 같은 잠금 파일의 가장 최근 캐시에서 이어 받습니다.
+      - uses: actions/cache@v6
+        with:
+          path: .next/cache
+          key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**', 'public/**', 'next.config.ts', 'stylex.config.mjs', 'postcss.config.mjs') }}
+          restore-keys: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
+      - run: pnpm check --only static
+      # 빌드 결과(Storybook 포함)를 다음 작업들이 다시 씁니다.
+      - uses: actions/upload-artifact@v7
+        with:
+          name: build
+          path: |
+            .next/
+            !.next/cache/
+            public/storybook/
+          include-hidden-files: true
+          retention-days: 1
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports-build
+          path: coverage/
+          retention-days: 7
+          if-no-files-found: ignore
 
+  # E2E(기능·오프라인·접근성·Storybook 접근성·3D 성능)
+  e2e:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       # Playwright 브라우저 캐시(버전마다). 캐시가 있으면 브라우저는 받지 않고 시스템 라이브러리만 설치합니다.
       - id: playwright
         run: echo "version=$(node -p "require('@playwright/test/package.json').version")" >> "$GITHUB_OUTPUT"
-      # 시각 회귀는 기준 이미지와 같은 Playwright 공식 Docker 이미지의 브라우저로 찍습니다. 앞 단계를 도는 동안 뒤에서 미리 받습니다.
-      - run: (docker pull "mcr.microsoft.com/playwright:v${{ steps.playwright.outputs.version }}-noble" > /tmp/docker-pull.log 2>&1 &)
       - id: browsers
         uses: actions/cache@v6
         with:
@@ -59,27 +96,82 @@ jobs:
         run: pnpm exec playwright install --with-deps chromium
       - if: steps.browsers.outputs.cache-hit == 'true'
         run: pnpm exec playwright install-deps chromium
-
-      # Next 빌드 캐시. 소스가 같으면 그대로, 다르면 같은 잠금 파일의 가장 최근 캐시에서 이어 받습니다.
-      - uses: actions/cache@v6
+      - uses: actions/download-artifact@v8
         with:
-          path: .next/cache
-          key: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-${{ hashFiles('src/**', 'public/**', 'next.config.ts', 'stylex.config.mjs', 'postcss.config.mjs') }}
-          restore-keys: next-${{ runner.os }}-${{ hashFiles('pnpm-lock.yaml') }}-
-
-      # 로컬과 같은 검사(scripts/check.mjs): 린트 → FSD → 타입 → 단위·커버리지(요약 표는 이 실행의 Summary) → 빌드 한 번 →
-      # E2E(기능·오프라인·접근성·Storybook 접근성·시각·성능) → 크기 → Lighthouse. 빌드 결과를 E2E·크기·Lighthouse가 다시 씁니다.
-      - run: pnpm check
-
-      # 실패했을 때만 리포트(Playwright HTML·차이 이미지·트레이스, 커버리지)를 올립니다.
+          name: build
+      - run: pnpm check --only e2e
       - if: failure()
         uses: actions/upload-artifact@v7
         with:
-          name: reports
+          name: reports-e2e
           path: |
             playwright-report/
             test-results/
-            coverage/
-            .lighthouseci/
           retention-days: 7
           if-no-files-found: ignore
+
+  # 시각 회귀: 기준 이미지와 같은 Playwright 공식 Docker 이미지의 브라우저로 찍습니다(러너에 브라우저를 설치하지 않음).
+  visual:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      # 빌드 결과를 받는 동안 뒤에서 이미지를 받습니다.
+      - run: (docker pull --platform linux/amd64 "mcr.microsoft.com/playwright:v$(node -p "require('@playwright/test/package.json').version")-noble" > /tmp/docker-pull.log 2>&1 &)
+      - uses: actions/download-artifact@v8
+        with:
+          name: build
+      - run: pnpm check --only visual
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports-visual
+          path: |
+            playwright-report/
+            test-results/
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # 크기 예산과 Lighthouse(기준은 .size-limit.mjs·lighthouserc.json 그대로)
+  budget:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: pnpm/action-setup@v6
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - uses: actions/download-artifact@v8
+        with:
+          name: build
+      - run: pnpm check --only budget
+      - if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: reports-budget
+          path: .lighthouseci/
+          include-hidden-files: true
+          retention-days: 7
+          if-no-files-found: ignore
+
+  # 필수 검사. 문서만 바뀌었으면 통과로, 아니면 위 작업이 모두 성공해야 통과합니다.
+  check:
+    needs: [changes, build, e2e, visual, budget]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - run: |
+          if [ "${{ needs.changes.result }}" != "success" ]; then echo "변경 판별 실패"; exit 1; fi
+          if [ "${{ needs.changes.outputs.code }}" != "true" ]; then echo "문서만 바뀌어 검사를 건너뜁니다."; exit 0; fi
+          for result in "${{ needs.build.result }}" "${{ needs.e2e.result }}" "${{ needs.visual.result }}" "${{ needs.budget.result }}"; do
+            if [ "$result" != "success" ]; then echo "실패한 작업이 있습니다: $result"; exit 1; fi
+          done

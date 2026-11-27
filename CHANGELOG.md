@@ -9,7 +9,7 @@
 - 성능(`e2e/performance.spec.ts`): 3D 장면을 띄운 뒤 web-vitals로 LCP·CLS('좋음' 기준 2.5초·0.1), 정지 버튼 INP, 끝까지 스크롤하는 동안 프레임 간격을 확인. INP·프레임은 GPU 없는 CI에서 잰 값의 약 2배를 회귀 상한으로 둠(INP 2초, 중앙값 800ms, 가장 긴 프레임 1.5초). Lighthouse·크기 기준은 그대로
 - 수정: 부하가 큰 기기에서 인트로 → 메인 이동이 몇 초씩 밀려 `site.spec.ts`의 WebGL 정리 검사가 시간을 넘기던 문제. 링크를 누른 뒤에도 장면이 매 프레임 메인 스레드를 붙잡은 것이 원인이라, 메인으로 들어가는 링크를 누르면 장면 그리기부터 멈춤(`PhoenixScene.stop`, 마지막 그림은 남음, 새 탭 클릭은 제외). 고치기 전에 실패하는 컴포넌트 테스트 추가
 - 접근성: Storybook 접근성 애드온(`a11y: { test: 'error' }`)과 모든 스토리를 axe로 검사하는 `e2e/storybook-a11y.spec.ts`
-- CI: `pnpm check`(`scripts/check.mjs`)로 로컬과 같은 검사. 빌드를 한 번만 해 E2E·크기·Lighthouse가 다시 씀(예전에는 Storybook을 두 번 빌드), pnpm·Playwright 브라우저·`.next/cache` 캐시, 같은 PR의 이전 실행 취소, 문서만 바뀌면 건너뜀, 실패할 때만 리포트·차이 이미지를 7일 보관
+- CI: `pnpm check`(`scripts/check.mjs`)로 로컬과 같은 검사. CI는 그 묶음을 불러 한 번 빌드한 결과(예전에는 Storybook을 두 번 빌드)를 넘겨 E2E·시각 회귀·크기와 Lighthouse를 나란히 돌림. pnpm·Playwright 브라우저·`.next/cache` 캐시, 같은 PR의 이전 실행 취소, 문서만 바뀌면 건너뜀(필수 검사 `check`는 통과), 실패할 때만 리포트·차이 이미지를 7일 보관
 
 ## 1.3.1 - 2026-11-27
 

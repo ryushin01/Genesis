@@ -97,23 +97,6 @@ test.describe('인트로 장면 상태(데스크톱)', () => {
     await page.waitForTimeout(800);
     await expect.soft(page).toHaveScreenshot('intro-loader.png');
   });
-
-  test('장면 준비 뒤 정지 버튼(캔버스 숨김)', async ({ page }) => {
-    test.setTimeout(240_000);
-    await page.goto('/');
-    await page.locator('[data-scene="ready"]').waitFor({ timeout: 200_000 });
-    await page.addStyleTag({ content: 'canvas{visibility:hidden!important}' });
-    await page.waitForFunction(() => document.fonts.status === 'loaded');
-    await page.waitForTimeout(800);
-    const pause = page.getByRole('button', { name: '배경 애니메이션 정지' });
-    await pause.focus();
-    await expect.soft(page).toHaveScreenshot('intro-pause-focus.png');
-    await pause.click();
-    await page.mouse.move(5, 5);
-    await page.getByRole('button', { name: '배경 애니메이션 재생' }).focus();
-    await page.waitForTimeout(500);
-    await expect.soft(page).toHaveScreenshot('intro-paused.png');
-  });
 });
 
 test('메인', async ({ page }) => {
@@ -205,4 +188,27 @@ test('메인 스크롤 연출(애니메이션 그대로)', async ({ page }) => {
     await scrollTo(page, await sectionAt(page, id, ratio));
     await expect.soft(page).toHaveScreenshot(`anim-${id}-${ratio}.png`, options);
   }
+});
+
+// WebGL 장면을 띄우는 검사는 맨 끝에 둡니다. 소프트웨어 GL로 장면을 그린 뒤 같은 브라우저에서 다음 화면을 찍으면
+// 가끔 화면을 찍지 못해(Page.captureScreenshot 오류) 다시 돌려야 했습니다.
+test.describe('인트로 장면 준비 뒤(데스크톱)', () => {
+  test.skip(({ isMobile }) => isMobile, '데스크톱에서만 봅니다');
+
+  test('장면 준비 뒤 정지 버튼(캔버스 숨김)', async ({ page }) => {
+    test.setTimeout(240_000);
+    await page.goto('/');
+    await page.locator('[data-scene="ready"]').waitFor({ timeout: 200_000 });
+    await page.addStyleTag({ content: 'canvas{visibility:hidden!important}' });
+    await page.waitForFunction(() => document.fonts.status === 'loaded');
+    await page.waitForTimeout(800);
+    const pause = page.getByRole('button', { name: '배경 애니메이션 정지' });
+    await pause.focus();
+    await expect.soft(page).toHaveScreenshot('intro-pause-focus.png');
+    await pause.click();
+    await page.mouse.move(5, 5);
+    await page.getByRole('button', { name: '배경 애니메이션 재생' }).focus();
+    await page.waitForTimeout(500);
+    await expect.soft(page).toHaveScreenshot('intro-paused.png');
+  });
 });

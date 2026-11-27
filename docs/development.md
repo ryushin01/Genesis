@@ -132,11 +132,13 @@ WebGL 장면(`createPhoenixScene.ts`, `lib/scene/*`의 일부)은 jsdom에서 �
 
 ## CI와 `pnpm check`
 
-`pnpm check`(`scripts/check.mjs`)가 CI와 같은 검사를 같은 순서로 돌립니다: 린트 → FSD → 타입 → 단위·커버리지 → 커버리지 요약 → 빌드(Storybook + Next) 한 번 → E2E(`E2E_PREBUILT=1`로 그 빌드를 다시 씀) → 시각 회귀(`pnpm visual:docker`) → 크기 → Lighthouse. CI(`.github/workflows/ci.yml`)는 이 스크립트 하나를 부릅니다. 로컬에서는 Lighthouse 결과를 바깥에 올리지 않고 `.lighthouseci`에 저장합니다. 장비가 바쁘면 `E2E_PORT`로 빈 포트를 씁니다.
+`pnpm check`(`scripts/check.mjs`)가 CI와 같은 검사를 같은 순서로 돌립니다: 린트 → FSD → 타입 → 단위·커버리지 → 커버리지 요약 → 빌드(Storybook + Next) 한 번 → E2E(`E2E_PREBUILT=1`로 그 빌드를 다시 씀) → 시각 회귀(`pnpm visual:docker`) → 크기 → Lighthouse. 로컬에서는 Lighthouse 결과를 바깥에 올리지 않고 `.lighthouseci`에 저장합니다. 장비가 바쁘면 `E2E_PORT`로 빈 포트를 씁니다. `pnpm check --only static,e2e`처럼 묶음(`static`·`e2e`·`visual`·`budget`)만 고를 수 있습니다.
+
+CI(`.github/workflows/ci.yml`)도 이 묶음을 부릅니다. `build` 작업이 `pnpm check --only static`으로 한 번 빌드해 결과(`.next`, `public/storybook`)를 올리면, `e2e`·`visual`·`budget`(크기·Lighthouse) 작업이 그것을 받아 나란히 돕니다. 필수 검사는 이들을 모으는 `check` 작업입니다.
 
 - 캐시: pnpm 저장소(`setup-node`), Playwright 브라우저(`~/.cache/ms-playwright`, Playwright 버전마다. 있으면 시스템 라이브러리만 설치), `.next/cache`(잠금 파일·소스 해시). 토큰이 필요한 원격 캐시는 쓰지 않습니다.
-- 같은 PR에 새로 푸시하면 이전 실행을 취소합니다(`concurrency`). 문서(`*.md`, `docs/`)만 바뀌면 `changes` 작업이 `check`를 건너뜁니다(건너뛴 작업은 필수 검사에서 통과로 침).
-- 실패했을 때만 `reports` 결과물(Playwright HTML 리포트·차이 이미지·트레이스, 커버리지, Lighthouse)을 올리고 7일 보관합니다.
+- 같은 PR에 새로 푸시하면 이전 실행을 취소합니다(`concurrency`). 문서(`*.md`, `docs/`)만 바뀌면 `changes` 작업이 나머지를 건너뛰고 `check`는 통과합니다.
+- 실패했을 때만 작업마다 `reports-*` 결과물(Playwright HTML 리포트·차이 이미지·트레이스, 커버리지, Lighthouse)을 올리고 7일 보관합니다.
 
 ## 디자인 시스템(Storybook) 배포
 
