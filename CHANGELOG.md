@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.2.1 - 2026-11-27
+
+인트로 3D 모델을 받는 코드를 Fetch API 직접 호출 대신 ky로 바꿨습니다. 화면과 동작은 그대로입니다.
+
+- 모델 받기(`src/_pages/intro/lib/fetchModel.ts`): ky의 `onDownloadProgress`로 전체 크기를 알 때만 받은 비율을 알리고, `signal`로 화면을 떠나면 받기를 멈춤(멈추면 예전처럼 `AbortError`). 다시 시도하지 않고(`retry: 0`) 시간 제한도 두지 않아(`timeout: false`) 예전과 같게 받음. 2xx가 아니면 주소와 상태 코드를 담아 실패하고, 깃털·로고를 받지 못해도 나머지 장면은 그대로 보여 줌
+- 같은 출처(`connect-src 'self'`)만 쓰므로 CSP는 그대로
+- 테스트(`fetchModel.test.ts`): 실제 HTTP 서버로 파일 내용·진행률·content-length 없음·404·받는 도중 취소·미리 취소를 확인
+
 ## 1.2.0 - 2026-11-21
 
 인터넷이 끊기거나 `.env`가 없어도 빌드·실행·화면이 그대로 되게 했습니다. 화면 모양은 그대로입니다.
