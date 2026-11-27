@@ -63,27 +63,22 @@ export function extractFeather(root: Object3D, prefix: string) {
 }
 
 /** 같은 깃털 모양을 여러 장 그리도록 인스턴스 속성을 붙인 지오메트리를 만듭니다(모양 버퍼는 함께 씁니다). */
-function instances(shape: BufferGeometry, seeds: number[], hero: boolean) {
+function instances(shape: BufferGeometry, seeds: number[]) {
   const geometry = new InstancedBufferGeometry();
   geometry.setIndex(shape.getIndex());
   geometry.setAttribute('position', shape.getAttribute('position'));
   geometry.setAttribute('normal', shape.getAttribute('normal'));
   geometry.setAttribute('aSeed', new InstancedBufferAttribute(Float32Array.from(seeds), 1));
-  geometry.setAttribute('aHero', new InstancedBufferAttribute(Float32Array.from(seeds, () => (hero ? 1 : 0)), 1));
   geometry.instanceCount = seeds.length;
   return geometry;
 }
 
-/** 태양에서 터진 뒤 흩어지는 작은 깃털들과, 가운데로 내려오는 큰 깃털 하나. 서로 따로 그려 보이지 않을 때는 건너뜁니다. */
+/** 불사조가 태양에 닿아 터진 뒤 그 자리에서 흩어지는 작은 깃털들. 내려오는 큰 깃털은 결정 깃털(crystalFeather.ts)이 맡습니다. */
 export function createFeathers(gltf: GLTF, options: { count: number; uTime: { value: number } }) {
   const uniforms = {
     uTime: options.uTime,
     uFall: { value: 0 },
-    uLogo: { value: 0 },
-    uHeroRoll: { value: 0 },
     uSun: { value: new Vector2(0, 2) },
-    uHeroAt: { value: new Vector2(0, 2) },
-    uLogoAt: { value: new Vector2(0, 0.35) },
     uAspect: { value: 1 },
   };
   const material = new ShaderMaterial({
@@ -104,7 +99,7 @@ export function createFeathers(gltf: GLTF, options: { count: number; uTime: { va
     for (let i = 1 + variant; i < options.count; i += 2) seeds.push((i * 0.61803398875) % 1);
     return seeds;
   };
-  const geometries = [instances(shapes[0], seedsOf(0), false), instances(shapes[1], seedsOf(1), false), instances(shapes[0], [0], true)];
+  const geometries = [instances(shapes[0], seedsOf(0)), instances(shapes[1], seedsOf(1))];
   const meshes = geometries.map((geometry) => {
     const mesh = new Mesh(geometry, material);
     mesh.frustumCulled = false;
@@ -112,17 +107,16 @@ export function createFeathers(gltf: GLTF, options: { count: number; uTime: { va
     mesh.visible = false;
     return mesh;
   });
-  const [smallA, smallB, hero] = meshes;
 
   return {
     meshes,
     uniforms,
     /** 진행 값에 따라 보이는 깃털만 그리게 합니다. */
-    setVisibility(fall: number, logo: number) {
+    setVisibility(fall: number) {
       const small = fall > 0 && fall < 0.62;
-      smallA.visible = small;
-      smallB.visible = small;
-      hero.visible = fall > 0 && logo < 0.72;
+      meshes.forEach((mesh) => {
+        mesh.visible = small;
+      });
     },
     dispose() {
       geometries.forEach((geometry) => geometry.dispose());

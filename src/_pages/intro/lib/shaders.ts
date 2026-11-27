@@ -7,6 +7,113 @@ float vnoise(vec2 p){
 float fbm(vec2 p){ float a=.5,v=0.; for(int i=0;i<4;i++){ v+=a*vnoise(p); p=p*2.03+vec2(17.,9.); a*=.5; } return v; }
 `;
 
+const noise3 = /* glsl */ `
+float hash3(vec3 p){ p=fract(p*.3183099+vec3(.71,.113,.419)); p*=17.; return fract(p.x*p.y*p.z*(p.x+p.y+p.z)); }
+float noise3(vec3 x){
+  vec3 i=floor(x), f=fract(x); f=f*f*(3.-2.*f);
+  return mix(mix(mix(hash3(i),hash3(i+vec3(1,0,0)),f.x),mix(hash3(i+vec3(0,1,0)),hash3(i+vec3(1,1,0)),f.x),f.y),
+             mix(mix(hash3(i+vec3(0,0,1)),hash3(i+vec3(1,0,1)),f.x),mix(hash3(i+vec3(0,1,1)),hash3(i+vec3(1,1,1)),f.x),f.y),f.z);
+}
+float fbm3(vec3 p){ float a=.5,v=0.; for(int i=0;i<4;i++){ v+=a*noise3(p); p=p*2.02+vec3(3.1,1.7,5.3); a*=.5; } return v; }
+`;
+
+/**
+ * 장면 흐름에 맞춘 색 보정. 노출을 곱하고, 채도를 조절한 뒤 밝은 부분에는 highlight를 곱하고 어두운 부분에는 shadow를 섞습니다.
+ * 배경·불사조·깃털이 같은 값을 써서 장면 전체가 한 색감으로 바뀝니다.
+ */
+export const gradeChunk = /* glsl */ `
+uniform vec3 uShadow, uHighlight;
+uniform float uSaturation, uExposure;
+vec3 grade(vec3 c){
+  c*=uExposure;
+  float l=dot(c,vec3(.2126,.7152,.0722));
+  c=max(mix(vec3(l),c,uSaturation),0.);
+  return c*mix(vec3(1.),uHighlight,smoothstep(.05,.8,l))+uShadow*(1.-smoothstep(0.,.35,l));
+}
+`;
+
+/**
+ * 결정 불사조·깃털(레퍼런스 모델)의 꼭짓점 셰이더. 뼈대 애니메이션을 적용하고, 면 노멀은 조각 셰이더가 화면 미분으로 만듭니다.
+ * 모델의 사용자 속성 `_peaks`(결정 끝의 뾰족함)와 `_thickness`(조각 두께)를 넘깁니다.
+ */
+export const crystalVertex = /* glsl */ `
+#include <common>
+#include <skinning_pars_vertex>
+attribute float _peaks;
+attribute float _thickness;
+varying vec3 vView, vWorld, vLocal;
+varying float vPeaks, vThick;
+void main(){
+  #include <skinbase_vertex>
+  #include <begin_vertex>
+  #include <skinning_vertex>
+  vec4 world=modelMatrix*vec4(transformed,1.);
+  vec4 mv=viewMatrix*world;
+  vView=mv.xyz; vWorld=world.xyz; vLocal=position;
+  vPeaks=_peaks; vThick=_thickness;
+  gl_Position=projectionMatrix*mv;
+}`;
+
+/**
+ * 진홍 결정: 레퍼런스의 유리 결정 불사조를 #8B0000 계열로 옮긴 재질입니다.
+ *
+ * - 결정 조각마다 면이 평평하므로 화면 미분으로 면 노멀을 만듭니다. 조각마다 밝기와 무지갯빛 위상을 조금씩 달리합니다.
+ * - 얇은 조각은 태양 빛이 비쳐 주황으로 달아오르고(가짜 투과), 두꺼운 조각은 깊은 진홍으로 남습니다.
+ * - 비스듬히 보이는 면(프레넬)과 결정 끝(_peaks)에는 금빛 테두리와 무지갯빛이 돌고, 태양 쪽 반사는 하얗게 빛납니다.
+ * - 태양에 다가가면 표면을 따라 불길이 흐르고(uBurn), 빛 속에서 불씨로 흩어집니다(uDissolve).
+ * - uMask가 켜지면 윤곽만 흰색으로 그립니다(배경의 빛 무리·불길용).
+ */
+export const crystalFragment = /* glsl */ `
+uniform float uTime, uBurn, uMask, uDissolve, uRim, uGlow, uOpacity;
+uniform vec3 uSunDir;
+${gradeChunk}
+varying vec3 vView, vWorld, vLocal;
+varying float vPeaks, vThick;
+${noise3}
+void main(){
+  if(uDissolve>0.){
+    float d=fbm3(vLocal*9.);
+    if(d<uDissolve*1.2-.1) discard;
+  }
+  if(uMask>.5){ gl_FragColor=vec4(1.); return; }
+  vec3 n=normalize(cross(dFdx(vView),dFdy(vView)));
+  vec3 v=normalize(-vView);
+  if(dot(n,v)<0.) n=-n;
+  vec3 wn=normalize(cross(dFdx(vWorld),dFdy(vWorld)));
+  float facet=hash3(floor(wn*7.+vLocal*3.));
+  float ndv=clamp(dot(n,v),0.,1.);
+  float fres=pow(1.-ndv,3.);
+  float thin=1.-smoothstep(.008,.12,vThick);
+  float peak=clamp(vPeaks*2.2,0.,1.);
+  vec3 l=normalize(uSunDir);
+  float through=pow(clamp(dot(-v,l)*.5+.5,0.,1.),2.);
+  float diffuse=clamp(dot(n,l),0.,1.);
+  float spec=pow(clamp(dot(reflect(-v,n),l),0.,1.),28.);
+  float iri=.5+.5*sin(ndv*10.+facet*6.2832+peak*5.+uTime*.25);
+  vec3 deep=vec3(.09,0.,.012), crimson=vec3(.545,0.,0.), ember=vec3(1.,.3,.1), gold=vec3(1.,.7,.42), rose=vec3(1.,.45,.5);
+  float lit=.45+.55*diffuse;
+  vec3 col=mix(deep,crimson,.2+.8*facet)*lit*(.85+.3*thin);
+  float back=pow(through,4.);
+  col+=vec3(.95,.14,.04)*back*(.2+.8*peak)*(.35+uGlow*.45);
+  col+=mix(ember,gold,iri)*fres*.7;
+  col+=rose*fres*iri*.22;
+  col+=gold*peak*.22;
+  col+=vec3(1.,.9,.85)*spec*.9;
+  col+=vec3(1.,.28,.16)*fres*uRim;
+  if(uBurn>0.){
+    float flicker=fbm3(vLocal*6.+vec3(0.,-uTime*1.6,uTime*.4));
+    float vein=smoothstep(.55,.85,fbm3(vLocal*3.5+vec3(uTime*.15,-uTime*.9,0.)));
+    col+=(vec3(.6,.03,0.)*flicker+vec3(1.,.45,.15)*vein*.7)*uBurn;
+  }
+  if(uDissolve>0.){
+    float d=fbm3(vLocal*9.);
+    col+=vec3(1.,.55,.3)*smoothstep(.1,0.,d-(uDissolve*1.2-.1))*2.;
+  }
+  col=grade(col);
+  col+=(fract(sin(dot(gl_FragCoord.xy+fract(uTime)*91.,vec2(12.9898,78.233)))*43758.5453)-.5)*.02;
+  gl_FragColor=vec4(col,uOpacity);
+}`;
+
 /**
  * 불사조 모델의 표준 재질에 끼워 넣는 조각: 모든 색을 #8B0000 한 색조로 바꾸고, 불길·소멸·윤곽 패스를 처리합니다.
  *
@@ -63,103 +170,38 @@ export const birdOutput = /* glsl */ `
   if(uMask > .5) gl_FragColor = vec4(1.);
 `;
 
-/**
- * 불사조가 태양 속에서 터진 뒤의 깃털(3D 모델).
- * 작은 깃털들은 사방으로 흩어졌다 사라지고, 큰 깃털 하나(aHero=1)가 빛을 끌며 화면 가운데로 천천히 내려옵니다.
- *
- * - 큰 깃털은 진자처럼 좌우로 흔들리며, 흔들리는 쪽으로 몸을 기울입니다.
- */
-export const featherVertex = /* glsl */ `
-attribute float aSeed, aHero;
-uniform float uTime, uFall, uAspect, uLogo, uHeroRoll;
-uniform vec2 uSun, uHeroAt;
-varying float vSeed, vFacing, vY, vLight, vHero;
-void main(){
-  vSeed = aSeed;
-  vY = position.y;
-  vHero = aHero;
-  float s = aSeed;
-  float spin = uTime*(.35+s*.5) + s*20.;
-  float roll = sin(uTime*(.6+s*.4) + s*31.)*.55;
-  vec3 local = position;
-  vec3 n = normal;
-  float size;
-  vec2 at;
-  if(aHero > .5){
-    size = 2.6*(1.-uLogo*.6);
-    at = uHeroAt;
-    roll = uHeroRoll;
-    spin = sin(uTime*.35)*.55;
-  } else {
-    size = .6 + s*.7;
-    float a = s*6.2832*3.;
-    vec2 dir = vec2(cos(a), sin(a));
-    float out1 = 1.-exp(-uFall*7.);
-    at = uSun + dir*vec2(uAspect,1.)*(1.4+s*3.)*out1 + vec2(0., -uFall*uFall*(2.+s*3.));
-  }
-  float c = cos(spin), sn = sin(spin);
-  local.xz = mat2(c,-sn,sn,c)*local.xz;
-  n.xz = mat2(c,-sn,sn,c)*n.xz;
-  float cr = cos(roll), sr = sin(roll);
-  local.xy = mat2(cr,-sr,sr,cr)*(local.xy - vec2(0.,.5));
-  n.xy = mat2(cr,-sr,sr,cr)*n.xy;
-  vFacing = abs(n.z);
-  vLight = clamp(dot(normalize(n), normalize(vec3(.3,.6,.75)))*.5+.5, 0., 1.);
-  gl_Position = projectionMatrix*modelViewMatrix*vec4(local*size + vec3(at,0.), 1.);
-}`;
 
-/**
- * - 내려오는 큰 깃털은 스스로 빛나고, 로고가 나타나면 사라집니다.
- */
-export const featherFragment = /* glsl */ `
-precision highp float;
-uniform float uFall, uLogo;
-varying float vSeed, vFacing, vY, vLight, vHero;
-void main(){
-  vec3 col = mix(vec3(.2,0.,0.), vec3(.545,0.,0.), vLight);
-  col *= .72 + .4*vFacing;
-  float ember = (1.-smoothstep(.15,.7,uFall)) + .2;
-  col += vec3(.9,.12,.06)*smoothstep(.6,1.,vY)*ember;
-  float alpha;
-  if(vHero > .5){
-    col += vec3(.75,.08,.05)*(.55+.45*smoothstep(.2,1.,vY));
-    alpha = smoothstep(0.,.06,uFall)*(1.-smoothstep(.2,.7,uLogo));
-  } else {
-    alpha = smoothstep(0.,.04,uFall)*(1.-smoothstep(.25,.6,uFall));
-  }
-  gl_FragColor = vec4(col, alpha);
-}`;
-
-export const backgroundVertex = /* glsl */ `
+export const skyVertex = /* glsl */ `
 varying vec2 vUv;
 void main(){ vUv = uv; gl_Position = vec4(position.xy,0.,1.); }`;
 
 /**
- * 배경: 신화(붉은 하늘) → 우주 → 전쟁 → 폭발·깃털·로고.
- * 단계마다 쓰지 않는 부분은 계산하지 않고, 불사조 윤곽의 흐림은 밉맵에서 몇 번만 읽어 만듭니다.
+ * 우주 배경. 화소마다 카메라 방향(uCamRot·uTan)으로 시선을 만들어, 아주 먼 것은 카메라가 돌 때만 움직이게 합니다.
+ * 가까운 별·우주 먼지는 3D 점(starfield.ts)으로 따로 그려 비행할 때 겹마다 다르게 흐릅니다(시차).
  *
- * - 반지름 r(화면 높이 비율)만큼 흐린 윤곽: 그 크기에 맞는 밉맵 단계에서 네 점을 읽습니다.
- * - uShift: 폭발 순간 화면 흔들림. 3D 장면의 카메라와 같은 방향으로 움직입니다.
- * - 신화: 진홍빛 극광과 태양의 빛살. 우주로 다 넘어가면 계산하지 않습니다.
- * - 우주: 별과 성운, 행성의 가장자리, 전쟁의 포화
- * - 태양: 가장자리로 갈수록 붉어지고(주연 감광) 표면이 천천히 끓습니다. 둘레에는 일렁이는 코로나.
- * - 초신성: 섬광, 퍼져 나가는 충격파
- * - 로고 뒤의 잔광과 나타나는 순간의 섬광
- * - 내려오는 깃털의 빛 무리와 위로 길게 남는 빛줄기
- * - 빛줄기를 따라 피어오르는 불씨: 칸마다 하나씩 둥글고 부드러운 점으로 반짝입니다.
- * - 불사조 뒤의 빛과 불길. 불사조가 사라진 뒤에는 읽지 않습니다.
- * - 불길은 빛이므로 밝은 태양 앞에서는 어둡게 덮지 않습니다(밝아지는 쪽만 남깁니다).
- * - 불사조 형상에서 바깥으로 뻗는 불길 줄기
- * - 글자가 묻히지 않도록 가장자리를 눌러 줍니다.
+ * - 먼 별: 시선 방향의 3D 칸마다 별 하나. 칸 크기를 화면 픽셀로 바꿔 별이 늘 1~2픽셀로 또렷합니다. 두 겹이고 반짝입니다.
+ * - 은하수 띠: 기울어진 큰 원을 따라 빛나는 띠와 그 안의 어두운 먼지 줄기, 띠 안에서 더 촘촘한 별.
+ * - 성운: 3D 노이즈 두 겹으로 진홍·자줏빛 구름과 주황빛 가장자리. 우주로 나아갈수록 짙어지고 끝 장면에서는 가라앉습니다.
+ * - 먼 은하: 정해 둔 방향 몇 곳에 기울어진 나선 은하(가운데 팽대부와 휘감기는 팔).
+ * - 태양(화면에 투영한 자리 uSunAt, 반지름 uSunR): 가장자리 감광과 끓는 표면, 둘레의 코로나 줄기, 가장자리의 홍염(플레어),
+ *   넓은 빛 번짐, 빛살, 화면 가운데를 지나는 렌즈 고스트.
+ * - 초신성: 불사조가 태양에 닿는 순간의 섬광과 퍼지는 충격파.
+ * - 내려오는 깃털: 빛 무리와 위로 길게 뻗는 빛줄기, 그 줄기를 따라 피어오르는 불씨.
+ * - 로고 뒤의 잔광과 나타나는 순간의 섬광.
+ * - 불사조 윤곽(uMaskTex)으로 뒤의 빛 무리와 불길·빛줄기. 윤곽의 흐림은 밉맵에서 몇 번만 읽습니다.
+ * - 끝으로 색 보정, 가장자리 어둡게, 입자감.
  */
-export const backgroundFragment = /* glsl */ `
+export const skyFragment = /* glsl */ `
 precision highp float;
 uniform sampler2D uMaskTex;
-uniform vec2 uRes, uMaskSize;
-uniform float uTime, uSun, uSunSize, uSunX, uCosmos, uWar, uBurn, uNova, uLogo, uHeroGlow, uMaskOn;
-uniform vec2 uBird, uNovaAt, uLogoAt, uHeroAt, uShift;
+uniform vec2 uRes, uMaskSize, uTan;
+uniform mat3 uCamRot;
+uniform float uTime, uSunOn, uSunR, uCosmos, uWar, uBurn, uNova, uLogo, uFeatherGlow, uMaskOn, uDark;
+uniform vec2 uSunAt, uBird, uNovaAt, uLogoAt, uFeatherAt, uShift;
+${gradeChunk}
 varying vec2 vUv;
 ${noise}
+${noise3}
 
 float maskBlur(vec2 uv, float r){
   float lod = max(log2(max(r*uMaskSize.y, 1.)) - 1., 0.);
@@ -175,97 +217,111 @@ vec3 fire(float t){
   return mix(c,vec3(.8,.05,.04),smoothstep(.45,.95,t));
 }
 
-float stars(vec2 p, float scale){
-  vec2 g=p*scale, i=floor(g), f=fract(g)-.5;
-  float h=hash(i); if(h<.9) return 0.;
-  vec2 o=vec2(hash(i+3.1),hash(i+7.7))-.5;
-  return smoothstep(.09,.0,length(f-o*.7))*(h-.9)*10.*(.6+.4*sin(uTime*2.+h*90.));
+vec3 starLayer(vec3 d, float scale, float keep, float px, float t){
+  vec3 g=d*scale, id=floor(g), f=fract(g)-.5;
+  float h=hash3(id);
+  if(h>keep) return vec3(0.);
+  vec3 o=(vec3(hash3(id+1.7),hash3(id+3.1),hash3(id+5.9))-.5)*.5;
+  float r=length(f-o)/px;
+  float mag=pow(hash3(id+9.3),3.);
+  float core=exp(-r*r*(1.6-mag))*(.35+mag*1.6);
+  float tw=.75+.25*sin(t*(1.3+h*4.)+h*80.);
+  vec3 tint=mix(vec3(1.,.78,.7),vec3(.82,.86,1.),step(.82,hash3(id+4.4)));
+  return tint*core*tw;
 }
 
-float beam(vec2 p, vec2 a, vec2 b, float head){
-  if(head>1.24) return 0.;
-  vec2 ab=b-a;
-  vec2 tip=a+ab*min(head,1.), end=a+ab*max(head-.24,0.);
-  vec2 seg=tip-end;
-  float len2=max(dot(seg,seg),1e-5);
-  float h=clamp(dot(p-end,seg)/len2,0.,1.);
-  float d=length(p-end-seg*h);
-  return h*h*(smoothstep(.006,.0,d)+exp(-d*60.)*.3);
+vec3 galaxy(vec3 d, vec3 axis, vec3 up, float size, float tilt, float seed){
+  float c=dot(d,axis);
+  if(c<.985) return vec3(0.);
+  vec3 t=normalize(cross(axis,up)), b=cross(t,axis);
+  vec2 q=vec2(dot(d,t),dot(d,b))/size;
+  float ca=cos(seed), sa=sin(seed);
+  q=mat2(ca,-sa,sa,ca)*q;
+  q.y/=tilt;
+  float r=length(q);
+  float a=atan(q.y,q.x);
+  float arms=.5+.5*cos(2.*a-log(r+.05)*5.+seed);
+  float disk=exp(-r*3.2)*(.35+.9*arms*smoothstep(.05,.35,r));
+  float bulge=exp(-r*r*40.);
+  float dust=fbm(q*9.+seed);
+  return (vec3(.9,.55,.5)*disk*(.6+.6*dust)+vec3(1.,.86,.75)*bulge*1.4)*smoothstep(.985,.993,c);
 }
 
 void main(){
   float asp=uRes.x/uRes.y;
   vec2 p=(vUv-.5)*vec2(asp,1.)+uShift;
   float t=uTime;
-  vec2 sc=p-vec2(uSunX,.24);
+  vec2 ndc=vUv*2.-1.;
+  vec3 d=normalize(uCamRot*vec3(ndc*uTan,-1.));
+  float px=2.*uTan.y/uRes.y;
+  float calm=1.-uDark*.7;
+
+  vec3 col=mix(vec3(.018,.002,.008),vec3(.006,.001,.006),uDark);
+  vec3 bandN=normalize(vec3(.12,.92,.38));
+  float lat=dot(d,bandN);
+  float band=exp(-lat*lat/.03);
+  float lanes=smoothstep(.56,.72,fbm3(d*19.+vec3(4.,1.,2.)));
+  float glow=band*(.55+.7*fbm3(d*5.))*(1.-lanes*.5);
+  col+=vec3(.32,.07,.09)*glow*.55*calm;
+  float n1=fbm3(d*2.2+vec3(0.,t*.004,0.));
+  float n2=fbm3(d*5.3+n1*1.8);
+  float cloud=smoothstep(.36,.8,n1)*(.45+.75*n2);
+  float front=exp(-length(d-normalize(vec3(1.,.06,.12)))*2.2);
+  vec3 neb=mix(vec3(.3,.01,.04),vec3(.24,.015,.1),smoothstep(.3,.7,n2));
+  neb+=vec3(.85,.22,.08)*smoothstep(.7,.95,n2)*smoothstep(.55,.8,n1)*.6;
+  col+=neb*(cloud*1.6+front*.35*(.5+n2))*mix(.5,1.,uCosmos)*calm;
+  col+=galaxy(d,normalize(vec3(1.,.13,-.3)),vec3(0.,1.,0.),.03,.38,1.3)*calm;
+  col+=galaxy(d,normalize(vec3(1.,-.14,-.2)),vec3(0.,1.,0.),.02,.55,4.1)*calm;
+  col+=galaxy(d,normalize(vec3(1.,.2,-.08)),vec3(0.,1.,0.),.016,.3,2.6)*calm*.8;
+  col+=galaxy(d,normalize(vec3(1.,-.02,.3)),vec3(0.,1.,0.),.012,.45,5.2)*calm;
+  col+=starLayer(d,260.,.11+band*.22,px*260.,t);
+  col+=starLayer(d+.37,520.,.06+band*.3,px*520.,t)*.75;
+
+  vec2 sc=p-uSunAt;
   float r=length(sc);
-  vec2 around=normalize(sc+vec2(1e-4));
-  vec3 col=vec3(0.);
-
-  if(uCosmos<.999){
-    float diag=dot(p,normalize(vec2(.7,-.72)));
-    float flow=fbm(vec2(diag*2.4+t*.04, dot(p,vec2(.72,.7))*.8-t*.03));
-    vec3 myth=mix(vec3(.2,0.,.012),vec3(.545,0.,0.),smoothstep(.2,.72,flow));
-    myth=mix(myth,vec3(.74,.06,.07),smoothstep(.6,.86,flow)*.6);
-    float halo=sin(r*11.-flow*3.+t*.2)*.5+.5;
-    myth+=vec3(.45,.07,.07)*halo*smoothstep(.9,.25,r)*smoothstep(.1,.42,r)*uSun*.65;
-    float rays=pow(fbm(around*5.5+vec2(t*.05,-t*.04)),2.2);
-    myth+=vec3(.8,.08,.05)*rays*exp(-r*1.5)*uSun*2.4;
-    myth+=vec3(1.,.4,.3)*exp(-r*5.2)*uSun*1.05;
-    col=myth;
-  }
-
-  if(uCosmos>.001){
-    float neb=fbm(p*1.7+vec2(t*.012,0.)+fbm(p*2.6)*.8);
-    vec3 cosmos=vec3(.012,.003,.008)+vec3(.34,.012,.03)*smoothstep(.42,.86,neb)+vec3(.65,.1,.06)*smoothstep(.68,.95,neb)*.5;
-    float st=stars(p,34.)+stars(p+.37,62.)*.7;
-    cosmos+=vec3(1.,.86,.82)*st;
-    vec2 pc=p-vec2(-.34*asp,-1.42);
-    float pd=length(pc)-1.14;
-    float limb=exp(-abs(pd)*26.);
-    float disc=smoothstep(.004,-.004,pd);
-    cosmos=mix(cosmos,vec3(.022,.004,.006)+vec3(.13,.008,.01)*fbm(pc*7.),disc);
-    cosmos+=vec3(1.,.2,.1)*limb*.8*(1.-disc*.35);
-    if(uWar>.001){
-      float war=0.;
-      for(int i=0;i<9;i++){
-        float f=float(i);
-        float cyc=fract(t*(.17+f*.021)+f*.37);
-        vec2 a=vec2(-1.2+mod(f*.47,2.4),.62-mod(f*.31,1.1))*vec2(asp*.62,1.);
-        vec2 b=vec2(1.1-mod(f*.71,2.2),-.56+mod(f*.53,1.0))*vec2(asp*.62,1.);
-        war+=beam(p,a,b,cyc*1.3);
-      }
-      cosmos+=vec3(1.,.2,.14)*war*uWar;
+  float R=max(uSunR,1e-4);
+  if(uSunOn>.001){
+    float ang=atan(sc.y,sc.x);
+    float x=r/R;
+    float edge=clamp(x,0.,1.);
+    float boil=fbm(sc/R*3.2+vec2(t*.07,-t*.05));
+    vec3 disc=mix(vec3(1.,.96,.92),vec3(1.,.62,.48),edge*edge*.9+boil*.25);
+    float inside=smoothstep(1.02,.98,x);
+    float streamers=.55+.45*fbm(vec2(ang*4.,x*2.2-t*.12));
+    float corona=exp(-max(x-1.,0.)*1.8)*streamers;
+    float flareA=fbm(vec2(ang*7.+1.3,t*.18));
+    float flares=smoothstep(.55,.8,flareA)*exp(-max(x-1.,0.)*7.)*smoothstep(.97,1.05,x);
+    float bloom=1./(1.+x*x*.9);
+    float rays=pow(abs(cos(ang*5.+t*.03)),160.)*(.4+.6*vnoise(vec2(ang*9.,t*.3)))+pow(abs(cos(ang*3.-.6-t*.02)),220.)*.6;
+    rays*=exp(-x*.45)*smoothstep(1.,1.8,x);
+    vec3 sun=vec3(1.,.42,.26)*corona*.75*(1.-inside)+vec3(1.,.3,.12)*flares*1.4+vec3(1.,.36,.22)*bloom*.55+vec3(1.,.72,.6)*rays*.18;
+    for(int i=0;i<3;i++){
+      float k=-.35-float(i)*.55;
+      float gr=R*(1.6+float(i)*1.4);
+      float gd=length(p-uSunAt*k);
+      sun+=vec3(.55,.12,.1)*smoothstep(gr,gr*.7,gd)*smoothstep(gr*.4,gr*.85,gd)*.09;
     }
-    col=mix(col,cosmos,uCosmos);
-  }
-
-  float sunR=mix(.09,.2,uSunSize)*smoothstep(0.,.55,uSun)*mix(.62,1.,smoothstep(.5,1.,asp));
-  if(sunR>.001 && uNova<.999){
-    float sun=smoothstep(sunR+.04,sunR,r);
-    float edge=clamp(r/max(sunR,1e-3),0.,1.);
-    float boil=fbm(sc/max(sunR,.02)*4.+vec2(t*.06,-t*.05));
-    vec3 disc=mix(vec3(1.,.93,.9),vec3(1.,.72,.64),edge*edge*.85+boil*.22);
-    col=mix(col,disc,sun*smoothstep(.03,.07,sunR)*(1.-uNova));
-    float corona=exp(-max(r-sunR,0.)*16.)*(.55+.45*fbm(around*6.+vec2(t*.25,r*4.-t*.4)));
-    col+=vec3(1.,.32,.22)*corona*(1.-sun)*.32*smoothstep(.03,.08,sunR)*(1.-uNova);
+    col=mix(col,disc,inside*uSunOn);
+    col+=sun*uSunOn;
   }
 
   if(uNova>.001 && uNova<.999){
     float nr=length(p-uNovaAt);
-    float flash=exp(-nr*mix(1.2,6.,uNova))*sin(uNova*3.14159);
-    float shock=smoothstep(.05,0.,abs(nr-uNova*1.6))*(1.-uNova);
-    col+=vec3(1.,.55,.45)*flash*1.6+vec3(.95,.12,.08)*shock*1.4;
+    float flash=exp(-nr*mix(1.,6.,uNova))*sin(uNova*3.14159);
+    float shock=exp(-abs(nr-uNova*1.7)*60.)*(1.-uNova);
+    float ring2=exp(-abs(nr-uNova*1.1)*120.)*(1.-uNova);
+    col+=vec3(1.,.62,.5)*flash*2.+vec3(.95,.16,.08)*shock*.9+vec3(1.,.5,.3)*ring2*.5;
   }
   if(uLogo>.001){
     float lr=length(p-uLogoAt);
     col+=vec3(.545,0.,0.)*exp(-lr*2.6)*uLogo*.9;
     col+=vec3(1.,.5,.4)*exp(-lr*5.)*sin(uLogo*3.14159)*1.2;
   }
-  if(uHeroGlow>.001){
-    vec2 hp=p-uHeroAt;
-    float heroHalo=exp(-length(hp)*4.5);
-    float trail=exp(-abs(hp.x)*70.)*exp(-max(hp.y,0.)*1.6)*step(0.,hp.y);
+  if(uFeatherGlow>.001){
+    vec2 hp=p-uFeatherAt;
+    float halo=exp(-length(hp*vec2(1.,.75))*4.2);
+    float beam=exp(-abs(hp.x)*55.)*exp(-max(hp.y,0.)*1.1)*step(0.,hp.y);
+    float wide=exp(-abs(hp.x)*9.)*exp(-max(hp.y,0.)*.9)*step(0.,hp.y);
     vec2 cell=vec2(60.,20.);
     vec2 g=vec2(hp.x,hp.y-t*.2)*cell;
     vec2 id=floor(g);
@@ -273,26 +329,25 @@ void main(){
     float sparks=0.;
     if(h>.92){
       vec2 o=(vec2(hash(id+3.1),hash(id+7.7))-.5)*.7;
-      float d=length((fract(g)-.5-o)/cell);
-      sparks=smoothstep(.0055,0.,d)*(.55+.45*sin(t*7.+h*60.))*exp(-abs(hp.x)*14.)*exp(-max(hp.y,0.)*2.2)*step(0.,hp.y);
+      float sd=length((fract(g)-.5-o)/cell);
+      sparks=smoothstep(.0055,0.,sd)*(.55+.45*sin(t*7.+h*60.))*exp(-abs(hp.x)*14.)*exp(-max(hp.y,0.)*2.)*step(0.,hp.y);
     }
-    col+=(vec3(.78,.06,.04)*heroHalo*.9+vec3(1.,.4,.3)*trail*.55+vec3(1.,.6,.5)*sparks*1.4)*uHeroGlow;
+    col+=(vec3(.7,.04,.03)*halo*.9+vec3(1.,.42,.3)*beam*.6+vec3(.5,.03,.02)*wide*.5+vec3(1.,.62,.5)*sparks*1.4)*uFeatherGlow;
   }
 
   if(uMaskOn>.5){
     vec2 uv=vUv;
-    float glow=maskBlur(uv,.05);
-    col+=vec3(.545,0.,0.)*glow*mix(.62,.95,uBurn);
+    float halo=maskBlur(uv,.05);
+    col+=vec3(.545,0.,0.)*halo*mix(.45,.95,uBurn);
     if(uBurn>.01){
-      float n1=fbm(vec2(p.x*6.+t*.15,p.y*3.6-t*1.05));
-      float n2=fbm(vec2(p.x*14.-t*.2,p.y*8.-t*1.8));
-      vec2 off=vec2((n1-.5)*.09,-.03-.075*n2);
+      float m1=fbm(vec2(p.x*6.+t*.15,p.y*3.6-t*1.05));
+      float m2=fbm(vec2(p.x*14.-t*.2,p.y*8.-t*1.8));
+      vec2 off=vec2((m1-.5)*.09,-.03-.075*m2);
       float m=maskBlur(uv+off,.024);
       float wide=maskBlur(uv+off*2.2,.075);
-      float flame=clamp(m*(.5+n2*.9)+wide*n1*.42,0.,1.);
-      float stepped=floor(flame*5.)/5.;
-      col=max(col,mix(col,fire(stepped),smoothstep(.3,.85,flame)*uBurn*.22));
-      col+=vec3(.4,0.,0.)*wide*uBurn*.5;
+      float flame=clamp(m*(.5+m2*.9)+wide*m1*.42,0.,1.);
+      col=max(col,mix(col,fire(floor(flame*5.)/5.),smoothstep(.3,.85,flame)*uBurn*.3));
+      col+=vec3(.45,0.,0.)*wide*uBurn*.6;
       float rays=0.;
       for(int i=0;i<10;i++){
         float k=float(i)/10.;
@@ -305,10 +360,102 @@ void main(){
     }
   }
 
+  col=grade(col);
   float vig=smoothstep(1.25,.25,length(p/vec2(max(asp,1.),1.))*1.28);
-  col*=mix(.52,1.,vig);
-  col+=(hash(vUv*uRes+fract(t))-.5)*.018;
+  col*=mix(.55,1.,vig);
+  col+=(hash(vUv*uRes+fract(t))-.5)*.016;
   gl_FragColor=vec4(col,1.);
+}`;
+
+/**
+ * 가까운 별·중간 별·우주 먼지(3D 점). 비행 경로를 둘러싸고 놓여, 카메라가 날아갈 때 가까운 겹일수록 빠르게 스칩니다.
+ *
+ * - aKind 0: 별(먼 곳, 작고 또렷함), 1: 먼지(경로 가까이, 크고 흐림, 천천히 떠다님).
+ * - 크기는 화면 높이(uScale)와 거리로 정하고, 픽셀 하나보다 작아지면 크기 대신 밝기를 줄여 깜빡이지 않게 합니다.
+ * - 카메라 바로 앞의 먼지는 큰 흐린 원이 되지 않게 흐리게 지웁니다.
+ */
+export const starVertex = /* glsl */ `
+attribute float aSeed, aKind;
+uniform float uTime, uScale, uMaxPoint, uPixelRatio, uDust, uStars;
+varying float vAlpha, vKind, vSeed;
+void main(){
+  vec3 p=position;
+  if(aKind>.5){
+    p+=vec3(sin(uTime*.07+aSeed*40.)*.6,sin(uTime*.11+aSeed*23.)*.4,cos(uTime*.05+aSeed*17.)*.6);
+  }
+  vec4 mv=modelViewMatrix*vec4(p,1.);
+  float z=max(-mv.z,.1);
+  float base=aKind>.5?(.035+aSeed*.05):(.05+pow(aSeed,6.)*.3);
+  float size=base*uScale/z;
+  float minSize=1.2*uPixelRatio;
+  vAlpha=clamp(size/minSize,0.,1.);
+  gl_PointSize=clamp(size,minSize,uMaxPoint);
+  vAlpha*=aKind>.5?uDust*smoothstep(.6,2.5,z)*(1.-smoothstep(25.,40.,z)):uStars*(.6+.4*sin(uTime*(1.+aSeed*3.)+aSeed*60.));
+  vKind=aKind; vSeed=aSeed;
+  gl_Position=projectionMatrix*mv;
+}`;
+
+export const starFragment = /* glsl */ `
+precision highp float;
+uniform vec3 uHighlight;
+varying float vAlpha, vKind, vSeed;
+void main(){
+  vec2 c=gl_PointCoord-.5;
+  float d=length(c);
+  float a;
+  vec3 col;
+  if(vKind>.5){
+    a=smoothstep(.5,0.,d)*.35;
+    col=mix(vec3(.9,.25,.15),vec3(1.,.7,.5),vSeed);
+  } else {
+    a=exp(-d*d*28.)+smoothstep(.08,.0,abs(c.x)*abs(c.y)*40.)*smoothstep(.5,.1,d)*.4;
+    col=mix(vec3(1.,.82,.76),vec3(.85,.88,1.),step(.85,vSeed));
+  }
+  gl_FragColor=vec4(col*uHighlight*a*vAlpha,1.);
+}`;
+
+/**
+ * 불사조가 태양에 닿아 터진 뒤 흩어지는 작은 깃털들(3D 모델). 터진 자리(uSun)에서 사방으로 흩어졌다 사라집니다.
+ */
+export const featherVertex = /* glsl */ `
+attribute float aSeed;
+uniform float uTime, uFall, uAspect;
+uniform vec2 uSun;
+varying float vFacing, vY, vLight;
+void main(){
+  vY = position.y;
+  float s = aSeed;
+  float spin = uTime*(.35+s*.5) + s*20.;
+  float roll = sin(uTime*(.6+s*.4) + s*31.)*.55;
+  vec3 local = position;
+  vec3 n = normal;
+  float size = .6 + s*.7;
+  float a = s*6.2832*3.;
+  vec2 dir = vec2(cos(a), sin(a));
+  float out1 = 1.-exp(-uFall*7.);
+  vec2 at = uSun + dir*vec2(uAspect,1.)*(1.4+s*3.)*out1 + vec2(0., -uFall*uFall*(2.+s*3.));
+  float c = cos(spin), sn = sin(spin);
+  local.xz = mat2(c,-sn,sn,c)*local.xz;
+  n.xz = mat2(c,-sn,sn,c)*n.xz;
+  float cr = cos(roll), sr = sin(roll);
+  local.xy = mat2(cr,-sr,sr,cr)*(local.xy - vec2(0.,.5));
+  n.xy = mat2(cr,-sr,sr,cr)*n.xy;
+  vFacing = abs(n.z);
+  vLight = clamp(dot(normalize(n), normalize(vec3(.3,.6,.75)))*.5+.5, 0., 1.);
+  gl_Position = projectionMatrix*modelViewMatrix*vec4(local*size + vec3(at,0.), 1.);
+}`;
+
+export const featherFragment = /* glsl */ `
+precision highp float;
+uniform float uFall;
+varying float vFacing, vY, vLight;
+void main(){
+  vec3 col = mix(vec3(.2,0.,0.), vec3(.545,0.,0.), vLight);
+  col *= .72 + .4*vFacing;
+  float ember = (1.-smoothstep(.15,.7,uFall)) + .2;
+  col += vec3(.9,.12,.06)*smoothstep(.6,1.,vY)*ember;
+  float alpha = smoothstep(0.,.04,uFall)*(1.-smoothstep(.25,.6,uFall));
+  gl_FragColor = vec4(col, alpha);
 }`;
 
 /**
@@ -486,44 +633,6 @@ void main(){
   float nucleus=exp(-d2/(pe*pe))*(.9+.1*sin(uTime*6.+vSeed*40.));
   vec3 col=vec3(1.,.97,.93)*nucleus*1.7+vec3(1.,.8,.72)*coma*.9+vec3(1.,.4,.32)*halo*.28+vec3(1.,.74,.76)*ion*.5+mix(vec3(1.,.52,.34),vec3(.72,.07,.06),s)*dust*.55+vec3(1.,.7,.55)*speck*.45;
   gl_FragColor=vec4(col*vAlpha,1.);
-}`;
-
-/**
- * - 비행 중에는 태양 쪽에서 카메라 쪽으로 스쳐 지나갑니다.
- * - 카메라 바로 앞의 불티는 커다란 흐린 점이 되므로 크기를 묶고 흐리게 지웁니다.
- */
-export const emberVertex = /* glsl */ `
-attribute float aSeed;
-uniform float uTime, uHeat, uScale, uFlight, uMaxPoint;
-varying float vLife, vSeed, vNear;
-void main(){
-  vec3 p=position;
-  float speed=.12+aSeed*.25+uHeat*.5;
-  float life=fract(uTime*speed*.14+aSeed*7.);
-  p.y+=(life-.5)*16.;
-  p.x+=sin(life*9.+aSeed*30.)*.5;
-  float rush=fract(uTime*(.22+aSeed*.3)+aSeed*11.);
-  vec2 dir=normalize(position.xy+vec2(.01));
-  vec3 flown=vec3(dir*(.2+rush*rush*13.)+vec2(0.,1.9),position.z*.3+rush*7.);
-  p=mix(p,flown,uFlight);
-  vec4 mv=modelViewMatrix*vec4(p,1.);
-  vLife=mix(life,.1+rush*.5,uFlight); vSeed=aSeed;
-  vNear=smoothstep(1.2,3.5,-mv.z);
-  gl_PointSize=min((.035+pow(aSeed,5.)*.2)*uScale/max(1.,-mv.z)*(1.+uHeat*.5+uFlight*.8), uMaxPoint);
-  gl_Position=projectionMatrix*mv;
-}`;
-
-export const emberFragment = /* glsl */ `
-precision highp float;
-uniform float uHeat;
-varying float vLife, vSeed, vNear;
-void main(){
-  vec2 c=gl_PointCoord-.5;
-  float d=length(c);
-  float star=smoothstep(.09,.0,abs(c.x)*abs(c.y)*42.)*smoothstep(.5,.05,d);
-  float a=(star+smoothstep(.2,.0,d))*smoothstep(0.,.14,vLife)*smoothstep(1.,.65,vLife)*vNear;
-  vec3 cool=vec3(1.,.74,.68), hot=vec3(1.,.2,.12);
-  gl_FragColor=vec4(mix(cool,hot,uHeat)*a,a);
 }`;
 
 /** 불사조 날개 뒤로 흩날리는 불티 꼬리. 날아가는 속도감과 열기를 더합니다. */

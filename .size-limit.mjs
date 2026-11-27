@@ -34,7 +34,8 @@ const sentry = chunksContaining('__SENTRY__');
 const budgets = [
   { name: '첫 화면 JS: 인트로 /', path: firstLoadScripts('index'), gzip: true, limit: '155 kB' },
   { name: '첫 화면 JS: 메인 /main', path: firstLoadScripts('main'), gzip: true, limit: '150 kB' },
-  { name: '인트로 장면(three.js, 장면을 띄울 때 받음)', path: scene, gzip: true, limit: '185 kB' },
+  // 1.4.0: 레퍼런스 비행 장면(타임라인·결정 재질·우주 배경)으로 바꾸며 실제 측정값(186.6 kB)에 맞춰 187 kB로 다시 둠(사용자 원칙: 새 장면 예산은 측정값).
+  { name: '인트로 장면(three.js, 장면을 띄울 때 받음)', path: scene, gzip: true, limit: '187 kB' },
   // DSN이 없는 빌드에서는 청크가 없을 수도 있습니다.
   ...(sentry.length > 0 ? [{ name: 'Sentry(DSN이 있을 때만 받음)', path: sentry, gzip: true, limit: '32 kB' }] : []),
   { name: 'CSS', path: `${CHUNK_DIR}/**/*.css`, gzip: true, limit: '8 kB' },
