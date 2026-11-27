@@ -11,7 +11,8 @@
 
 ## 2. 기술 스택과 구조
 
-- Next.js 16(App Router, 정적 페이지), React 19, TypeScript 6(`typescript-eslint` 때문에 고정), three.js, Sentry(`@sentry/browser`)·web-vitals, Storybook 10.
+- Next.js 16(App Router, 정적 페이지), React 19, TypeScript 6(`typescript-eslint` 때문에 고정), three.js, StyleX, Sentry(`@sentry/browser`)·web-vitals, Storybook 10.
+- 스타일은 StyleX(`stylex.create`·`stylex.props`)입니다. 토큰은 `@/shared/ui/tokens.stylex`에서 바로 가져오고(index로 다시 내보내지 않음), 테마는 `shared/ui`의 `createTheme`, 전역 CSS는 `@font-face`와 `@layer reset` 초기화만 둡니다. 빌드 설정은 `stylex.config.mjs`(자세한 것은 개발 가이드 '스타일').
 - Feature-Sliced Design(Next `app/`과 겹치지 않게 층 이름을 바꿈): `src/_app` → `_pages` → `shared`. `src/app`의 라우트 파일은 다시 내보내기만 합니다. `pnpm lint:fsd`(Steiger)로 검사합니다.
 - 인트로 장면: `src/_pages/intro`(`model/`: 문구·타임라인·추종기, `lib/`: 장면·셰이더, `lib/scene/`: 부품). 셰이더 설명은 GLSL 문자열 안이 아니라 상수의 JSDoc에 씁니다.
 - 3D 모델은 `public/models/*.glb`와 라이선스 원문(`*-license.txt`)입니다.

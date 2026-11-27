@@ -1,7 +1,9 @@
+import * as stylex from '@stylexjs/stylex';
 import type { Metadata, Viewport } from 'next';
 import localFont from 'next/font/local';
 import type { ReactNode } from 'react';
 import { SITE_DESCRIPTION, SITE_NAME, SITE_URL } from '@/shared/config';
+import { documentStyles } from '../styles/document';
 import '../styles/globals.css';
 import { RestFonts } from './RestFonts';
 
@@ -83,7 +85,7 @@ export function RootLayout({ children }: { children: ReactNode }) {
       suppressHydrationWarning
       className={`${sans.variable} ${mono.variable} ${display.variable} ${narrativeLatin.variable}`}
     >
-      <body>
+      <body {...stylex.props(documentStyles.body)}>
         {children}
         {/* 한글 우아한 세리프(GenesisSerif): 화면 글자 파일은 globals.css와 함께 받고, 나머지 글자 조각은 페이지를 다 받은 뒤 붙임 */}
         <RestFonts href="/fonts/genesis-serif-rest.css" />

@@ -2,65 +2,49 @@
  * 한글: 우아한 세리프(Pear Type Foundry, SIL OFL). 예약 글꼴 이름이 있어 줄인 파일은 GenesisSerif로 이름을 바꿔 싣습니다.
  * 화면에 쓰는 글자만 담은 파일을 먼저 받고, 나머지 글자 조각(public/fonts/genesis-serif-rest.css)은
  * RestFonts가 페이지를 다 받은 뒤 붙입니다. 화면 글자가 바뀌면 pnpm fonts로 다시 만듭니다.
+ * @font-face는 StyleX로 만들 수 없어(글꼴 선언은 요소 스타일이 아님) 전역 CSS에 둡니다.
  */
 @import './fonts/genesis-serif.css';
 
-:root {
-  /*
-   * 대체 글꼴: 흑백 편집 디자인이 남도록 제목은 올드스타일 세리프와 운영체제 명조, 본문은 운영체제 한글 고딕, 기록은 고정폭
-   */
-  --font-sans:
-    var(--font-sans-latin), "GenesisSerif", "Apple SD Gothic Neo", "Malgun Gothic",
-    "Noto Sans CJK KR", system-ui, sans-serif;
-  --font-mono:
-    var(--font-mono-latin), ui-monospace, "SF Mono", Menlo, Consolas,
-    "D2Coding", "Apple SD Gothic Neo", "Malgun Gothic", monospace;
-  --font-display:
-    var(--font-display-latin), "GenesisSerif", Garamond, Baskerville, Georgia, "AppleMyungjo",
-    "Noto Serif CJK KR", "Batang", serif;
-  /* 한글 서사 문장(메인 서사·인트로 장): 문장 속 영문·숫자는 Inter 대신 Cormorant 똑바른 Bold(키운 크기) */
-  --font-narrative: var(--font-narrative-latin), var(--font-sans);
+/*
+ * 전역 초기화. 요소 선택자(태그·*)는 StyleX의 클래스 스타일로 쓸 수 없어 전역 CSS에 둡니다.
+ * StyleX는 CSS 레이어(priority1~)에 들어가므로, 이 초기화를 먼저 선언한 레이어에 넣어 컴포넌트 스타일이 언제나 이기게 합니다
+ * (레이어 밖에 두면 레이어 안의 StyleX 스타일보다 앞섭니다).
+ */
+@layer reset {
+  *,
+  *::before,
+  *::after {
+    box-sizing: border-box;
+  }
 
-  --color-primary: #8b0000;
-  --color-ink: #000;
-  --color-paper: #fff;
-  --color-ink-muted: #595959;
-  --color-paper-muted: #b8b8b8;
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    margin: 0;
+  }
+
+  h1,
+  h2,
+  h3,
+  p,
+  ol,
+  ul {
+    margin: 0;
+    padding: 0;
+  }
+
+  ol,
+  ul {
+    list-style: none;
+  }
+
+  a {
+    color: inherit;
+  }
 }
 
-*,
-*::before,
-*::after {
-  box-sizing: border-box;
-}
-
-html {
-  -webkit-text-size-adjust: 100%;
-}
-
-body {
-  margin: 0;
-  background: var(--color-paper);
-  color: var(--color-ink);
-  font-family: var(--font-sans);
-  word-break: keep-all;
-}
-
-h1,
-h2,
-h3,
-p,
-ol,
-ul {
-  margin: 0;
-  padding: 0;
-}
-
-ol,
-ul {
-  list-style: none;
-}
-
-a {
-  color: inherit;
-}
+/* StyleX가 소스의 stylex.create·defineVars·createTheme에서 뽑은 CSS가 이 자리에 들어갑니다(postcss.config.cjs). */
+@stylex;

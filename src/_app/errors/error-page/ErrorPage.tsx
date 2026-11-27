@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect } from 'react';
-import { NoticeScreen } from '@/shared/ui';
+import { NoticeButton, NoticeLink, NoticeScreen } from '@/shared/ui';
 import { reportError } from '../../monitoring';
 
 export interface ErrorPageProps {
@@ -22,11 +22,9 @@ export function ErrorPage({ error, retry }: ErrorPageProps) {
       title="화면을 그리지 못했습니다"
       description="잠시 뒤 다시 시도해 주세요. 문제가 계속되면 메인 화면에서 다시 들어와 주세요."
     >
-      <button type="button" onClick={retry}>
-        다시 시도
-      </button>
+      <NoticeButton onClick={retry}>다시 시도</NoticeButton>
       {/* 오류 뒤에는 앱 상태를 모두 새로 시작하도록 페이지를 다시 받습니다(next/link를 쓰지 않음). */}
-      <a href="/main">메인으로 가기</a>
+      <NoticeLink href="/main">메인으로 가기</NoticeLink>
     </NoticeScreen>
   );
 }

@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.3.0 - 2026-11-27
+
+스타일을 CSS Modules에서 StyleX로 옮겼습니다. 화면은 픽셀 단위로 그대로입니다(전환 전후 79장 비교, 다른 픽셀 0).
+
+- StyleX(`@stylexjs/stylex` 0.19): 컴포넌트 스타일을 `stylex.create`·`stylex.props`로 옮기고 `*.module.css` 5개를 지움. 빌드할 때 CSS 파일로 뽑아내고 실행 중에 `<style>`을 넣지 않음
+- 토큰(`shared/ui/tokens.stylex.ts`, `defineVars`): 색·글꼴·간격·글자 크기. 테마(`shared/ui/themes.ts`, `createTheme`): 검은 바탕 반전(메인 구조·기록 구역, 메뉴, 본문 바로가기), 반전 안의 흰 카드, 인트로 적색
+- 미디어 쿼리·`:hover`·`:focus-visible`·`prefers-reduced-motion`·`@supports`와 스크롤 타임라인 연출(`stylex.keyframes`, `animation-timeline`, `view-timeline`)을 StyleX 조건으로 옮김. 자손 선택자 대신 요소마다 스타일을 붙이고(알림 화면의 `NoticeLink`·`NoticeButton` 추가), 인트로의 화면 근처 표시는 `stylex.when.ancestor`로 봄
+- 전역 CSS에는 한글 글꼴 `@font-face`와 요소 선택자 초기화만 남기고, 초기화는 `@layer reset`에 넣어 StyleX(레이어) 스타일이 언제나 이기게 함
+- 빌드: StyleX 공식 Next 안내(Babel 플러그인 + `@stylexjs/postcss-plugin`)를 따르되, Babel 설정 파일 대신 Turbopack 규칙으로 StyleX를 가져오는 파일에만 `babel-loader`를 걸어 나머지는 SWC가 그대로 처리. Storybook·Vitest는 `@stylexjs/unplugin`. 옵션은 `stylex.config.mjs` 한 곳
+- 크기(gzip, 기준은 그대로): 첫 화면 JS 인트로 144.48 → 146.84 kB(155), 메인 141.96 → 143.73 kB(150), 인트로 장면 183.98 kB 그대로(185), CSS 5.4 → 6.38 kB(8). 늘어난 JS는 StyleX의 스타일 합치기 런타임(약 1 kB)과 클라이언트 컴포넌트의 클래스 이름
+- Lighthouse 인트로·메인 모두 성능·접근성·권장 사항·SEO 100, CSP·오프라인 그대로
+
 ## 1.2.1 - 2026-11-27
 
 인트로 3D 모델을 받는 코드를 Fetch API 직접 호출 대신 ky로 바꿨습니다. 화면과 동작은 그대로입니다.
