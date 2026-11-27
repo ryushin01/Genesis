@@ -515,8 +515,17 @@ export function IntroExperience() {
 
       <header {...stylex.props(styles.brand)}>
         {/* 40px 로고 한 장이라 next/image 런타임(용량 예산 초과)을 쓰지 않습니다. */}
+        {/* 1배 화면은 표시 크기와 같은 40px 그림을 써서 줄여 그리지 않습니다. 128px을 40px로 줄이면 브라우저가 그때그때
+            다른 화질(스크롤 중 저화질 필터 등)로 그려 화면 캡처가 픽셀 단위로 흔들립니다. 고해상도 화면은 원본을 씁니다. */}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src="/brand/logo.webp" alt="project zero" width={40} height={40} {...stylex.props(styles.logo)} />
+        <img
+          src="/brand/logo.webp"
+          srcSet="/brand/logo-40.webp 1x, /brand/logo.webp 3x"
+          alt="project zero"
+          width={40}
+          height={40}
+          {...stylex.props(styles.logo)}
+        />
       </header>
       {/* 정지 버튼은 화면 왼쪽 아래에 고정되어 있지만, 키보드로는 이야기보다 먼저 닿게 앞에 둡니다. */}
       {motionOn && sceneReady ? (
