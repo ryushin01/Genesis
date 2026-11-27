@@ -15,6 +15,9 @@ const docker = (...args) => spawnSync('docker', args, { stdio: 'inherit' });
 const started = docker(
   'run', '--rm', '-d', '--name', name, '--init', '--ipc=host', '-p', `${port}:${port}`,
   // 브라우저 임시 파일·npx 캐시는 메모리(tmpfs)에 둡니다. Docker 디스크가 가득 차도 찍을 수 있고, 끝나면 남지 않습니다.
+  // 기준 이미지는 CI(x86_64)에서 찍은 것입니다. 그러데이션은 CPU 종류(ARM·x86)마다 래스터 결과가 달라, Apple Silicon에서도
+  // amd64 이미지를 씁니다(colima는 `colima start --arch x86_64` 또는 `--vz-rosetta`로 에뮬레이션을 켬).
+  '--platform', 'linux/amd64',
   '--tmpfs', '/tmp:rw,exec,size=2g', '-e', 'npm_config_cache=/tmp/.npm', '-e', 'HOME=/tmp',
   image,
   '/bin/sh', '-c', `cd /tmp && npx -y playwright@${version} run-server --port ${port} --host 0.0.0.0`,

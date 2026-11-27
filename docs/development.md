@@ -99,7 +99,7 @@ WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립�
 
 `e2e/visual.spec.ts`가 화면을 기준 이미지(`e2e/__screenshots__/desktop/` 41장, `mobile/` 38장)와 픽셀 단위로 비교합니다(`maxDiffPixels: 0`, `threshold: 0`). 인트로 각 장·끝 장면(장면 없이 CSS 배경)·호버·초점, 로딩 화면, 정지 버튼(장면을 띄운 뒤 캔버스만 숨김), 동작 줄이기, 메인 각 구역·스크롤 연출·바로가기·메뉴, 404, Storybook의 오류·알림·메뉴 스토리입니다. WebGL 캔버스는 GPU·드라이버마다 그림이 달라 비교하지 않습니다.
 
-- 찍는 브라우저는 로컬·CI 모두 Playwright 공식 Docker 이미지(`mcr.microsoft.com/playwright:v<버전>-noble`)입니다. `pnpm visual:docker`가 그 이미지에서 브라우저 서버(run-server)만 띄우고, 테스트와 E2E 서버는 이 기기에서 돌려 그 브라우저에 붙습니다. 같은 Linux라도 CI 러너의 브라우저로 찍으면 그러데이션·글자가 달라(화면의 최대 48%) 이렇게 맞췄습니다.
+- 찍는 브라우저는 로컬·CI 모두 Playwright 공식 Docker 이미지(`mcr.microsoft.com/playwright:v<버전>-noble`)입니다. `pnpm visual:docker`가 그 이미지에서 브라우저 서버(run-server)만 띄우고, 테스트와 E2E 서버는 이 기기에서 돌려 그 브라우저에 붙습니다. 같은 Linux라도 CI 러너의 브라우저로 찍으면 그러데이션·글자가 달라(화면의 최대 48%) 이렇게 맞췄습니다. 그러데이션은 CPU 종류마다 래스터 결과도 달라(같은 이미지라도 ARM과 x86의 인트로 화면이 44% 다름) `linux/amd64` 이미지를 씁니다. Apple Silicon에서는 colima를 `colima start --arch x86_64`(또는 `--vz-rosetta`)로 켭니다. 기준 이미지는 CI에서 찍은 것입니다(실패한 실행의 `reports`에 있는 `*-actual.png`).
 - 그래서 Playwright 프로젝트 `visual-desktop`·`visual-mobile`은 그 브라우저에 붙을 때만 켜지고, 그냥 `pnpm e2e`에서는 건너뜁니다. `pnpm check`는 E2E 다음 단계로 `pnpm visual:docker`를 부르므로 Docker(colima 가능)가 켜져 있어야 합니다. 기준을 새로 만들 때는 `pnpm visual:docker --update-snapshots`. 다 쓰면 `colima stop`으로 끕니다(다른 작업의 컨테이너가 없는지 먼저 확인).
 - 화면을 일부러 바꿨으면 기준 이미지를 다시 만들어 같은 PR에 넣습니다. CI에서 실패하면 실행의 `reports` 결과물(7일 보관)에 차이 이미지(`*-diff.png`)와 실제 이미지가 있습니다.
 
