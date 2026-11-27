@@ -1,5 +1,5 @@
 import type { Meta, StoryObj } from '@storybook/nextjs-vite';
-import { NoticeScreen } from './NoticeScreen';
+import { NoticeButton, NoticeLink, NoticeScreen } from './NoticeScreen';
 
 const meta: Meta<typeof NoticeScreen> = {
   title: 'shared/NoticeScreen',
@@ -9,7 +9,7 @@ const meta: Meta<typeof NoticeScreen> = {
     mark: '404',
     title: '페이지를 찾을 수 없습니다',
     description: '주소가 바뀌었거나 없는 페이지입니다.',
-    children: <a href="/main">메인으로 가기</a>,
+    children: <NoticeLink href="/main">메인으로 가기</NoticeLink>,
   },
 };
 
@@ -27,8 +27,8 @@ export const WithButton: Story = {
     description: '잠시 뒤 다시 시도해 주세요.',
     children: (
       <>
-        <button type="button">다시 시도</button>
-        <a href="/main">메인으로 가기</a>
+        <NoticeButton>다시 시도</NoticeButton>
+        <NoticeLink href="/main">메인으로 가기</NoticeLink>
       </>
     ),
   },

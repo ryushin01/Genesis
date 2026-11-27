@@ -1,4 +1,5 @@
 import type { NextConfig } from "next";
+import { babelOptions } from "./stylex.config.mjs";
 
 const isDev = process.env.NODE_ENV === "development";
 
@@ -58,10 +59,30 @@ const storybookHeaders = securityHeaders.map((header) => {
   return header;
 });
 
+type TurbopackRule = NonNullable<NonNullable<NextConfig["turbopack"]>["rules"]>[string];
+
+/** StyleX를 가져오는 저장소 파일(node_modules 제외)만 Babel(StyleX 플러그인)에 넘깁니다. */
+const stylexRule: TurbopackRule = {
+  condition: { all: [{ not: "foreign" }, { content: /@stylexjs\/stylex/ }] },
+  loaders: [{ loader: "babel-loader", options: babelOptions }],
+};
+
 const nextConfig: NextConfig = {
   // next dev가 AGENTS.md에 영어 에이전트 안내 블록을 넣지 않게 합니다. 같은 내용은 AGENTS.md에 한국어로 적었습니다.
   agentRules: false,
   reactStrictMode: true,
+  /*
+   * StyleX: stylex.create·props 호출을 빌드할 때 클래스 이름으로 바꿉니다(CSS는 postcss.config.mjs가 뽑음).
+   * Babel은 StyleX를 가져오는 저장소 파일에만 걸고, 나머지 변환(JSX·TS·하위 문법)과 압축은 그대로 SWC가 합니다.
+   */
+  // Babel 설정 파일 대신 위 규칙으로 babel-loader를 직접 걸므로 Next의 자동 Babel 로더는 끕니다(설정 파일이 없어 하는 일도 없음).
+  experimental: { turbopackUseBuiltinBabel: false },
+  turbopack: {
+    rules: {
+      "*.tsx": stylexRule,
+      "*.ts": stylexRule,
+    },
+  },
   poweredByHeader: false,
   async headers() {
     return [

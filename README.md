@@ -1,7 +1,7 @@
 # project zero
 
 [![CI](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-1.2.1-8B0000)
+![version](https://img.shields.io/badge/version-1.3.0-8B0000)
 
 다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 **프로젝트 제로**의 홍보 홈페이지입니다.
 
@@ -49,7 +49,7 @@
 |---|---|
 | 프레임워크 | Next.js 16 (App Router), React 19, TypeScript 6 |
 | 그래픽 | three.js, GLSL 셰이더 |
-| 스타일 | CSS Modules, CSS 스크롤 기반 애니메이션 |
+| 스타일 | StyleX, CSS 스크롤 기반 애니메이션 |
 | 아키텍처 | Feature-Sliced Design, Steiger |
 | 품질 | Vitest, Testing Library, Storybook, Playwright, axe, eslint-plugin-jsx-a11y, size-limit, Lighthouse CI |
 | 모니터링 | Sentry(DSN이 있을 때만), web-vitals |

@@ -49,7 +49,21 @@
 - 3D 모델은 모두 CC BY 4.0입니다: “Phoenix” by NORBERTO-3D, “Feathers” by victorberdugo1, “Phoenix Logo” by Suraj-456tyu. 작품명·작가·라이선스와 변경 사항은 README의 '출처' 표에 두고, 인트로 끝과 메인 바닥글에는 그 표로 가는 링크만 둡니다. 라이선스 원문은 `public/models/*-license.txt`에 둡니다. 표기를 지우지 않습니다.
 - 참고 사이트의 모델, 텍스처, 로고, 사진, 유료 글꼴은 저작물이므로 가져오지 않습니다. 글꼴은 OFL 라이선스의 Inter, JetBrains Mono, Cormorant(영문 제목은 기울임, 한글 서사 문장 속 영문은 똑바른 Bold), 우아한 세리프(한글)를 씁니다. 모두 저장소 파일이며 외부 글꼴 CDN이나 `next/font/google`은 쓰지 않습니다.
 - 한글은 화면에 쓰는 글자만 담은 우아한 세리프 파일을 첫 화면 CSS와 함께 받고, 나머지 글자는 조각으로 나눠 나중에 붙입니다. 문구를 바꾸면 `pnpm fonts`로 다시 만듭니다(빠진 글자는 단위 테스트가 잡음). 예약 글꼴 이름이 있어 줄인 파일의 이름은 GenesisSerif로 바꾸고, 라이선스 원문(`LICENSE.txt`)을 파일 옆에 둡니다.
-- 한글 서사 문장(`--font-narrative`: 메인 서사, 인트로 장 문장) 속 영문·숫자는 Cormorant 똑바른 Bold를 `size-adjust: 136%`로 키워 씁니다. 우아한 세리프 한글은 글자 면을 꽉 채워(높이 1em) Cormorant 대문자(0.625em)만으로는 작고 가늘어 보이기 때문입니다.
+- 한글 서사 문장(토큰 `fonts.narrative`: 메인 서사, 인트로 장 문장) 속 영문·숫자는 Cormorant 똑바른 Bold를 `size-adjust: 136%`로 키워 씁니다. 우아한 세리프 한글은 글자 면을 꽉 채워(높이 1em) Cormorant 대문자(0.625em)만으로는 작고 가늘어 보이기 때문입니다.
+
+## 스타일(StyleX)
+
+컴포넌트 스타일은 [StyleX](https://stylexjs.com)(`@stylexjs/stylex`)로 씁니다. `stylex.create`로 만든 스타일을 `stylex.props`로 요소에 붙이고, 빌드할 때 원자 단위 CSS 파일로 뽑아내므로 실행 중에 `<style>`을 넣지 않습니다.
+
+- **빌드 설정:** 옵션은 `stylex.config.mjs` 한 곳에 있습니다.
+  - Next(Turbopack): `next.config.ts`의 `turbopack.rules`가 StyleX를 가져오는 저장소 파일에만 `babel-loader`(StyleX Babel 플러그인만)를 걸고, JSX·TS 변환과 압축은 그대로 SWC가 합니다. CSS는 `postcss.config.mjs`의 `@stylexjs/postcss-plugin`이 `globals.css`의 `@stylex` 자리에 넣습니다(StyleX 공식 Next 안내의 Babel + PostCSS 방식).
+  - Babel 설정 파일(`.babelrc`, `babel.config.*`)은 두지 않습니다. `package.json`이 `"type": "module"`이라 `babel.config.js`를 쓸 수 없고 Next는 `.cjs`·`.mjs` 설정을 읽지 못하며, JSON 설정을 두면 Storybook의 react-docgen과 unplugin도 그 설정을 읽어 타입스크립트를 못 읽거나 StyleX 변환을 두 번 합니다.
+  - Storybook·Vitest(Vite): `@stylexjs/unplugin`이 코드를 바꿉니다. Storybook 빌드에서는 unplugin이 CSS를 붙이고(PostCSS의 StyleX는 끔), 개발 서버에서는 PostCSS가 넣습니다.
+- **토큰:** `src/shared/ui/tokens.stylex.ts`의 `stylex.defineVars`(색 `colors`, 글꼴 `fonts`, 간격 `space`, 글자 크기 `fontSizes`). StyleX가 빌드할 때 변수 이름을 알아야 하므로 이 파일은 `shared/ui`의 index로 다시 내보내지 않고 `@/shared/ui/tokens.stylex`에서 바로 가져옵니다.
+- **테마:** `src/shared/ui/themes.ts`의 `stylex.createTheme`. 검은 바탕 반전(`invertedTheme`: 메인 구조·기록 구역, 메뉴, 본문 바로가기, 카드 그림), 반전 안의 흰 종이(`paperTheme`: 구조 카드), 인트로 적색(`introTheme`). 색은 `colors.background`·`foreground`·`muted`로 쓰고, 테마를 붙인 요소 아래에서는 같은 이름이 테마 값이 됩니다.
+- **조건:** 미디어 쿼리·`:hover`·`:focus-visible`·`prefers-reduced-motion`·`@supports`는 속성 값 안의 조건(`{ default, '@media …': … }`)으로 씁니다. 스크롤 타임라인 연출(`animation-timeline`, `view-timeline`)과 `@keyframes`도 `stylex.keyframes`와 긴 이름 속성(`animationName` 등)으로 씁니다. 단축 속성 `animation`·`background`·`border`는 StyleX가 받지 않아 긴 이름으로 나눕니다.
+- **자식 선택자 없음:** StyleX는 `.a b` 같은 자손 선택자를 쓰지 않습니다. 스타일은 요소마다 붙이고(예: 알림 화면의 링크·버튼은 `NoticeLink`·`NoticeButton`), 조상의 상태는 `stylex.when.ancestor`(인트로의 `data-near`)로 봅니다.
+- **전역 CSS로 남긴 것(`src/_app/styles/globals.css`):** 한글 글꼴 `@font-face`(요소 스타일이 아님)와 요소 선택자 초기화(`*`, `body`, `h1`… 태그 선택자). 초기화는 `@layer reset`에 넣어, 레이어(`priority1`~) 안에 들어가는 StyleX 스타일이 언제나 이기게 합니다. `<body>`의 바탕·글꼴은 `src/_app/styles/document.ts`(StyleX)를 루트 레이아웃과 Storybook 미리보기가 붙입니다.
 
 ## TypeScript 버전
 
@@ -100,9 +114,9 @@ WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립�
 
 ## 오류·404 화면
 
-- 없는 주소는 `_pages/not-found`, 화면을 그리다 난 오류는 `_app/errors/error-page`의 `ErrorPage`(`error.tsx`), 루트 레이아웃까지 실패하면 `_app/errors/global-error`의 `GlobalError`(`global-error.tsx`)가 보여 줍니다. 앞의 둘은 메인 맺음 구역의 흑백 디자인을 담은 `shared/ui`의 `NoticeScreen`을 함께 씁니다.
+- 없는 주소는 `_pages/not-found`, 화면을 그리다 난 오류는 `_app/errors/error-page`의 `ErrorPage`(`error.tsx`), 루트 레이아웃까지 실패하면 `_app/errors/global-error`의 `GlobalError`(`global-error.tsx`)가 보여 줍니다. 앞의 둘은 메인 맺음 구역의 흑백 디자인을 담은 `shared/ui`의 `NoticeScreen`과 그 링크·버튼(`NoticeLink`·`NoticeButton`)을 함께 씁니다.
 - 오류 화면은 `reportError`로 Sentry에 보내고(DSN이 있을 때), "다시 시도"는 Next 16의 `retry`(서버 컴포넌트를 다시 받고 오류 경계를 되돌림)를 부릅니다.
-- 두 화면의 링크는 `next/link` 대신 `<a>`입니다. 404 화면은 모든 페이지의 RSC 데이터에 함께 실려 `next/link`를 쓰면 그 코드(약 3 kB)가 모든 페이지의 첫 화면 JS에 더해지고, 오류 뒤에는 페이지를 다시 받아 상태를 새로 시작하는 편이 낫습니다. `error.tsx`·`global-error.tsx`는 서로의 코드를 싣지 않게 `_app/errors`의 `error-page`·`global-error`를 따로 가져옵니다.
+- 두 화면의 링크는 `next/link` 대신 `<a>`(`NoticeLink`)입니다. 404 화면은 모든 페이지의 RSC 데이터에 함께 실려 `next/link`를 쓰면 그 코드(약 3 kB)가 모든 페이지의 첫 화면 JS에 더해지고, 오류 뒤에는 페이지를 다시 받아 상태를 새로 시작하는 편이 낫습니다. `error.tsx`·`global-error.tsx`는 서로의 코드를 싣지 않게 `_app/errors`의 `error-page`·`global-error`를 따로 가져옵니다.
 - `GlobalError`는 전역 CSS와 글꼴이 없는 상태라 인라인 스타일로 그립니다. `<html>`부터 그려 스토리는 두지 않고, 테스트는 정적 마크업으로 확인합니다.
 
 ## 보안 헤더
