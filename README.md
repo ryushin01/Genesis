@@ -1,7 +1,7 @@
 # project zero
 
 [![CI](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-1.3.0-8B0000)
+![version](https://img.shields.io/badge/version-1.3.1-8B0000)
 
 다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 **프로젝트 제로**의 홍보 홈페이지입니다.
 
@@ -62,7 +62,7 @@ pnpm dev                     # 개발 서버
 pnpm build && pnpm start     # 프로덕션 빌드와 실행
 ```
 
-`.env` 없이 바로 됩니다(`.env.example`의 `NEXT_PUBLIC_SENTRY_DSN`은 선택이며 없으면 오류 수집을 넣지 않습니다). 3D 모델·글꼴·Storybook이 모두 저장소에 들어 있어, 설치한 뒤에는 인터넷이 없어도 빌드·실행·화면이 그대로입니다. 빌드할 때 Google Fonts에서 글꼴을 받지 않습니다.
+`.env` 없이 바로 됩니다(`.env.example`의 `NEXT_PUBLIC_SENTRY_DSN`은 선택이며 없으면 오류 수집을 넣지 않습니다). 3D 모델·글꼴·Storybook이 모두 저장소에 들어 있어, 설치한 뒤에는 인터넷이 없어도 빌드·실행·화면이 그대로입니다. 빌드할 때 Google Fonts에서 글꼴을 받지 않습니다. 3D 모델을 받지 못하거나 WebGL을 쓸 수 없으면 인트로는 같은 글과 적색 CSS 배경으로 뜹니다.
 
 | 명령 | 설명 |
 |---|---|
@@ -72,6 +72,7 @@ pnpm build && pnpm start     # 프로덕션 빌드와 실행
 | `pnpm typecheck` | 타입 검사 |
 | `pnpm test` | 단위·컴포넌트 테스트 |
 | `pnpm e2e` | 프로덕션 빌드 E2E 테스트 (오프라인 검사 `e2e/offline.spec.ts` 포함) |
+| `pnpm e2e:deployed` | 배포한 사이트(기본 운영 주소, `E2E_BASE_URL`로 바꿈)에 같은 오프라인 검사 |
 | `pnpm size` · `pnpm lhci` | 번들 크기 예산 · Lighthouse 점수 기준 검사 (먼저 빌드 필요) |
 | `pnpm fonts` | 한글 웹 폰트(우아한 세리프) 화면 글자 파일과 조각 다시 만들기 (화면 글자를 바꾼 뒤, `pip install fonttools brotli` 필요) |
 | `pnpm screenshots` | README 화면 캡처(인트로·메인·모바일)와 공유 그림 다시 만들기 (먼저 서버 실행) |

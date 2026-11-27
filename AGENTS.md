@@ -47,7 +47,7 @@ pnpm lhci             # Lighthouse(lighthouserc.json, 메인 성능 90·접근�
 
 - `pnpm build`는 Storybook을 먼저 `public/storybook`에 빌드한 뒤 `next build`를 합니다.
 - E2E는 WebGL을 GPU 없이 그리므로 작업자 1개로 돌립니다.
-- **오프라인:** 인터넷과 `.env` 없이도 설치 뒤 빌드·실행·주요 화면이 되어야 합니다. `e2e/offline.spec.ts`(`pnpm e2e`에 포함)가 localhost 밖 요청을 모두 막고 인트로·메인·Storybook과 바깥 요청 0개를 확인합니다. 글꼴은 모두 저장소 파일(`next/font/local`, `src/_app/styles/fonts`)이고 `next/font/google`·외부 CDN은 쓰지 않으며, 바깥 자료를 새로 쓰면 저장소에 넣습니다.
+- **오프라인:** 인터넷과 `.env` 없이도 설치 뒤 빌드·실행·주요 화면이 되어야 합니다. `e2e/offline.spec.ts`(`pnpm e2e`에 포함)가 localhost 밖 요청을 모두 막고 인트로 모든 장·끝 장면(3D 장면, 모델 받는 중, 모델 실패 시 CSS 배경, 동작 줄이기), 메인 모든 구역·메뉴, 404, 오류 화면(Storybook), Storybook을 axe와 함께 보고 바깥 요청 0개·화면 오류 0개를 확인합니다. 배포본은 `pnpm e2e:deployed`(`E2E_BASE_URL`)로 같은 검사를 합니다. 글꼴은 모두 저장소 파일(`next/font/local`, `src/_app/styles/fonts`)이고 `next/font/google`·외부 CDN은 쓰지 않으며, 바깥 자료를 새로 쓰면 저장소에 넣습니다.
 - **Testing Library 원칙:** 구현 세부가 아니라 사용자가 보는 동작을 검사하고, 요소는 역할·이름(`getByRole`)으로 찾습니다. 단위·컴포넌트는 Vitest + Testing Library(`@testing-library/react`, `user-event`, `jest-dom`), 화면 흐름은 Playwright E2E, 접근성은 axe(`@axe-core/playwright`)로 검사합니다. 버그를 고치면 고치기 전에 실패하는 테스트를 함께 넣습니다.
 
 ## 5. 코드 스타일
