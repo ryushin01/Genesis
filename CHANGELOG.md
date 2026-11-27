@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.3.2 - 2026-11-27
+
+품질 검사를 늘리고 CI를 `pnpm check` 하나로 묶어 빨라지게 했습니다. 화면은 그대로입니다.
+
+- 커버리지: `@vitest/coverage-v8`. 로직 계층(`shared/lib`, `*/model`, `*/api`, 장면 모델 받기·진행률 `fetchModel.ts`)은 80% 이상, 전체는 기준선(문장 53·분기 54·함수 61·줄 52%) 아래로 내려가면 실패. 오프라인(연결 거절) 모델 받기와 `useReducedMotion` 테스트 추가. CI 실행 Summary에 묶음별 표
+- 시각 회귀(`e2e/visual.spec.ts`): StyleX 전환 때 쓴 화면 비교(데스크톱 41·모바일 38장, WebGL 캔버스 제외, 다른 픽셀 0)를 상시 검사로. 로컬·CI 모두 Playwright 공식 Docker 이미지의 브라우저로 찍음(`pnpm visual:docker`, CI 러너 브라우저와는 그러데이션·글자가 달라 맞춤)
+- 성능(`e2e/performance.spec.ts`): 3D 장면을 띄운 뒤 web-vitals로 LCP·CLS('좋음' 기준 2.5초·0.1), 정지 버튼 INP, 끝까지 스크롤하는 동안 프레임 간격을 확인. INP·프레임은 GPU 없는 CI에서 잰 값의 약 2배를 회귀 상한으로 둠(INP 2초, 중앙값 800ms, 가장 긴 프레임 1.5초). Lighthouse·크기 기준은 그대로
+- 수정: 부하가 큰 기기에서 인트로 → 메인 이동이 몇 초씩 밀려 `site.spec.ts`의 WebGL 정리 검사가 시간을 넘기던 문제. 링크를 누른 뒤에도 장면이 매 프레임 메인 스레드를 붙잡은 것이 원인이라, 메인으로 들어가는 링크를 누르면 장면 그리기부터 멈춤(`PhoenixScene.stop`, 마지막 그림은 남음, 새 탭 클릭은 제외). 고치기 전에 실패하는 컴포넌트 테스트 추가
+- 접근성: Storybook 접근성 애드온(`a11y: { test: 'error' }`)과 모든 스토리를 axe로 검사하는 `e2e/storybook-a11y.spec.ts`
+- CI: `pnpm check`(`scripts/check.mjs`)로 로컬과 같은 검사. CI는 그 묶음을 불러 한 번 빌드한 결과(예전에는 Storybook을 두 번 빌드)를 넘겨 E2E·시각 회귀·크기와 Lighthouse를 나란히 돌림. pnpm·Playwright 브라우저·`.next/cache` 캐시, 같은 PR의 이전 실행 취소, 문서만 바뀌면 건너뜀(필수 검사 `check`는 통과), 실패할 때만 리포트·차이 이미지를 7일 보관
+
 ## 1.3.1 - 2026-11-27
 
 외부가 끊기거나 `.env`가 없어도 모든 화면이 내용과 함께 뜨는지, 빠진 화면·상태까지 오프라인 E2E로 검사하게 했습니다. 화면과 동작은 그대로입니다.

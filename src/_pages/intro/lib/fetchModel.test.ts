@@ -75,6 +75,17 @@ describe('fetchModel', () => {
     expect(ratios[0]).toBeLessThan(1);
   });
 
+  it('서버에 닿지 못하면(오프라인) 그 오류 그대로 실패한다', async () => {
+    // 아무도 듣지 않는 포트를 얻어 연결이 거절되게 합니다.
+    const closed = createServer();
+    await new Promise<void>((resolve) => closed.listen(0, '127.0.0.1', resolve));
+    const address = closed.address();
+    if (address === null || typeof address === 'string') throw new Error('시험 서버 주소를 얻지 못했습니다.');
+    await new Promise<void>((resolve) => closed.close(() => resolve()));
+    const pending = fetchModel(`http://127.0.0.1:${address.port}/phoenix.glb`, new AbortController().signal);
+    await expect(pending).rejects.toBeInstanceOf(TypeError);
+  });
+
   it('이미 멈춘 신호면 받지 않고 AbortError로 끝난다', async () => {
     const abort = new AbortController();
     abort.abort();

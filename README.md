@@ -1,7 +1,7 @@
 # project zero
 
 [![CI](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml/badge.svg)](https://github.com/ryushin01/Genesis/actions/workflows/ci.yml)
-![version](https://img.shields.io/badge/version-1.3.1-8B0000)
+![version](https://img.shields.io/badge/version-1.3.2-8B0000)
 
 다양한 신화관이 얽히고 우주적 규모로 확대되어 SF 전쟁까지 이어지는 대서사시, 소설 **프로젝트 제로**의 홍보 홈페이지입니다.
 
@@ -70,8 +70,10 @@ pnpm build && pnpm start     # 프로덕션 빌드와 실행
 | `pnpm build` | 프로덕션 빌드 |
 | `pnpm lint` · `pnpm lint:fsd` | ESLint · FSD 구조 검사 |
 | `pnpm typecheck` | 타입 검사 |
-| `pnpm test` | 단위·컴포넌트 테스트 |
-| `pnpm e2e` | 프로덕션 빌드 E2E 테스트 (오프라인 검사 `e2e/offline.spec.ts` 포함) |
+| `pnpm check` | CI와 같은 검사 전체(린트·FSD·타입·커버리지·빌드·E2E·크기·Lighthouse)를 같은 순서로 |
+| `pnpm test` · `pnpm test:coverage` | 단위·컴포넌트 테스트 · 커버리지(로직 계층 80%, 전체 기준선) |
+| `pnpm e2e` | 프로덕션 빌드 E2E 테스트 (오프라인·접근성·Storybook 접근성·성능) |
+| `pnpm visual:docker` | 시각 회귀 검사를 Linux 브라우저(Playwright 공식 Docker 이미지)로 (`--update-snapshots`로 기준 이미지 다시 만들기) |
 | `pnpm e2e:deployed` | 배포한 사이트(기본 운영 주소, `E2E_BASE_URL`로 바꿈)에 같은 오프라인 검사 |
 | `pnpm size` · `pnpm lhci` | 번들 크기 예산 · Lighthouse 점수 기준 검사 (먼저 빌드 필요) |
 | `pnpm fonts` | 한글 웹 폰트(우아한 세리프) 화면 글자 파일과 조각 다시 만들기 (화면 글자를 바꾼 뒤, `pip install fonttools brotli` 필요) |

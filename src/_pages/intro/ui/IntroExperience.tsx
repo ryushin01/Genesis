@@ -2,7 +2,7 @@
 
 import * as stylex from '@stylexjs/stylex';
 import Link from 'next/link';
-import { useEffect, useRef, useState } from 'react';
+import { type MouseEvent, useEffect, useRef, useState } from 'react';
 import { SOURCES_URL } from '@/shared/config';
 import { useReducedMotion } from '@/shared/lib';
 import { introTheme, VisuallyHidden } from '@/shared/ui';
@@ -455,6 +455,13 @@ export function IntroExperience() {
 
   const isLoading = motionOn && !sceneReady && !loadFailed;
 
+  // 메인으로 들어가면 화면이 바뀌기 전에 그리기부터 멈춥니다(마지막 그림은 남음). GPU 없이 그리는 기기에서는 장면이
+  // 메인 스레드를 차지해 화면 전환이 몇 초씩 밀리기 때문입니다. 새 탭으로 여는 클릭(보조 키·가운데 단추)은 이 화면에 남으므로 그대로 둡니다.
+  const leave = (event: MouseEvent<HTMLAnchorElement>) => {
+    if (event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    sceneRef.current?.stop();
+  };
+
   // 키보드로 버튼에 왔을 때도 깃털이 내려앉은 맨 아래 장면에서 보이게 합니다.
   const showFinale = () => {
     window.scrollTo({ top: document.documentElement.scrollHeight });
@@ -544,7 +551,7 @@ export function IntroExperience() {
               <br />
               제로에서 시작된다
             </h2>
-            <Link href="/main" {...stylex.props(styles.enter, styles.focusRing, revealed)} onFocus={showFinale}>
+            <Link href="/main" {...stylex.props(styles.enter, styles.focusRing, revealed)} onFocus={showFinale} onClick={leave}>
               메인으로 들어가기
             </Link>
             <p {...stylex.props(styles.credit, revealed)}>

@@ -8,7 +8,12 @@ const { className } = stylex.props(documentStyles.body);
 if (className) document.body.classList.add(...className.split(' '));
 
 const preview: Preview = {
-  parameters: { layout: 'fullscreen', nextjs: { appDirectory: true } },
+  parameters: {
+    layout: 'fullscreen',
+    nextjs: { appDirectory: true },
+    // 접근성 위반을 경고(todo)가 아니라 오류로 다룹니다.
+    a11y: { test: 'error' },
+  },
 };
 
 export default preview;

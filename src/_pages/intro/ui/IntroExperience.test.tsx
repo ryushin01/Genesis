@@ -1,12 +1,13 @@
-import { act, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { IntroExperience } from './IntroExperience';
 
 const setPaused = vi.fn();
+const stop = vi.fn();
 
 vi.mock('../lib/createPhoenixScene', () => ({
-  createPhoenixScene: () => ({ setProgress: vi.fn(), setPointer: vi.fn(), setPaused, dispose: vi.fn() }),
+  createPhoenixScene: () => ({ setProgress: vi.fn(), setPointer: vi.fn(), setPaused, stop, dispose: vi.fn() }),
 }));
 
 function stubReducedMotion(reduce: boolean) {
@@ -37,6 +38,7 @@ function stubChangingReducedMotion(initial: boolean) {
 describe('IntroExperience', () => {
   beforeEach(() => {
     setPaused.mockClear();
+    stop.mockClear();
     window.scrollTo = vi.fn();
   });
 
@@ -123,5 +125,21 @@ describe('IntroExperience', () => {
     render(<IntroExperience />);
     screen.getByRole('link', { name: '메인으로 들어가기' }).focus();
     expect(window.scrollTo).toHaveBeenCalled();
+  });
+
+  it('메인으로 들어가는 링크를 누르면 화면이 바뀌기 전에 장면 그리기부터 멈춘다', async () => {
+    // GPU 없이 그리는 느린 기기에서는 장면이 메인 스레드를 차지해, 그리기를 멈추지 않으면 화면 전환이 몇 초씩 늦어집니다.
+    stubReducedMotion(false);
+    render(<IntroExperience />);
+    await screen.findByRole('button', { name: '배경 애니메이션 정지' });
+    const enter = screen.getByRole('link', { name: '메인으로 들어가기' });
+    // 이동은 막고(시험 환경에는 라우터가 없음) 누른 순간의 동작만 봅니다.
+    enter.addEventListener('click', (event) => event.preventDefault());
+
+    // 새 탭으로 여는 클릭은 이 화면에 남으므로 멈추지 않습니다.
+    fireEvent.click(enter, { ctrlKey: true });
+    expect(stop).not.toHaveBeenCalled();
+    fireEvent.click(enter);
+    expect(stop).toHaveBeenCalledTimes(1);
   });
 });

@@ -71,7 +71,7 @@
 
 ## E2E
 
-WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립니다. 프로덕션 서버는 3210 포트에 띄우고, 같은 기기의 다른 앱이 그 포트를 쓰고 있으면 `E2E_PORT=3290 pnpm e2e`처럼 바꿉니다. 데스크톱에서는 인트로와 메인을 두 번 오간 뒤 살아 있는 WebGL 컨텍스트가 0개이고 그리기 루프(rAF)도 멈췄는지 확인합니다. 첫 왕복에서는 매 프레임 메인 스레드를 40ms씩 붙잡아 해상도 자동 조절이 일어난 뒤에 떠납니다(조절하며 루프가 둘로 갈라지면 하나가 남던 문제의 회귀 검사). 이 검사만 화면을 800×500으로 줄여 GPU 없는 CI에서도 15초 안팎에 끝납니다.
+WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립니다. 프로덕션 서버는 3210 포트에 띄우고, 같은 기기의 다른 앱이 그 포트를 쓰고 있으면 `E2E_PORT=3290 pnpm e2e`처럼 바꿉니다. 데스크톱에서는 인트로와 메인을 두 번 오간 뒤 살아 있는 WebGL 컨텍스트가 0개이고 그리기 루프(rAF)도 멈췄는지 확인합니다. 첫 왕복에서는 매 프레임 메인 스레드를 40ms씩 붙잡아 해상도 자동 조절이 일어난 뒤에 떠납니다(조절하며 루프가 둘로 갈라지면 하나가 남던 문제의 회귀 검사). 이 검사만 화면을 800×500으로 줄여 GPU 없는 CI에서도 15초 안팎에 끝납니다. 이 검사가 부하가 큰 기기에서 가끔 메인으로 넘어가지 못하고 시간을 넘기던 원인은, 링크를 누른 뒤에도 장면이 매 프레임 메인 스레드를 붙잡아 화면 전환(주소 바뀜)이 몇 초씩 밀린 것이었습니다. 1.3.2부터 메인으로 들어가는 링크를 누르면 장면 그리기부터 멈춥니다(`PhoenixScene.stop`, 마지막 그림은 남음).
 
 ### 오프라인 검사
 
@@ -94,6 +94,51 @@ WebGL 장면을 GPU 없이 그리므로 Playwright는 작업자 1개로 돌립�
 | 라틴 글꼴(Inter·JetBrains Mono·Cormorant 기울임) | `next/font/google` 대신 `next/font/local`로 저장소 파일(`src/_app/styles/fonts`, Fontsource 라틴 조각, OFL)을 씀. 빌드할 때도 네트워크가 필요 없음 |
 | 한글 글꼴·3D 모델·Storybook | 원래 저장소(`src/_app/styles/fonts`, `public/fonts`, `public/models`, `public/storybook`)에 있음 |
 | Sentry·web-vitals | DSN이 없으면 Sentry를 번들에 넣지 않음. DSN이 있어도 보내기 실패는 화면에 영향이 없음 |
+
+### 시각 회귀
+
+`e2e/visual.spec.ts`가 화면을 기준 이미지(`e2e/__screenshots__/desktop/` 41장, `mobile/` 38장)와 픽셀 단위로 비교합니다(`maxDiffPixels: 0`, `threshold: 0`). 인트로 각 장·끝 장면(장면 없이 CSS 배경)·호버·초점, 로딩 화면, 정지 버튼(장면을 띄운 뒤 캔버스만 숨김), 동작 줄이기, 메인 각 구역·스크롤 연출·바로가기·메뉴, 404, Storybook의 오류·알림·메뉴 스토리입니다. WebGL 캔버스는 GPU·드라이버마다 그림이 달라 비교하지 않습니다.
+
+- 찍는 브라우저는 로컬·CI 모두 Playwright 공식 Docker 이미지(`mcr.microsoft.com/playwright:v<버전>-noble`)입니다. `pnpm visual:docker`가 그 이미지에서 브라우저 서버(run-server)만 띄우고, 테스트와 E2E 서버는 이 기기에서 돌려 그 브라우저에 붙습니다. 같은 Linux라도 CI 러너의 브라우저로 찍으면 그러데이션·글자가 달라(화면의 최대 48%) 이렇게 맞췄습니다. 그러데이션은 CPU 종류마다 래스터 결과도 달라(같은 이미지라도 ARM과 x86의 인트로 화면이 44% 다름) `linux/amd64` 이미지를 씁니다. Apple Silicon에서는 colima를 `colima start --arch x86_64`(또는 `--vz-rosetta`)로 켭니다. 기준 이미지는 CI에서 찍은 것입니다(실패한 실행의 `reports`에 있는 `*-actual.png`).
+- 그래서 Playwright 프로젝트 `visual-desktop`·`visual-mobile`은 그 브라우저에 붙을 때만 켜지고, 그냥 `pnpm e2e`에서는 건너뜁니다. `pnpm check`는 E2E 다음 단계로 `pnpm visual:docker`를 부르므로 Docker(colima 가능)가 켜져 있어야 합니다. 기준을 새로 만들 때는 `pnpm visual:docker --update-snapshots`. 다 쓰면 `colima stop`으로 끕니다(다른 작업의 컨테이너가 없는지 먼저 확인).
+- 화면을 일부러 바꿨으면 기준 이미지를 다시 만들어 같은 PR에 넣습니다. CI에서 실패하면 실행의 `reports` 결과물(7일 보관)에 차이 이미지(`*-diff.png`)와 실제 이미지가 있습니다.
+
+### 성능(3D 인트로)
+
+Lighthouse는 장면이 뜨기 전에 재므로 `e2e/performance.spec.ts`가 장면을 띄운 뒤를 잽니다. web-vitals(앱과 같은 라이브러리)로 LCP·CLS·INP(정지 버튼)를 받고, 4초 동안 끝까지 스크롤하며 프레임 간격을 모읍니다(데스크톱 1440×900).
+
+| 지표 | 기준 | CI에서 잰 값(1.3.2) |
+|---|---|---|
+| LCP · CLS | Web Vitals '좋음' 2.5초 · 0.1 | 112ms · 0.0026 |
+| INP(정지 버튼) | 2초 이하 | 928ms |
+| 프레임 간격 중앙값 · 가장 긴 프레임 | 800ms · 1.5초 이하 | 383ms · 483ms |
+
+CI는 GPU 없이 소프트웨어로 그려 한 프레임이 수백 ms이므로 INP·프레임은 실제 기기 기준(200ms, 60fps)을 쓸 수 없어, CI 값의 약 2배를 회귀 상한으로 둡니다(해상도 자동 조절이 깨지거나 메인 스레드를 오래 붙잡는 변경을 잡음). 잰 값은 테스트 주석(`측정`)과 로그에 남습니다.
+
+### 접근성 검사 범위
+
+axe는 모든 화면·상태를 봅니다: `site.spec.ts`(동작 줄이기 인트로, 메인, 404), `offline.spec.ts`(3D 장면 끝 장면, 모델 실패 CSS 배경, 동작 줄이기, 메인, 메뉴 열림, 404, 오류 화면), `storybook-a11y.spec.ts`(Storybook의 모든 스토리, `index.json`에서 목록을 읽음). Storybook에는 접근성 애드온(`@storybook/addon-a11y`)을 켜고 `a11y: { test: 'error' }`로 위반을 오류로 다룹니다.
+
+## 단위 테스트 커버리지
+
+`pnpm test:coverage`(Vitest + `@vitest/coverage-v8`)는 `src`의 모든 소스(테스트·스토리 제외)를 잽니다. 기준은 `vitest.config.ts`에 있습니다.
+
+| 묶음 | 기준 |
+|---|---|
+| 로직 계층: `shared/lib`, `*/model`, `*/api`, 장면 모델 받기·진행률(`intro/lib/fetchModel.ts`) | 문장·분기·함수·줄 80% 이상 |
+| 전체 | 기준선(1.3.2에서 잰 값의 내림: 문장 53·분기 54·함수 61·줄 52%) 이상 |
+
+WebGL 장면(`createPhoenixScene.ts`, `lib/scene/*`의 일부)은 jsdom에서 그릴 수 없어 E2E가 봅니다. 테스트를 더해 전체가 오르면 기준선도 함께 올립니다. `node scripts/coverage-summary.mjs`가 묶음별 표를 찍고, CI에서는 실행의 Summary에 붙입니다.
+
+## CI와 `pnpm check`
+
+`pnpm check`(`scripts/check.mjs`)가 CI와 같은 검사를 같은 순서로 돌립니다: 린트 → FSD → 타입 → 단위·커버리지 → 커버리지 요약 → 빌드(Storybook + Next) 한 번 → E2E(`E2E_PREBUILT=1`로 그 빌드를 다시 씀) → 시각 회귀(`pnpm visual:docker`) → 크기 → Lighthouse. 로컬에서는 Lighthouse 결과를 바깥에 올리지 않고 `.lighthouseci`에 저장합니다. 장비가 바쁘면 `E2E_PORT`로 빈 포트를 씁니다. `pnpm check --only static,e2e`처럼 묶음(`static`·`e2e`·`visual`·`budget`)만 고를 수 있습니다.
+
+CI(`.github/workflows/ci.yml`)도 이 묶음을 부릅니다. `build` 작업이 `pnpm check --only static`으로 한 번 빌드해 결과(`.next`, `public/storybook`)를 올리면, `e2e`·`visual`·`budget`(크기·Lighthouse) 작업이 그것을 받아 나란히 돕니다. 필수 검사는 이들을 모으는 `check` 작업입니다.
+
+- 캐시: pnpm 저장소(`setup-node`), Playwright 브라우저(`~/.cache/ms-playwright`, Playwright 버전마다. 있으면 시스템 라이브러리만 설치), `.next/cache`(잠금 파일·소스 해시). 토큰이 필요한 원격 캐시는 쓰지 않습니다.
+- 같은 PR에 새로 푸시하면 이전 실행을 취소합니다(`concurrency`). 문서(`*.md`, `docs/`)만 바뀌면 `changes` 작업이 나머지를 건너뛰고 `check`는 통과합니다.
+- 실패했을 때만 작업마다 `reports-*` 결과물(Playwright HTML 리포트·차이 이미지·트레이스, 커버리지, Lighthouse)을 올리고 7일 보관합니다.
 
 ## 디자인 시스템(Storybook) 배포
 
