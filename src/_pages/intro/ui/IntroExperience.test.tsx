@@ -55,6 +55,14 @@ describe('IntroExperience', () => {
     expect(motion.container.querySelectorAll('[data-still]')).toHaveLength(0);
   });
 
+  it('머리글 로고는 화면 크기(40px)와 같은 그림을 1배 화면에 써서 줄여 그리지 않는다', () => {
+    stubReducedMotion(true);
+    render(<IntroExperience />);
+    const logo = screen.getByRole('img', { name: 'project zero' });
+    expect(logo).toHaveAttribute('width', '40');
+    expect(logo.getAttribute('srcset')).toContain('/brand/logo-40.webp 1x');
+  });
+
   it('메인으로 가는 링크는 이야기 마지막에 하나만 있다', () => {
     stubReducedMotion(true);
     render(<IntroExperience />);
