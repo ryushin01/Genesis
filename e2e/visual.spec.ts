@@ -25,7 +25,9 @@ async function scrollTo(page: Page, y: number) {
         requestAnimationFrame(() => requestAnimationFrame(() => requestIdleCallback(() => resolve(), { timeout: 2000 })));
       }),
   );
-  await page.waitForTimeout(800);
+  // 이미지를 다 풀어 둔 뒤(체커 이미징으로 늦게 그려지는 것 방지) 다시 그릴 시간을 둡니다.
+  await page.evaluate(() => Promise.all([...document.images].map((image) => image.decode().catch(() => undefined))));
+  await page.waitForTimeout(1000);
 }
 
 /** 메인 구역의 위치(구역 높이에서 화면 높이를 뺀 거리의 비율). */
